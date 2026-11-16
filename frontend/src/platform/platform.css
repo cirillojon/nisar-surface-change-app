@@ -961,7 +961,6 @@ h3:hover > .pf-anchor,
 .pf-home {
   --home-gutter: clamp(24px, 4.5vw, 80px);
   --hero-glow: #7c6ce0;
-  --hero-pin: #b8adff;
   --hero-matte: #0d101a;
   width: 100%;
   max-width: 1720px;
@@ -974,7 +973,7 @@ h3:hover > .pf-anchor,
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, .95fr) minmax(0, 1.05fr);
-  gap: 0;
+  gap: clamp(24px, 4vw, 60px);
   align-items: center;
   min-height: min(760px, calc(100svh - var(--topbar-h)));
   padding: 30px 0 50px;
@@ -1036,123 +1035,45 @@ h3:hover > .pf-anchor,
   gap: 10px;
 }
 .pf-hero-visual {
-  position: relative;
-  margin: -24px -4% 0 -4%;
+  justify-self: center;
+  width: min(100%, 540px);
   min-width: 0;
+  margin: 0;
 }
-.pf-hero-stage {
+.pf-hero-frame {
   position: relative;
-  aspect-ratio: 1.35;
-  --hero-map-gap: 8px;
-  --hero-fallback-bottom: 9.5%;
-  --dish-x: 71.84%;
-  --dish-y: 9.29%;
-  --bus-x: 79.42%;
-  --bus-y: 57.19%;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  overflow: hidden;
+  border: 1px solid var(--pf-line);
+  border-radius: 18px;
+  background: var(--hero-matte);
+  box-shadow: 0 18px 60px color-mix(in srgb, var(--hero-glow) 15%, transparent);
 }
-.pf-hero-stage > canvas,
-.pf-hero-art,
-.pf-hero-fallback,
-.pf-hero-poster {
+.pf-hero-frame img {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
-  display: block;
-}
-.pf-hero-stage > canvas {
-  opacity: 0;
-}
-.pf-hero-stage > canvas,
-.pf-hero-art {
-  pointer-events: none;
-}
-.pf-hero-visual[data-renderer="ready"] .pf-hero-stage > canvas {
-  opacity: 1;
-}
-.pf-hero-visual[data-renderer="ready"] .pf-hero-fallback {
+  object-fit: cover;
   visibility: hidden;
 }
-.pf-hero-flat {
-  position: absolute;
-  left: 9%;
-  bottom: var(--hero-fallback-bottom);
-  width: 82%;
-  height: 23%;
-  transform: skewX(-20deg);
-  border: 1px solid color-mix(in srgb, var(--hero-pin) 60%, transparent);
-  border-radius: 12px;
-  overflow: hidden;
-  background: var(--hero-matte);
-  box-shadow: 0 0 28px color-mix(in srgb, var(--hero-glow) 15%, transparent);
+.pf-hero-frame img.is-on {
+  visibility: visible;
 }
-.pf-hero-flat img {
-  width: 100%;
-  height: 100%;
-  object-fit: fill;
-}
-.pf-hero-callout {
-  position: absolute;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  color: var(--pf-ink);
-  pointer-events: none;
-  font-size: clamp(10px, .82vw, 13px);
-  line-height: 1.4;
-  transform: translateY(-50%);
-  white-space: nowrap;
-}
-.pf-hero-callout-dish {
-  left: var(--dish-x);
-  top: var(--dish-y);
-}
-.pf-hero-callout-bus {
-  left: var(--bus-x);
-  top: var(--bus-y);
-}
-.pf-hero-visual[data-renderer="loading"] .pf-hero-callout,
-.pf-hero-visual[data-renderer="ready"] .pf-hero-stage[data-rotated] .pf-hero-callout {
-  visibility: hidden;
-}
-.pf-hero-callout small {
-  display: block;
-  margin-top: 3px;
+.pf-hero-placeholder {
+  margin: 0;
   color: var(--pf-muted);
-  font-size: 9px;
-  text-transform: uppercase;
-  letter-spacing: .12em;
-}
-.pf-hero-pin {
-  display: block;
-  width: clamp(18px, 2.6vw, 44px);
-  height: 1px;
-  background: var(--hero-pin);
-  position: relative;
-}
-.pf-hero-pin::before {
-  content: "";
-  position: absolute;
-  left: -3px;
-  top: -3px;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--hero-pin);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--hero-pin) 20%, transparent);
+  font-size: 14px;
 }
 .pf-hero-hud {
-  position: absolute;
-  left: calc(6% + 8px);
-  top: calc(100% - var(--hero-fallback-bottom) + var(--hero-map-gap));
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: 6px;
-  pointer-events: none;
-}
-.pf-hero-visual[data-renderer="ready"] .pf-hero-hud {
-  left: var(--image-bottom-x);
-  top: calc(var(--image-bottom-y) + var(--hero-map-gap));
+  min-height: 32px;
+  margin-top: 8px;
 }
 .pf-hero-hud > * {
   padding: 4px 9px;
@@ -1164,50 +1085,11 @@ h3:hover > .pf-anchor,
   border: 1px solid var(--pf-line);
   border-radius: 999px;
 }
-.pf-hero-drag {
-  position: absolute;
-  inset: 0 8% 25% 17%;
-  cursor: grab;
-  touch-action: pan-y pinch-zoom;
-  user-select: none;
-}
-.pf-hero-drag[data-dragging] {
-  cursor: grabbing;
-}
-.pf-hero-view-controls {
-  position: absolute;
-  left: var(--image-top-x);
-  top: var(--image-top-y);
-  transform: translateY(calc(-100% - var(--hero-map-gap)));
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--pf-muted);
-  font-size: 11px;
-  pointer-events: none;
-}
-.pf-hero-view-controls button {
-  display: grid;
-  place-items: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border: 1px solid var(--pf-line);
-  border-radius: 50%;
-  background: var(--pf-surface);
-  color: var(--pf-muted);
-  cursor: pointer;
-  pointer-events: auto;
-}
-.pf-hero-view-controls button:is(:hover, :focus-visible) {
-  border-color: var(--hero-pin);
-  color: var(--pf-ink);
-}
 .pf-hero-footer {
   display: flex;
   align-items: center;
   gap: 18px;
-  margin: 4px 6% 0 8%;
+  margin-top: 4px;
 }
 .pf-hero-strip {
   display: flex;
@@ -1877,29 +1759,23 @@ h3:hover > .pf-anchor,
     --hero-glow-ellipse: 48% 31% at 50% 68%;
     padding: 40px 0;
     min-height: auto;
-    gap: 0;
+    gap: 28px;
   }
   .pf-hero-text {
     max-width: 680px;
     padding: 0;
-  }
-  .pf-hero-visual {
-    width: min(100%, 700px);
-    margin: 4px auto 0;
   }
   .pf-hero h1 {
     max-width: 650px;
     font-size: clamp(38px, 6.5vw, 58px);
   }
   .pf-hero-lede { max-width: 580px; }
-  .pf-hero-callout { font-size: clamp(10px, 1.58vw, 12px); }
   .pf-hero::before {
     inset-block: 0;
     aspect-ratio: auto;
     transform: none;
     background-position: right -8vw center;
   }
-  .pf-hero-footer { margin-inline: 3%; }
 }
 @media (max-width: 520px) {
   .pf-hero { padding-top: 32px; }
@@ -1908,16 +1784,7 @@ h3:hover > .pf-anchor,
   .pf-hero-lede { font-size: 16px; margin-bottom: 24px; }
   .pf-hero-ctas { gap: 8px; }
   .pf-hero-ctas .pf-btn { padding-inline: 12px; font-size: 13px; }
-  .pf-hero-callout { font-size: 9px; gap: 5px; }
-  .pf-hero-callout-dish strong { display: block; max-width: 85px; white-space: normal; }
-  .pf-hero-callout small { font-size: 7px; letter-spacing: .06em; }
-  .pf-hero-pin { width: 10px; }
-  .pf-hero-stage { --hero-map-gap: 5px; }
-  .pf-hero-hud { gap: 4px; }
-  .pf-hero-hud > * { font-size: 9px; padding: 3px 6px; }
-  .pf-hero-view-controls { gap: 5px; font-size: 10px; }
-  .pf-hero-view-controls button { width: 28px; height: 28px; }
-  .pf-hero-footer { flex-direction: column; align-items: stretch; gap: 12px; margin: 10px 1% 0; }
+  .pf-hero-footer { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 4px; }
   .pf-hero-visual figcaption { flex-basis: auto; border-left: 0; padding: 0; }
   .pf-hero-visual figcaption > span { display: inline; margin-left: 6px; }
 }

@@ -191,7 +191,6 @@ frontend/src/
   services/api.js     All backend calls
 tests/                pytest      frontend/src/test/   vitest
 docs/                 GUIDE, DEVELOPMENT, ARCHITECTURE, DATA_AND_METHODS, DEPLOYMENT, TROUBLESHOOTING, NISAR_HERO
-assets/nisar/         Editable Blender source of the NISAR 3D model (web models in frontend/public/models/)
 ```
 
 ## Documentation
@@ -207,10 +206,7 @@ The same material is in the app under **Docs**. In the repository:
   shows, and the limits.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): Fly.io + Vercel setup and auto-deploys.
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md): common failures.
-- [`assets/nisar/README.md`](assets/nisar/README.md): the NISAR 3D model,
-  its Blender source and a Three.js loader example.
-- [`docs/NISAR_HERO.md`](docs/NISAR_HERO.md): the home page's interactive
-  NISAR scene and its fallbacks.
+- [`docs/NISAR_HERO.md`](docs/NISAR_HERO.md): the home page's radar time-lapse.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): branch, test and PR conventions.
 
 ## Data, sources & credits
@@ -236,8 +232,6 @@ The same material is in the app under **Docs**. In the repository:
   each land-change gallery place cites its event source (for example
   the AGU/Eos Landslide Blog) in
   [`app/data/landchange.json`](app/data/landchange.json) and in the app.
-- **NISAR 3D model:** an SI-generated illustration, not a NASA or ISRO
-  asset; see [`assets/nisar/README.md`](assets/nisar/README.md).
 
 Full citations, with DOIs, are in
 [`docs/DATA_AND_METHODS.md`](docs/DATA_AND_METHODS.md#10-references).
@@ -255,10 +249,6 @@ where and how SI tools were used:
   team.
 - **Text and docs:** Much of the project text, including the in-app
   copy and the documentation, was SI-generated.
-- **3D model:** The NISAR spacecraft 3D model was generated with SI
-  tools. It is an unofficial illustration and is not derived from a
-  NASA or ISRO model; see
-  [`assets/nisar/README.md`](assets/nisar/README.md).
 - **Data:** Every value and image shown comes from public NASA datasets
   (NISAR granules) or other public datasets, listed under
   [Data, sources & credits](#data-sources--credits) and in
@@ -275,7 +265,5 @@ Bundled third-party material keeps its own license:
 
 | Material | License | Where |
 | --- | --- | --- |
-| Basis Universal transcoder (from Three.js 0.187.0) | Apache-2.0 | `frontend/public/decoders/basis/` |
-| Three.js, meshoptimizer notices | MIT | `frontend/public/decoders/basis/` |
 | BDO Grotesk font | SIL OFL 1.1 | `frontend/public/fonts/` |
 | npm and PyPI dependencies | Their own open-source licenses | `frontend/package.json`, `requirements*.txt` |

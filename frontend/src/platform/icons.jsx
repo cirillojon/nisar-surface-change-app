@@ -15,7 +15,6 @@ const paths = {
   drawLine: "m7.4 16.6 9.2-9.2M8 18a2 2 0 1 0-4 0 2 2 0 0 0 4 0Zm12-12a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z",
   compass: "M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0ZM15.5 8.5l-2 5-5 2 2-5 5-2Z",
   menu: "M4 6h16M4 12h16M4 18h16",
-  resetView: "M4 12a8 8 0 1 1 2.34 5.66M4 12V6m0 6h6",
 };
 
 export function Icon({ name, size = 20, strokeWidth = 1.7 }) {
