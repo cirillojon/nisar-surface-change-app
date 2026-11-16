@@ -1,0 +1,59 @@
+# Git
+.git
+.gitignore
+.gitattributes
+.github/
+
+# Frontend (built and hosted separately on Vercel)
+frontend/
+
+# Not needed at runtime
+tests/
+scripts/
+mcp_server/
+docs/
+notes/
+README.md
+CONTRIBUTING.md
+requirements-dev.txt
+requirements-data.txt
+requirements-mcp.txt
+
+# Local data (the volume provides app-data/ in production)
+app-data/
+*.db
+*.db-journal
+backups/
+*.h5
+nisar-downloads/
+
+# Secrets: pass at runtime via `fly secrets set`
+.env
+.env.*
+service-account*.json
+.netrc
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+.pytest_cache/
+htmlcov/
+.coverage
+*.log
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Editors / OS
+.idea/
+.vscode/
+.claude/
+**/*.swp
+.DS_Store
+
+# Deploy config (host-side only)
+Dockerfile
+.dockerignore
+fly.toml

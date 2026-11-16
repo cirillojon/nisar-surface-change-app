@@ -201,7 +201,7 @@ docs/                 TEAM_GUIDE, DEVELOPMENT, ARCHITECTURE, DATA_AND_METHODS, D
 - [`docs/DATA_AND_METHODS.md`](docs/DATA_AND_METHODS.md): sources and
   citations, how each value and moment is computed, what each site
   shows, and the limits.
-- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): running it on a server.
+- [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): Fly.io + Vercel setup and auto-deploys.
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md): common failures.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): branch, test and PR conventions.
 

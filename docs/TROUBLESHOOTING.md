@@ -120,7 +120,8 @@ set `VITE_PROXY_URL` in `frontend/.env`), then restart `npm run dev`.
 
 **A docs page or `/workspace` returns 404 after a refresh in production**
 The static host isn't serving `index.html` for client-side routes. Add
-the fallback described in [DEPLOYMENT.md](DEPLOYMENT.md#frontend).
+the fallback described in [DEPLOYMENT.md](DEPLOYMENT.md#other-hosts)
+(on Vercel, `frontend/vercel.json` already does this).
 
 **Scene images don't appear on the map in production**
 The frontend was built without `VITE_API_BASE_URL`, so it requests
