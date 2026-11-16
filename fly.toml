@@ -3,7 +3,7 @@
 # main that touches the backend deploys via .github/workflows/fly-deploy.yml.
 
 app = 'nisar-surface-change'
-primary_region = 'sea'
+primary_region = 'sjc'
 
 [build]
   dockerfile = 'Dockerfile'

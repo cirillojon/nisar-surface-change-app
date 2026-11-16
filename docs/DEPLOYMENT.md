@@ -21,7 +21,7 @@ From the repo root:
 
 ```bash
 fly launch --copy-config --no-deploy          # creates the app from fly.toml
-fly volumes create app_data --region sea --size 3
+fly volumes create app_data --region sjc --size 3
 fly secrets set EARTHDATA_TOKEN=<token>       # SME2 display, see below
 fly secrets set ALLOWED_ORIGINS=https://<vercel-domain>   # set after step 2
 fly deploy
