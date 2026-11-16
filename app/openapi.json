@@ -1814,9 +1814,17 @@
             "type": "string",
             "description": "What in the record fits, with numbers and dates."
           },
+          "evidence_summary": {
+            "type": "string",
+            "description": "Short version of the evidence shown alongside the map."
+          },
           "alternative": {
             "type": "string",
             "description": "Another explanation that fits the same data."
+          },
+          "caveat_summary": {
+            "type": "string",
+            "description": "Key qualification to show alongside the evidence."
           },
           "test": {
             "type": "string",
@@ -1828,6 +1836,13 @@
               "type": "integer"
             },
             "description": "Moments this hypothesis addresses."
+          },
+          "imagery_pair": {
+            "type": "array",
+            "items": { "type": "string", "format": "date" },
+            "minItems": 2,
+            "maxItems": 2,
+            "description": "Before and after pass dates when a gallery hypothesis uses a specific comparison."
           }
         }
       }

@@ -414,9 +414,9 @@
   line-height: 1.45;
 }
 .story-head h2 {
-  margin: 2px 0 6px;
-  font-size: 19px;
-  font-weight: 500;
+  margin: 4px 0 10px;
+  font-size: 21px;
+  font-weight: 600;
   letter-spacing: -0.02em;
   line-height: 1.25;
 }
@@ -437,29 +437,113 @@
 .story-question {
   font-size: 14px;
 }
-.story-channel {
-  padding: 8px 10px;
+.story-lead {
+  display: grid;
+  gap: 6px;
+  margin-block: 12px 10px;
+}
+.story-head .story-lead p {
+  margin: 0;
+  font-size: 13px;
+}
+.story-lead-label {
+  color: var(--fg-muted);
+}
+.story-pass-pair {
+  position: relative;
+  isolation: isolate;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  padding: 2px;
   border-radius: var(--radius);
   background: var(--bg-elevated);
+}
+.story-pass-pair::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset-block: 2px;
+  inset-inline-start: 2px;
+  inline-size: calc(50% - 2px);
+  border-radius: calc(var(--radius) - 2px);
+  background: var(--selected-control-bg);
+  opacity: 0;
+  pointer-events: none;
+}
+.story-pass-pair:has(> .story-pass[aria-current="true"])::before {
+  opacity: 1;
+}
+.story-pass-pair:has(> .story-pass:nth-of-type(2)[aria-current="true"])::before {
+  transform: translateX(100%);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .story-pass-pair::before {
+    transition: transform 180ms var(--ease-out), opacity 120ms ease;
+  }
+}
+.story-evidence-action {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2px 8px;
+  min-block-size: 38px;
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 13px;
+  text-align: start;
+  cursor: pointer;
+}
+.story-evidence-action > :first-child {
+  color: var(--fg-muted);
+  text-decoration: underline;
+  text-decoration-color: var(--control-border);
+  text-underline-offset: 0.2em;
+}
+.story-evidence-action[aria-current="true"] > :first-child {
+  color: var(--fg);
+  text-decoration-color: currentColor;
+}
+.story-evidence-action strong {
+  font-variant-numeric: tabular-nums;
+}
+.story-pass {
+  align-content: center;
+  justify-content: center;
+  gap: 0 6px;
+  min-block-size: 44px;
+  padding: 4px 8px;
+  border-radius: calc(var(--radius) - 2px);
+}
+.story-pass strong {
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+}
+.story-pass > :first-child {
+  font-size: 12px;
+  text-decoration: none;
 }
 .story-record {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 2px 8px;
+  gap: 2px 5px;
   margin: 0;
   color: var(--fg-muted);
   font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
-.story-record strong {
-  color: var(--fg);
+.story-main-limit {
+  color: var(--fg-muted);
+  font-size: 13px;
 }
-.story-channel-summary {
-  margin-bottom: 0;
-}
-.story-chapter,
-.story-evidence {
+.story-chapter {
   padding-top: 9px;
   margin-top: 4px;
   border-top: 1px solid var(--border);
@@ -472,16 +556,27 @@
 .story-chapter p {
   margin: 0 0 8px;
 }
+.story-chapter-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 2px 8px;
+}
+.story-chapter-head h3 {
+  margin-block-end: 2px;
+}
+.story-chapter-head > span {
+  color: var(--fg-muted);
+  font-size: 12px;
+}
 .story-limits {
-  margin: 0;
+  margin: 8px 0 0;
   padding-inline-start: 16px;
   font-size: 13px;
 }
 .story-limits li + li {
   margin-top: 4px;
-}
-.story-keep {
-  margin-top: 2px;
 }
 .story-data {
   margin-top: 12px;
@@ -517,7 +612,7 @@
 }
 .hypothesis {
   display: grid;
-  gap: 5px;
+  gap: 2px;
   padding-block: 6px 8px;
 }
 .hypothesis + .hypothesis {
@@ -528,9 +623,6 @@
   font-size: 14.5px;
   font-weight: 500;
   line-height: 1.35;
-}
-.story-chapter > .story-uncertainty {
-  margin-bottom: 3px;
 }
 .hypothesis-toggle {
   display: flex;
@@ -563,14 +655,13 @@
 }
 .hypothesis :is(.hypothesis-observation, .hypothesis-caveat) {
   margin: 0;
-  font-size: 12.5px;
-}
-.hypothesis-caveat {
   color: var(--fg-muted);
+  font-size: 13px;
 }
 .hypothesis-caveat strong {
   color: var(--fg);
-  margin-inline-end: 3px;
+  font-weight: 500;
+  margin-inline-end: 2px;
 }
 .hypothesis-moments {
   display: flex;
@@ -589,6 +680,7 @@
   font: inherit;
   font-size: 11.5px;
   font-variant-numeric: tabular-nums;
+  text-align: start;
   cursor: pointer;
 }
 .story-moment strong {
@@ -606,6 +698,13 @@
     background: var(--bg-elevated);
     color: var(--fg);
   }
+  .story-evidence-action:hover > :first-child {
+    color: var(--fg);
+    text-decoration-color: currentColor;
+  }
+  .story-pass:hover:not([aria-current="true"]) {
+    background: color-mix(in srgb, var(--fg) 8%, transparent);
+  }
 }
 .hypothesis-details {
   display: grid;
@@ -617,6 +716,11 @@
 }
 .hypothesis-details[hidden] {
   display: none;
+}
+.hypothesis-details dl {
+  display: grid;
+  gap: 8px;
+  margin: 0;
 }
 .hypothesis-details dt {
   font-weight: 500;

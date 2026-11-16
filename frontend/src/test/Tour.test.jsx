@@ -242,7 +242,7 @@ describe("<Tour />", () => {
   it("brings it together at Langtang, points at the possible explanations, and closes on one thing to remember", () => {
     // What those steps point at: the land player's bar and the story's hypotheses.
     onPage('<div class="map-timeline"><span class="scene-slider">bar</span></div>', "span")(200, 600);
-    onPage('<div class="story-panel"><h3 id="story-why-h">Why might this be happening?</h3></div>', "h3")(20, 300);
+    onPage('<div class="story-panel"><h3 id="story-why-h">Possible explanations</h3></div>', "h3")(20, 300);
     const a = actions();
     const onEnd = vi.fn();
     const { rerender } = render(<Tour state={{ ...idle, landDate: "2026-08-31" }} actions={a} onEnd={onEnd} startAt={at("langtang")} />);

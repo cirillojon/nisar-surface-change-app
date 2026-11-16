@@ -1029,9 +1029,11 @@ code {
 }
 
 /* ── Detail panel ── */
+:is(.detail-overview, .detail.panel, .story-head-row, .findings-open) > .btn-link {
+  font-size: 13px;
+}
 .detail-overview > .btn-link,
 .detail.panel > .btn-link {
-  font-size: 13px;
   margin-bottom: 10px;
 }
 .detail-meta {

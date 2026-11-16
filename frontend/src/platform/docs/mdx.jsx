@@ -13,7 +13,7 @@ import { Icon } from "../icons.jsx";
 import { workspaceHref } from "../workspaceContext.js";
 import CodeBlock from "./CodeBlock.jsx";
 
-const REPO = "https://github.com/cirillojon/nisar-surface-change/blob/main";
+const REPO = "https://github.com/cirillojon/nisar-surface-change-app/blob/main";
 
 function slugify(node) {
   const text = typeof node === "string" ? node : Children.toArray(node).map((c) =>

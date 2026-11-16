@@ -204,7 +204,7 @@ def _moments_for(site: dict) -> tuple[dict, list[dict]]:
     chain = chains.get_site_chain(site)
     if not chain.get("available"):
         return chain, []
-    keys = ("title", "caption", "start", "end", "focus", "display", "detail", "unit", "layer")
+    keys = ("title", "caption", "start", "end", "focus", "display", "detail", "unit", "layer", "stat", "readings")
     return chain, [{k: m.get(k) for k in keys if m.get(k) is not None} | {"index": i}
                    for i, m in enumerate(chain.get("moments") or [])]
 

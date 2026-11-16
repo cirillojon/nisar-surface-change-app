@@ -118,7 +118,29 @@ describe("StoryList", () => {
 });
 
 describe("StoryPanel", () => {
-  it("asks the question, then offers short hypothesis cards, limits and why it matters", async () => {
+  it("keeps the title and action row mounted while the details load", async () => {
+    let resolveStory;
+    fetchStory.mockReturnValue(new Promise((resolve) => { resolveStory = resolve; }));
+    render(<StoryPanel slug={story.slug} summary={story} onBack={() => {}} />);
+
+    const title = screen.getByRole("heading", { name: story.title });
+    const back = screen.getByRole("button", { name: "← All stories" });
+    const share = screen.getByRole("button", { name: "Save / share" });
+    expect(share).toBeDisabled();
+    expect(screen.getByText("Loading the story…")).toBeVisible();
+    expect(screen.queryByText(story.question)).toBeNull();
+
+    await act(async () => resolveStory(story));
+
+    expect(screen.getByRole("heading", { name: story.title })).toBe(title);
+    expect(screen.getByRole("button", { name: "← All stories" })).toBe(back);
+    expect(screen.getByRole("button", { name: "Save / share" })).toBe(share);
+    expect(share).toBeEnabled();
+    expect(screen.getByRole("group", { name: "Featured NISAR evidence" })).toBeVisible();
+    expect(screen.getByText(story.question)).toBeVisible();
+  });
+
+  it("shows the map link and key caveat before the reasoning is expanded", async () => {
     fetchStory.mockResolvedValue(story);
     const onSelectDate = vi.fn();
     const onOpenFinding = vi.fn();
@@ -129,37 +151,34 @@ describe("StoryPanel", () => {
       </StoryPanel>,
     );
     expect(await screen.findByRole("heading", { name: story.title })).toBeInTheDocument();
-    expect(screen.getByText(story.question)).toBeInTheDocument();
-    for (const name of [/Why might this be happening/, /can.t show/, /Why it matters/]) {
+    expect(screen.getByRole("group", { name: "Featured NISAR evidence" })).toHaveTextContent("11.0%");
+    for (const name of ["Possible explanations", "Method & limits", "Why it matters"]) {
       expect(screen.getByRole("heading", { level: 3, name })).toBeInTheDocument();
     }
-    expect(screen.getByText("These explanations are untested, and several may apply.")).toBeVisible();
+    expect(screen.getByText("Untested", { exact: true })).toBeVisible();
 
-    // The linked measurement and main caveat stay visible together.
     const card = screen.getByRole("heading", { level: 4, name: /Rain in Angola/ }).closest("li");
-    expect(within(card).getByText("11.0%")).toBeVisible();
-    expect(within(card).getByText(hypothesis.consistent_with)).not.toBeVisible();
-    expect(within(card).getByText(/The box covers only part of the delta/)).toBeVisible();
+    expect(within(card).getByText(hypothesis.consistent_with)).toBeVisible();
+    expect(within(card).getByText("Caveat").closest("p")).toHaveTextContent("The box covers only part of the delta.");
+    expect(within(card).getByText("The record also starts late.")).not.toBeVisible();
     expect(within(card).getByText(hypothesis.mechanism)).not.toBeVisible();
     expect(within(card).getByText(hypothesis.test)).not.toBeVisible();
-    expect(within(card).getByText("The record also starts late.")).not.toBeVisible();
 
     // The heading opens the reasoning and exposes its state to assistive tech.
     const more = within(card).getByRole("button", { name: hypothesis.driver });
     expect(more).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(within(card).getByRole("button", { name: "Show Early July on the map · 11.0%" }));
+    expect(onSelectDate).toHaveBeenCalledWith("2026-07-08", undefined);
+    expect(more).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(more);
     expect(more).toHaveAttribute("aria-expanded", "true");
-    for (const text of [hypothesis.consistent_with, hypothesis.mechanism, hypothesis.channel, hypothesis.test, "The record also starts late."]) {
+    for (const text of [hypothesis.mechanism, hypothesis.channel, hypothesis.test, "The record also starts late."]) {
       expect(within(card).getByText(text)).toBeVisible();
     }
 
     // Unlinked moments stay with the map and chart.
     expect(screen.queryByText("−9.3 pts")).not.toBeInTheDocument();
     expect(screen.queryByText(/See how far the flood spread/)).not.toBeInTheDocument();
-
-    // A hypothesis puts the moment it is about on the map: its pass and layer.
-    fireEvent.click(within(card).getByRole("button", { name: "Show Early July on the map · 11.0%" }));
-    expect(onSelectDate).toHaveBeenCalledWith("2026-07-08", undefined);
 
     // Save / share: the viewer's notebook, the evidence card, a brief, the data.
     fireEvent.click(screen.getByRole("button", { name: "Save / share" }));
@@ -189,7 +208,7 @@ describe("StoryPanel", () => {
     expect(screen.getByText("site data").closest("details")).not.toBeNull();
   });
 
-  it("puts a gallery place's controls right under the question, with what was collected", async () => {
+  it("uses the suggested gallery pair for its main action and keeps its notes available", async () => {
     fetchStory.mockResolvedValue({
       ...story,
       slug: "jakobshavn",
@@ -199,29 +218,54 @@ describe("StoryPanel", () => {
         name: "Jakobshavn Isbræ", scene_count: 11, first_date: "2026-06-18", last_date: "2026-10-28", pixel_m: 62,
         channels: { passes: 11, hv_passes: 0, label: "HH only on all 11 passes; HV was not collected" },
       },
-      saw: { status: "likely", look_for: "The fjord's ice." },
-      hypotheses: [{ ...hypothesis, moments: [] }],
+      saw: { status: "likely", headline: "A broad area of the fjord brightened.", suggested: ["2026-06-18", "2026-10-28"] },
+      hypotheses: [{
+        ...hypothesis, moments: [], imagery_pair: ["2026-06-18", "2026-07-12"],
+        caveat_summary: "Wind can brighten open water.",
+      }],
     });
     const onOpenFinding = vi.fn();
-    const onShowChange = vi.fn();
+    const onCompareImages = vi.fn();
     render(
-      <StoryPanel slug="jakobshavn" onOpenFinding={onOpenFinding} onShowChange={onShowChange}>
+      <StoryPanel slug="jakobshavn" onOpenFinding={onOpenFinding} onCompareImages={onCompareImages}>
         <p>dates and change map</p>
       </StoryPanel>,
     );
-    const controls = await screen.findByText("dates and change map");
-    const why = screen.getByRole("heading", { level: 3, name: /Why might this be happening/ });
-    expect(controls.compareDocumentPosition(why) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(controls.closest("details")).toBeNull();
-    expect(screen.getByText(/HH only on all 11 passes; HV was not collected · ~62 m pixels/)).toBeInTheDocument();
+    fireEvent.click(await screen.findByRole("button", { name: /Compare images/ }));
+    expect(onCompareImages).toHaveBeenCalledWith("2026-06-18", "2026-10-28");
+    const notes = screen.getByText("dates and change map");
+    expect(notes).not.toBeVisible();
+    fireEvent.click(screen.getByText("Image notes & sources"));
+    expect(notes).toBeVisible();
     expect(screen.getByText("Likely: verify")).toBeInTheDocument();
-    // Its evidence is the change map: one click from each hypothesis.
-    fireEvent.click(screen.getByRole("button", { name: "Change map" }));
-    expect(onShowChange).toHaveBeenCalled();
+    const more = screen.getByRole("button", { name: hypothesis.driver });
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByText("Wind can brighten open water.")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: /Compare Jun 18.*Jul 12.*on the map/ }));
+    expect(onCompareImages).toHaveBeenLastCalledWith("2026-06-18", "2026-07-12");
+    expect(more).toHaveAttribute("aria-expanded", "false");
+    fireEvent.click(more);
+    expect(screen.getByText(hypothesis.alternative)).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Save / share" }));
     expect(screen.queryByRole("link", { name: "CSV" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: "Evidence card" }));
     expect(onOpenFinding).toHaveBeenCalledWith(expect.objectContaining({ slug: "jakobshavn", moment: null }));
+  });
+
+  it("can select either measured pass of the featured change", async () => {
+    const moments = [story.saw.moments[0], {
+      ...story.saw.moments[1], stat: "change", layer: "water", readings: [
+        { date: "2026-07-08", display: "11.0%" }, { date: "2026-10-24", display: "1.7%" },
+      ],
+    }];
+    fetchStory.mockResolvedValue({ ...story, hero_moment: 1, saw: { ...story.saw, moments } });
+    const onSelectDate = vi.fn();
+    render(<StoryPanel slug={story.slug} onSelectDate={onSelectDate} selectedDate="2026-07-08" />);
+    const early = await screen.findByRole("button", { name: /Show Jul 8.*11\.0%/ });
+    expect(early).toHaveAttribute("aria-current", "true");
+    fireEvent.click(screen.getByRole("button", { name: /Show Oct 24.*1\.7%/ }));
+    fireEvent.click(early);
+    expect(onSelectDate.mock.calls).toEqual([["2026-10-24", "water"], ["2026-07-08", "water"]]);
   });
 
   it("shows an error when the story can't load", async () => {
