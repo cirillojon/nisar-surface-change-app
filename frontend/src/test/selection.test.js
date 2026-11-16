@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook } from "./render.jsx";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -43,9 +43,9 @@ describe("selectionReducer", () => {
 
   it("sets a field by value or updater, and keeps the state when nothing changes", () => {
     const state = initialSelection();
-    const focused = selectionReducer(state, { type: "set", field: "landFocus", value: (f) => ({ date: "d", n: (f?.n ?? 0) + 1 }) });
-    expect(focused.landFocus).toEqual({ date: "d", n: 1 });
-    expect(selectionReducer(focused, { type: "set", field: "landFocus", value: (f) => ({ ...f, n: f.n + 1 }) }).landFocus.n).toBe(2);
+    const moved = selectionReducer(state, { type: "set", field: "landDates", value: (d) => ({ ...d, to: "b" }) });
+    expect(moved.landDates).toEqual({ to: "b" });
+    expect(selectionReducer(moved, { type: "set", field: "landDates", value: (d) => ({ ...d, from: "a" }) }).landDates).toEqual({ from: "a", to: "b" });
     expect(selectionReducer(state, { type: "set", field: "siteLayer", value: "colour" })).toBe(state);
   });
 

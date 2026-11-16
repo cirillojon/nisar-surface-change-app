@@ -45,6 +45,8 @@ export default defineConfig([
     },
     rules: {
       "no-console": "off",
+      // Tests never hot-reload; helpers like test/render.jsx re-export Testing Library.
+      "react-refresh/only-export-components": "off",
     },
   },
 ]);

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   CircleMarker,
@@ -23,6 +23,7 @@ import "leaflet/dist/leaflet.css";
 import { MAX_LINE_KM, addPoint, canFinish, lineKm } from "../services/drawing.js";
 import { loadImage } from "../services/imageCache.js";
 import { mercY, normalizeBbox } from "../services/regions.js";
+import { useStableCallback } from "../services/useStableCallback.js";
 
 const DEFAULT_CENTER = [20, 0];
 const DEFAULT_ZOOM = 2;
@@ -209,17 +210,21 @@ function MapLock({ locked, drawing }) {
  */
 function useWhenLoaded(value, urls, key) {
   const [shown, setShown] = useState(value);
-  const latest = useRef(value);
-  latest.current = value;
+  // What to show once loaded: the value and images of the latest render.
+  const latest = useRef({ value, urls });
+  useLayoutEffect(() => {
+    latest.current = { value, urls };
+  });
   useEffect(() => {
     let cancelled = false;
-    Promise.all(urls.map(loadImage)).then(() => {
-      if (!cancelled) setShown(latest.current);
+    const { value: wanted, urls: needed } = latest.current;
+    Promise.all(needed.map(loadImage)).then(() => {
+      if (!cancelled) setShown(wanted);
     });
     return () => {
       cancelled = true;
     };
-  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key]);
   return shown;
 }
 
@@ -230,45 +235,33 @@ const FRAME_FADE_MS = 200;
  * Stacks the frames `value` takes (each named by `id`) so the previous one
  * stays on the map until the newest has painted on top of it; a time-lapse
  * then never blinks between frames. Returns [frames, onPainted]: draw
- * `frames` in order (newest last) and call onPainted(id) once a frame is drawn.
+ * `frames` in order (newest last) and call onPainted(id, value) once a frame
+ * is drawn. The frames behind are those painted before (at most two), with
+ * what they showed; mount the stack only while there is something to show,
+ * so clearing the map starts it afresh.
  */
 function useFrameStack(value, id) {
-  const [frames, setFrames] = useState([]);
-  const alive = useRef(true);
+  const [painted, setPainted] = useState([]);
+  const timers = useRef(new Set());
   useEffect(() => {
-    alive.current = true;
-    return () => {
-      alive.current = false;
-    };
+    const pending = timers.current;
+    return () => pending.forEach(clearTimeout);
   }, []);
-  useEffect(() => {
-    setFrames((fs) =>
-      value
-        ? [...fs.filter((f) => f.painted && f.id !== id).slice(-2), { id, painted: false }]
-        : [],
-    );
-  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
-  const onPainted = useCallback((done) => {
-    setFrames((fs) => fs.map((f) => (f.id === done ? { ...f, painted: true } : f)));
+  const onPainted = useCallback((done, shown) => {
+    setPainted((ps) => [...ps.filter((f) => f.id !== done).slice(-2), { id: done, value: shown }]);
     // Older frames go once the new one has fully faded in.
-    setTimeout(() => {
-      if (!alive.current) return;
-      setFrames((fs) => {
-        const i = fs.findIndex((f) => f.id === done);
-        return i > 0 ? fs.slice(i) : fs;
+    const timer = setTimeout(() => {
+      timers.current.delete(timer);
+      setPainted((ps) => {
+        const i = ps.findIndex((f) => f.id === done);
+        return i > 0 ? ps.slice(i) : ps;
       });
     }, FRAME_FADE_MS);
+    timers.current.add(timer);
   }, []);
-  // Older frames keep what they showed; the newest follows `value`.
-  const values = useRef(new Map());
-  if (value) values.current.set(id, value);
-  for (const key of values.current.keys()) {
-    if (key !== id && !frames.some((f) => f.id === key)) values.current.delete(key);
-  }
-  const shown = frames
-    .filter((f) => values.current.has(f.id))
-    .map((f) => ({ ...f, value: values.current.get(f.id) }));
-  return [shown, onPainted];
+  const behind = painted.filter((f) => f.id !== id).slice(-2).map((f) => ({ ...f, painted: true }));
+  const current = { id, value, painted: painted.some((f) => f.id === id) };
+  return [[...behind, current], onPainted];
 }
 
 /** Calls `done` once `el` (an image) is decoded and on screen. */
@@ -289,37 +282,27 @@ function PaneOpacity({ pane, value }) {
 
 /** One frame of the scene image; fades in over the last once it's painted. */
 function OverlayFrame({ url, bounds, onPainted }) {
-  const handlers = useRef(null);
-  handlers.current = {
+  const painted = useStableCallback(onPainted);
+  // Leaflet keeps the handlers it was given, so they never change.
+  const [eventHandlers] = useState(() => ({
     load: (e) => {
       const el = e.target.getElement();
       whenPainted(el, () => {
         el?.classList.add("is-painted");
-        onPainted();
+        painted();
       });
     },
     error: (e) => {
       e.target.getElement()?.classList.add("is-painted");
-      onPainted();
+      painted();
     },
-  };
-  const [eventHandlers] = useState(() => ({
-    load: (e) => handlers.current.load(e),
-    error: (e) => handlers.current.error(e),
   }));
-  return (
-    <ImageOverlay
-      url={url}
-      bounds={bounds}
-      className="scene-frame"
-      eventHandlers={eventHandlers}
-    />
-  );
+  return <ImageOverlay url={url} bounds={bounds} className="scene-frame" eventHandlers={eventHandlers} />;
 }
 
 /** One frame of region tiles; counts as painted once all its images are. */
 function RegionFrame({ tiles, painted, onPainted }) {
-  const pending = useRef(new Set(tiles.map((t) => t.key)));
+  const [pending] = useState(() => new Set(tiles.map((t) => t.key)));
   const reported = useRef(false);
   const report = useCallback(() => {
     if (reported.current) return;
@@ -330,7 +313,7 @@ function RegionFrame({ tiles, painted, onPainted }) {
     if (!tiles.length) report();
   }, [tiles.length, report]);
   const onTileLoad = (key, el) => {
-    if (!pending.current.delete(key) || pending.current.size) return;
+    if (!pending.delete(key) || pending.size) return;
     whenPainted(el, report);
   };
   return tiles.map((tile) => (
@@ -340,6 +323,22 @@ function RegionFrame({ tiles, painted, onPainted }) {
       painted={painted}
       onLoad={(el) => onTileLoad(tile.key, el)}
     />
+  ));
+}
+
+/** The scene image's frames, stacked so a time-lapse never blinks. */
+function SceneFrames({ overlay }) {
+  const [frames, onPainted] = useFrameStack(overlay, JSON.stringify([overlay.url, overlay.bbox]));
+  return frames.map((f) => (
+    <OverlayFrame key={f.id} url={f.value.url} bounds={toBounds(f.value.bbox)} onPainted={() => onPainted(f.id, f.value)} />
+  ));
+}
+
+/** The data explorer's tiles, a frame per set, stacked the same way. */
+function RegionFrames({ region }) {
+  const [frames, onPainted] = useFrameStack(region, JSON.stringify(region.tiles.map((t) => [t.key, t.url, t.bounds])));
+  return frames.map((f) => (
+    <RegionFrame key={f.id} tiles={f.value.tiles} painted={f.painted} onPainted={() => onPainted(f.id, f.value)} />
   ));
 }
 
@@ -599,9 +598,9 @@ function LineDrawer({ active, drawingRef, onDraw, onCancel, finishWhen, hint, ho
           interactive={false}
         />
       )}
-      {points.map((p, i) => (
+      {pointKeys(points).map(({ p, key }) => (
         <CircleMarker
-          key={i}
+          key={key}
           center={p}
           radius={4}
           pathOptions={{ color: "#0b1220", weight: 1, fillColor: "#facc15", fillOpacity: 1 }}
@@ -617,6 +616,17 @@ function LineDrawer({ active, drawingRef, onDraw, onCancel, finishWhen, hint, ho
       )}
     </>
   );
+}
+
+/** The line's points with keys from their position on the map (a point visited twice gets a count). */
+function pointKeys(points) {
+  const seen = new Map();
+  return points.map((p) => {
+    const at = `${p.lat},${p.lng}`;
+    const n = seen.get(at) ?? 0;
+    seen.set(at, n + 1);
+    return { p, key: n ? `${at}#${n}` : at };
+  });
 }
 
 // Narrower than this on screen (pixels), a selected place's image is too
@@ -719,6 +729,145 @@ function ClippedImage({ tile, painted, onLoad }) {
 }
 
 /**
+ * The scene image and the explorer's tiles that are ready to show (the last
+ * ready ones stay while the next download), and whether the scene image
+ * asked for is still on its way.
+ */
+function useShownLayers(sceneOverlay, regionLayers) {
+  const overlayKey = sceneOverlay ? JSON.stringify([sceneOverlay.url, sceneOverlay.bbox, sceneOverlay.opacity]) : "";
+  const shownOverlay = useWhenLoaded(sceneOverlay, sceneOverlay ? [sceneOverlay.url] : [], overlayKey);
+  const tiles = regionLayers?.tiles ?? [];
+  const regionKey = regionLayers
+    ? JSON.stringify([tiles.map((t) => [t.key, t.url]), regionLayers.outlines?.map((o) => o.key), regionLayers.opacity])
+    : "";
+  const shownRegion = useWhenLoaded(regionLayers, tiles.map((t) => t.url), regionKey);
+  // The image asked for isn't the one on the map yet: it is still downloading.
+  const overlayPending = Boolean(sceneOverlay) && sceneOverlay.url !== shownOverlay?.url;
+  return { shownOverlay, shownRegion, overlayPending };
+}
+
+/** Stable drawing callbacks (in [lon, lat]), so the drawers don't rebind their listeners mid-drag. */
+function useDrawCallbacks(onDrawArea, onDrawLine, finishLineWhen) {
+  const onDraw = useStableCallback((bbox) => onDrawArea?.(bbox));
+  const onLine = useStableCallback((latlngs) => onDrawLine?.(toLonLat(latlngs)));
+  const finishLine = useStableCallback((latlngs) => Boolean(finishLineWhen?.(toLonLat(latlngs))));
+  return { onDraw, onLine, finishLine };
+}
+
+function BaseLayers() {
+  return (
+    <LayersControl position="topleft">
+      <LayersControl.BaseLayer checked name="Satellite (Esri)">
+        <TileLayer
+          url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
+          attribution="Tiles &copy; Esri &mdash; Esri, Maxar, Earthstar Geographics, GIS User Community"
+          maxZoom={18}
+        />
+      </LayersControl.BaseLayer>
+      <LayersControl.BaseLayer name="Streets (OpenStreetMap)">
+        <TileLayer url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap contributors" maxZoom={19} />
+      </LayersControl.BaseLayer>
+      <LayersControl.BaseLayer name={`NASA GIBS true color (${GIBS_DATE})`}>
+        <TileLayer
+          url={`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${GIBS_LAYER}/default/${GIBS_DATE}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`}
+          attribution="Imagery: NASA GIBS / VIIRS (NOAA-20)"
+          maxNativeZoom={9}
+          maxZoom={12}
+        />
+      </LayersControl.BaseLayer>
+    </LayersControl>
+  );
+}
+
+/** The scene image and the explorer's tiles. Opacity is set on the panes, so stacked frames blend as one image. */
+function ImagePanes({ overlay, region }) {
+  return (
+    <>
+      <Pane name="scene-frames" style={{ zIndex: 400 }}>
+        <PaneOpacity pane="scene-frames" value={overlay?.opacity ?? 1} />
+        {overlay && <SceneFrames overlay={overlay} />}
+      </Pane>
+      <Pane name="region-frames" style={{ zIndex: 400 }}>
+        <PaneOpacity pane="region-frames" value={region?.opacity ?? 0.85} />
+        {region?.tiles?.length > 0 && <RegionFrames region={region} />}
+      </Pane>
+    </>
+  );
+}
+
+/** The part of a site's box some pass did not image, hatched. */
+function FootprintPane({ footprint }) {
+  if (!footprint) return null;
+  return (
+    <Pane name="footprint" style={{ zIndex: 420 }}>
+      <ImageOverlay key={footprint.url} url={footprint.url} bounds={toBounds(footprint.bbox)} interactive className="footprint-overlay">
+        <Tooltip sticky>{footprint.label}</Tooltip>
+      </ImageOverlay>
+    </Pane>
+  );
+}
+
+/** Above the images, so boundaries stay visible: the selection's box, the explorer's footprints, the profile line. */
+function OutlinePane({ focusBbox, showFocusOutline, outlines = [], lines = [] }) {
+  return (
+    <Pane name="outlines" style={{ zIndex: 450 }}>
+      {focusBbox && showFocusOutline && (
+        <Rectangle
+          bounds={toBounds(focusBbox)}
+          pathOptions={{ color: "#facc15", weight: 2, dashArray: "6 4", fill: false }}
+          interactive={false}
+        />
+      )}
+      {outlines.map((o) => (
+        <Polygon
+          key={o.key}
+          positions={o.positions}
+          pathOptions={{ color: o.color, weight: o.weight ?? 2, dashArray: o.dashed ? "4 4" : undefined, fillOpacity: 0 }}
+          bubblingMouseEvents
+        >
+          {o.label && <Tooltip sticky>{o.label}</Tooltip>}
+        </Polygon>
+      ))}
+      {lines.map((l) => (
+        <Polyline key={l.key} positions={l.positions} pathOptions={{ color: l.color, weight: 3 }}>
+          {l.label && <Tooltip sticky>{l.label}</Tooltip>}
+        </Polyline>
+      ))}
+    </Pane>
+  );
+}
+
+/** Above everything, and clickable: the profile's ends, the InSAR reference point, and every place's marker. */
+function SitesPane({ points = [], referencePoint, markers }) {
+  return (
+    <Pane name="sites" style={{ zIndex: 460 }}>
+      {points.map((p) => (
+        <CircleMarker
+          key={p.key}
+          center={[p.lat, p.lon]}
+          radius={5}
+          pathOptions={{ color: "#0b1220", weight: 1.5, fillColor: p.color, fillOpacity: 1 }}
+          bubblingMouseEvents={false}
+        >
+          <Tooltip>{p.label}</Tooltip>
+        </CircleMarker>
+      ))}
+      {referencePoint && (
+        <CircleMarker
+          center={[referencePoint[1], referencePoint[0]]}
+          radius={5}
+          pathOptions={{ color: "#0b1220", weight: 2, fillColor: "#ffffff", fillOpacity: 1 }}
+          bubblingMouseEvents={false}
+        >
+          <Tooltip>Stable reference point for displacement</Tooltip>
+        </CircleMarker>
+      )}
+      <PlaceMarkers {...markers} />
+    </Pane>
+  );
+}
+
+/**
  * World map: study sites and before & after places as markers, the
  * selected area, the selected place's NISAR image (and InSAR reference
  * point), plus region layers from the data explorer: clipped images and
@@ -756,91 +905,16 @@ export default function ChangeMap({
   homeKey = 0, // change to show the whole world again
 }) {
   const drawingRef = useRef(0); // ignore map clicks until this time
-  const shownOverlay = useWhenLoaded(
-    sceneOverlay,
-    sceneOverlay ? [sceneOverlay.url] : [],
-    sceneOverlay ? JSON.stringify([sceneOverlay.url, sceneOverlay.bbox, sceneOverlay.opacity]) : "",
-  );
-  // The image asked for isn't the one on the map yet: it is still downloading.
-  const overlayPending = Boolean(sceneOverlay) && sceneOverlay.url !== shownOverlay?.url;
-  const shownRegion = useWhenLoaded(
-    regionLayers,
-    regionLayers?.tiles?.map((tile) => tile.url) ?? [],
-    regionLayers
-      ? JSON.stringify([regionLayers.tiles?.map((t) => [t.key, t.url]), regionLayers.outlines?.map((o) => o.key), regionLayers.opacity])
-      : "",
-  );
-  const [overlayFrames, onOverlayPainted] = useFrameStack(
-    shownOverlay,
-    shownOverlay ? JSON.stringify([shownOverlay.url, shownOverlay.bbox]) : "",
-  );
-  const [regionFrames, onRegionPainted] = useFrameStack(
-    shownRegion?.tiles?.length ? shownRegion : null,
-    JSON.stringify(shownRegion?.tiles?.map((t) => [t.key, t.url, t.bounds]) ?? []),
-  );
-  const colorOf = Object.fromEntries(
-    changeTypes.map((ct) => [ct.id, ct.color]),
-  );
-  // Stable callbacks so the drawer doesn't rebind its listeners mid-drag.
-  const onDrawAreaRef = useRef(onDrawArea);
-  useEffect(() => {
-    onDrawAreaRef.current = onDrawArea;
-  });
-  const onDraw = useCallback((bbox) => {
-    onDrawAreaRef.current?.(bbox);
-  }, []);
-  const onDrawLineRef = useRef(onDrawLine);
-  const finishLineWhenRef = useRef(finishLineWhen);
-  useEffect(() => {
-    onDrawLineRef.current = onDrawLine;
-    finishLineWhenRef.current = finishLineWhen;
-  });
-  const onLine = useCallback((latlngs) => {
-    onDrawLineRef.current?.(toLonLat(latlngs));
-  }, []);
-  const finishLine = useCallback(
-    (latlngs) => Boolean(finishLineWhenRef.current?.(toLonLat(latlngs))),
-    [],
-  );
-
+  const { shownOverlay, shownRegion, overlayPending } = useShownLayers(sceneOverlay, regionLayers);
+  const { onDraw, onLine, finishLine } = useDrawCallbacks(onDrawArea, onDrawLine, finishLineWhen);
+  const colorOf = Object.fromEntries(changeTypes.map((ct) => [ct.id, ct.color]));
   const startZoom = worldZoom(typeof window === "undefined" ? 1024 : window.innerWidth);
   return (
-    <MapContainer
-      center={DEFAULT_CENTER}
-      zoom={startZoom}
-      minZoom={startZoom}
-      zoomControl={false}
-      worldCopyJump
-      className="map"
-    >
+    <MapContainer center={DEFAULT_CENTER} zoom={startZoom} minZoom={startZoom} zoomControl={false} worldCopyJump className="map">
       <KeepMapSized />
       <ZoomControl position="topleft" zoomInText={zoomInIcon} zoomOutText={zoomOutIcon} />
       <ResetViewControl />
-      <LayersControl position="topleft">
-        <LayersControl.BaseLayer checked name="Satellite (Esri)">
-          <TileLayer
-            url="https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}"
-            attribution="Tiles &copy; Esri &mdash; Esri, Maxar, Earthstar Geographics, GIS User Community"
-            maxZoom={18}
-          />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name="Streets (OpenStreetMap)">
-          <TileLayer
-            url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-            attribution="&copy; OpenStreetMap contributors"
-            maxZoom={19}
-          />
-        </LayersControl.BaseLayer>
-        <LayersControl.BaseLayer name={`NASA GIBS true color (${GIBS_DATE})`}>
-          <TileLayer
-            url={`https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${GIBS_LAYER}/default/${GIBS_DATE}/GoogleMapsCompatible_Level9/{z}/{y}/{x}.jpg`}
-            attribution="Imagery: NASA GIBS / VIIRS (NOAA-20)"
-            maxNativeZoom={9}
-            maxZoom={12}
-          />
-        </LayersControl.BaseLayer>
-      </LayersControl>
-
+      <BaseLayers />
       <LineDrawer
         active={drawing === "line"}
         drawingRef={drawingRef}
@@ -850,146 +924,22 @@ export default function ChangeMap({
         hint={drawHint}
         host={drawHost}
       />
-      <RectangleDrawer
-        active={drawing === "area"}
-        drawingRef={drawingRef}
-        onDraw={onDraw}
-        onCancel={onCancelDraw}
-        host={drawHost}
-      />
+      <RectangleDrawer active={drawing === "area"} drawingRef={drawingRef} onDraw={onDraw} onCancel={onCancelDraw} host={drawHost} />
       {/* After the drawers, so its lock wins over handlers they re-enable. */}
       <MapLock locked={locked} drawing={drawing} />
       <ClickHandler onMapClick={onMapClick} drawingRef={drawingRef} />
-      <FitTo
-        bbox={focusBbox}
-        refitKey={fitKey}
-        maxZoom={focusMaxZoom}
-        obstructionRef={focusObstructionRef}
-      />
+      <FitTo bbox={focusBbox} refitKey={fitKey} maxZoom={focusMaxZoom} obstructionRef={focusObstructionRef} />
       <HomeView homeKey={homeKey} />
       <TourMarks marks={tourMarks} />
       {overlayPending && <div className="map-loading" aria-hidden="true">Loading image…</div>}
-
-      {/* Opacity is set on the panes, so stacked frames blend as one image. */}
-      <Pane name="scene-frames" style={{ zIndex: 400 }}>
-        <PaneOpacity pane="scene-frames" value={shownOverlay?.opacity ?? 1} />
-        {overlayFrames.map((f) => (
-          <OverlayFrame
-            key={f.id}
-            url={f.value.url}
-            bounds={toBounds(f.value.bbox)}
-            onPainted={() => onOverlayPainted(f.id)}
-          />
-        ))}
-      </Pane>
-      <Pane name="region-frames" style={{ zIndex: 400 }}>
-        <PaneOpacity pane="region-frames" value={shownRegion?.opacity ?? 0.85} />
-        {regionFrames.map((f) => (
-          <RegionFrame
-            key={f.id}
-            tiles={f.value.tiles}
-            painted={f.painted}
-            onPainted={() => onRegionPainted(f.id)}
-          />
-        ))}
-      </Pane>
-      {footprintOverlay && (
-        <Pane name="footprint" style={{ zIndex: 420 }}>
-          <ImageOverlay
-            key={footprintOverlay.url}
-            url={footprintOverlay.url}
-            bounds={toBounds(footprintOverlay.bbox)}
-            interactive
-            className="footprint-overlay"
-          >
-            <Tooltip sticky>{footprintOverlay.label}</Tooltip>
-          </ImageOverlay>
-        </Pane>
-      )}
-
-      {/* Above the images so boundaries and sites stay visible and clickable. */}
-      <Pane name="outlines" style={{ zIndex: 450 }}>
-        {focusBbox && showFocusOutline && (
-          <Rectangle
-            bounds={toBounds(focusBbox)}
-            pathOptions={{
-              color: "#facc15",
-              weight: 2,
-              dashArray: "6 4",
-              fill: false,
-            }}
-            interactive={false}
-          />
-        )}
-        {shownRegion?.outlines?.map((o) => (
-          <Polygon
-            key={o.key}
-            positions={o.positions}
-            pathOptions={{
-              color: o.color,
-              weight: o.weight ?? 2,
-              dashArray: o.dashed ? "4 4" : undefined,
-              fillOpacity: 0,
-            }}
-            bubblingMouseEvents
-          >
-            {o.label && <Tooltip sticky>{o.label}</Tooltip>}
-          </Polygon>
-        ))}
-        {studyLayers?.lines?.map((l) => (
-          <Polyline
-            key={l.key}
-            positions={l.positions}
-            pathOptions={{ color: l.color, weight: 3 }}
-          >
-            {l.label && <Tooltip sticky>{l.label}</Tooltip>}
-          </Polyline>
-        ))}
-      </Pane>
-
-      <Pane name="sites" style={{ zIndex: 460 }}>
-        {studyLayers?.points?.map((p) => (
-          <CircleMarker
-            key={p.key}
-            center={[p.lat, p.lon]}
-            radius={5}
-            pathOptions={{
-              color: "#0b1220",
-              weight: 1.5,
-              fillColor: p.color,
-              fillOpacity: 1,
-            }}
-            bubblingMouseEvents={false}
-          >
-            <Tooltip>{p.label}</Tooltip>
-          </CircleMarker>
-        ))}
-        {referencePoint && (
-          <CircleMarker
-            center={[referencePoint[1], referencePoint[0]]}
-            radius={5}
-            pathOptions={{
-              color: "#0b1220",
-              weight: 2,
-              fillColor: "#ffffff",
-              fillOpacity: 1,
-            }}
-            bubblingMouseEvents={false}
-          >
-            <Tooltip>Stable reference point for displacement</Tooltip>
-          </CircleMarker>
-        )}
-        <PlaceMarkers
-          sites={sites}
-          places={places}
-          selectedSiteId={selectedSiteId}
-          selectedPlace={selectedPlace}
-          selectedBbox={focusBbox}
-          colorOf={colorOf}
-          onSelectSite={onSelectSite}
-          onSelectPlace={onSelectPlace}
-        />
-      </Pane>
+      <ImagePanes overlay={shownOverlay} region={shownRegion} />
+      <FootprintPane footprint={footprintOverlay} />
+      <OutlinePane focusBbox={focusBbox} showFocusOutline={showFocusOutline} outlines={shownRegion?.outlines} lines={studyLayers?.lines} />
+      <SitesPane
+        points={studyLayers?.points}
+        referencePoint={referencePoint}
+        markers={{ sites, places, selectedSiteId, selectedPlace, selectedBbox: focusBbox, colorOf, onSelectSite, onSelectPlace }}
+      />
     </MapContainer>
   );
 }

@@ -49,7 +49,6 @@ export default function PanelLists({
             saved={findingSaved}
             onSave={onSaveFinding}
             onShowOnMap={onShowFindingOnMap}
-            autoShow
             onChangeMoment={onChangeFindingMoment}
           />
         </div>

@@ -3,7 +3,7 @@ import ScenePlayer from "../../components/ScenePlayer.jsx";
 
 /**
  * The dock under the map: time, layer and opacity for whatever is on it —
- * the tour's Kīlauea imagery, a gallery place, or a study site's passes.
+ * a gallery place (or the tour's Kīlauea imagery), or a study site's passes.
  * The workspace keeps it mounted while the tabs and the panel change, so a
  * time-lapse keeps its date, layer and playback. `hostRef` receives the
  * dock's element, where panels portal their own timelines.
@@ -14,17 +14,11 @@ export default function TimelineDock({
   opacity,
   onOpacityChange,
   colourLegend,
-  dbRange,
-  // The tours' Kīlauea box, played like a gallery place.
-  tourPlace,
-  tourKey,
-  // A gallery place.
-  landSite,
-  landLayer,
+  // A gallery place, or the tours' Kīlauea box played like one (useLandPlayer).
+  land,
+  landKey,
   onLandLayerChange,
-  onLandOverlay,
-  onLandDatesChange,
-  landFocus,
+  onLandShiftChange,
   guideDates,
   // A study site's passes (hidden while the catalog's images are on the map).
   site,
@@ -38,33 +32,15 @@ export default function TimelineDock({
   mapSiteUrl,
 }) {
   let player = null;
-  if (tourPlace) {
+  if (land.site) {
     player = (
       <LandPlayer
-        key={`tour-${tourKey}`}
-        site={tourPlace}
-        dbRange={dbRange}
+        key={landKey}
+        player={land}
         opacity={opacity}
         onOpacityChange={onOpacityChange}
-        onOverlay={onLandOverlay}
-        layer={landLayer}
         onLayerChange={onLandLayerChange}
-        colourLegend={colourLegend}
-      />
-    );
-  } else if (landSite) {
-    player = (
-      <LandPlayer
-        key={landSite.slug}
-        site={landSite}
-        dbRange={dbRange}
-        opacity={opacity}
-        onOpacityChange={onOpacityChange}
-        onOverlay={onLandOverlay}
-        layer={landLayer}
-        onLayerChange={onLandLayerChange}
-        onDatesChange={onLandDatesChange}
-        focus={landFocus}
+        onRemoveShiftChange={onLandShiftChange}
         guideDates={guideDates}
         colourLegend={colourLegend}
       />

@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook } from "./render.jsx";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { KILAUEA, TOUR_BOX, TOUR_STORAGE_KEY, TOUR_VIEW } from "../services/tour.js";

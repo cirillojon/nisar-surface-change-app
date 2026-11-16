@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "./render.jsx";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -25,7 +25,7 @@ describe("<CommandPalette />", () => {
           </AssistantProvider>
         </MemoryRouter>,
       );
-      const field = screen.getByRole("textbox", { name: "Search" });
+      const field = screen.getByRole("combobox", { name: "Search" });
       fireEvent.change(field, { target: { value: "polarization" } });
       await act(async () => finish([]));
       expect(field).toHaveValue("polarization");

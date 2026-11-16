@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "./render.jsx";
 import { Link, MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -7,6 +7,7 @@ vi.mock("../services/api.js", async (importOriginal) => ({
   ...(await importOriginal()),
   assetUrl: (path) => path,
   fetchChangeTypes: vi.fn(),
+  fetchFinding: vi.fn(),
   fetchLandChange: vi.fn(),
   fetchProducts: vi.fn(),
   fetchSite: vi.fn(),
@@ -30,15 +31,15 @@ vi.mock("../components/ScenePlayer.jsx", () => ({
   default: ({ scenes, index }) => <p data-testid="player">{scenes[index]?.date}</p>,
 }));
 vi.mock("../components/LandPlayer.jsx", () => ({
-  default: ({ site }) => <p data-testid="player">{site.slug}</p>,
+  default: ({ player }) => <p data-testid="player">{player.site.slug}</p>,
 }));
 vi.mock("../components/FindingCard.jsx", () => ({
   default: ({ slug, moment }) => <article aria-label="Evidence card">{`${slug}/${moment ?? ""}`}</article>,
 }));
 
 import SitePending from "../components/SitePending.jsx";
-import { fetchChangeTypes, fetchLandChange, fetchProducts, fetchSite, fetchSites, fetchStories, fetchStory } from "../services/api.js";
-import { createQueryClient } from "../services/queryClient.js";
+import { fetchChangeTypes, fetchFinding, fetchLandChange, fetchProducts, fetchSite, fetchSites, fetchStories, fetchStory } from "../services/api.js";
+import { testQueryClient as createQueryClient } from "./render.jsx";
 import { TOUR_STORAGE_KEY } from "../services/tour.js";
 import WorkspaceApp from "../workspace/WorkspaceApp.jsx";
 import {
@@ -252,6 +253,12 @@ describe("<WorkspaceApp />", () => {
     fetchLandChange.mockResolvedValue({ db_range: [-30, 5], sites: [KILAUEA] });
     fetchStories.mockResolvedValue({ themes: [{ id: "water", label: "Water" }], stories: [SUMMARY] });
     fetchStory.mockResolvedValue(STORY);
+    fetchFinding.mockImplementation((slug, moment) => Promise.resolve({
+      story: { slug, source: "site", title: "Okavango" },
+      site: { slug },
+      moment,
+      claim: { end: "2026-03-09" },
+    }));
     fetchSite.mockImplementation((id) => Promise.resolve(loaded(SITES.find((s) => s.id === id))));
   });
   afterEach(() => {
@@ -464,6 +471,14 @@ describe("<WorkspaceApp />", () => {
     expect(await screen.findByRole("region", { name: "Before & after" })).toBeVisible();
     expect(title()).toHaveClass("visually-hidden");
     expect(map()).toHaveAttribute("data-place", "");
+  });
+
+  it("puts an evidence card's place and pass on the map when it opens", async () => {
+    open("/workspace?mode=stories&finding=okavango-flood-pulse:1");
+    expect(await screen.findByRole("article", { name: "Evidence card" })).toHaveTextContent("okavango-flood-pulse/1");
+    await waitFor(() => expect(map()).toHaveAttribute("data-site", "2"));
+    expect(await screen.findByTestId("player")).toHaveTextContent("2026-03-09");
+    expect(fetchFinding).toHaveBeenCalledWith("okavango-flood-pulse", 1);
   });
 
   it("has no Findings tab, and opens old Findings links where their content now lives", async () => {

@@ -26,6 +26,9 @@ function extent(values, pad = 0.08) {
   return [lo - p, hi + p];
 }
 
+/** A layer's key: its id, else its kind and colour (a chart has one of each). */
+const layerKey = (l) => l.id ?? `${l.type}-${l.color}`;
+
 export default function XYChart({
   layers,
   refs = [],
@@ -63,19 +66,19 @@ export default function XYChart({
         {inY(0) && <line x1={PAD.left} x2={W - PAD.right} y1={y(0)} y2={y(0)} className="chart-zero" />}
         {inX(0) && <line x1={x(0)} x2={x(0)} y1={PAD.top} y2={H - PAD.bottom} className="chart-zero" />}
 
-        {refs.map((r, i) => {
+        {refs.map((r) => {
           if (r.type === "diagonal") {
             const a = Math.max(x0, y0);
             const b = Math.min(x1, y1);
             return (
-              <line key={i} x1={x(a)} y1={y(a)} x2={x(b)} y2={y(b)} className="chart-ref">
+              <line key={`${r.type}-${r.label}`} x1={x(a)} y1={y(a)} x2={x(b)} y2={y(b)} className="chart-ref">
                 <title>{r.label}</title>
               </line>
             );
           }
           if (r.type === "x" && inX(r.value)) {
             return (
-              <line key={i} x1={x(r.value)} x2={x(r.value)} y1={PAD.top} y2={H - PAD.bottom} className="chart-ref">
+              <line key={`${r.type}-${r.value}-${r.label}`} x1={x(r.value)} x2={x(r.value)} y1={PAD.top} y2={H - PAD.bottom} className="chart-ref">
                 <title>{r.label}</title>
               </line>
             );
@@ -83,18 +86,18 @@ export default function XYChart({
           return null;
         })}
 
-        {layers.map((l, li) => {
+        {layers.map((l) => {
           if (l.type === "band") {
             const top = l.points.map((p) => `${x(p.x)},${y(p.hi)}`);
             const bottom = [...l.points].reverse().map((p) => `${x(p.x)},${y(p.lo)}`);
             return (
-              <polygon key={li} points={[...top, ...bottom].join(" ")} fill={l.color} fillOpacity={0.18} stroke="none" />
+              <polygon key={layerKey(l)} points={[...top, ...bottom].join(" ")} fill={l.color} fillOpacity={0.18} stroke="none" />
             );
           }
           if (l.type === "line") {
             return (
               <polyline
-                key={li}
+                key={layerKey(l)}
                 points={l.points.map((p) => `${x(p.x)},${y(p.y)}`).join(" ")}
                 fill="none"
                 stroke={l.color}
@@ -104,9 +107,9 @@ export default function XYChart({
             );
           }
           return (
-            <g key={li}>
-              {l.points.map((p, i) => (
-                <g key={i} data-testid="xy-point">
+            <g key={layerKey(l)}>
+              {l.points.map((p) => (
+                <g key={`${p.x}:${p.y}:${p.title ?? ""}`} data-testid="xy-point">
                   {p.xerr ? (
                     <line x1={x(p.x - p.xerr)} x2={x(p.x + p.xerr)} y1={y(p.y)} y2={y(p.y)} stroke={p.color ?? l.color} strokeOpacity={0.5} />
                   ) : null}

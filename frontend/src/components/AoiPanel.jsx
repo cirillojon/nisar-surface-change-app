@@ -18,18 +18,10 @@ export default function AoiPanel({
   changeTypes,
   imagery = null,
   products,
-  granules,
-  onGranuleResults,
   onBack,
   overlayOpacity,
   onOverlayOpacityChange,
-  onMapLayers,
-  backscatterLegend,
-  onAreaSeries,
-  onAreaRange,
-  areaFocus,
   timelineHost,
-  lockedProduct,
   children = null,
 }) {
   const product = changeTypes[0]?.product ?? "GCOV";
@@ -52,21 +44,10 @@ export default function AoiPanel({
 
       <GranulePanel
         key={`${aoi.bbox.join(",")}:${product}:${imagery?.slug ?? ""}`}
-        bbox={aoi.bbox}
-        imagery={imagery}
-        defaultProduct={product}
         products={products}
-        granules={granules}
-        onResults={onGranuleResults}
         overlayOpacity={overlayOpacity}
         onOverlayOpacityChange={onOverlayOpacityChange}
-        onMapLayers={onMapLayers}
-        backscatterLegend={backscatterLegend}
-        onAreaSeries={onAreaSeries}
-        onAreaRange={onAreaRange}
-        areaFocus={areaFocus}
         timelineHost={timelineHost}
-        lockedProduct={lockedProduct}
       />
     </article>
   );

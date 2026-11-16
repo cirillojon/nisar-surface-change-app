@@ -1,4 +1,5 @@
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
 
 import { API_BASE } from "../../services/api.js";
 import CodeBlock from "../docs/CodeBlock.jsx";
@@ -9,16 +10,16 @@ import { schemaFields } from "./spec.js";
 
 function ToolCard({ tool }) {
   const props = tool.input_schema?.properties ?? {};
-  const required = tool.input_schema?.required ?? [];
+  const required = new Set(tool.input_schema?.required ?? []);
   const example = Object.fromEntries(
     Object.entries(props)
-      .filter(([k]) => required.includes(k))
+      .filter(([k]) => required.has(k))
       .map(([k, p]) => [k, EXAMPLES[k] ?? (p.type === "array" ? [] : p.type === "integer" ? 1 : "")]),
   );
-  const [args, setArgs] = useState(JSON.stringify(EXAMPLE_ARGS[tool.name] ?? example, null, 2));
+  const [args, setArgs] = useState(() => JSON.stringify(EXAMPLE_ARGS[tool.name] ?? example, null, 2));
   const [result, setResult] = useState(null);
   const [busy, setBusy] = useState(false);
-  const fields = schemaFields(tool.input_schema).map((f) => ({ ...f, required: required.includes(f.name) }));
+  const fields = schemaFields(tool.input_schema).map((f) => ({ ...f, required: required.has(f.name) }));
   const request = {
     jsonrpc: "2.0",
     id: 1,
@@ -117,15 +118,19 @@ function safeParse(text) {
   }
 }
 
+/** The backend's tool registry (GET /api/tools). */
+const toolsQuery = {
+  queryKey: ["mcp-tools"],
+  queryFn: async () => {
+    const r = await fetch(`${API_BASE}/api/tools`);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    return (await r.json()).tools;
+  },
+};
+
 export default function McpTools() {
-  const [tools, setTools] = useState(null);
-  const [error, setError] = useState(null);
-  useEffect(() => {
-    fetch(`${API_BASE}/api/tools`)
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`))))
-      .then((d) => setTools(d.tools))
-      .catch((e) => setError(e.message));
-  }, []);
+  const { data: tools, error: failure } = useQuery(toolsQuery);
+  const error = failure?.message ?? null;
   return (
     <div className="pf-reference">
       <p className="pf-eyebrow">MCP server</p>

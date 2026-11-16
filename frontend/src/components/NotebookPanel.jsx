@@ -26,23 +26,123 @@ function evidenceLine(f) {
   return parts.join(" · ");
 }
 
-function FindingItem({ f, stories, inStory, notebook, onShow, onOpenEvidence, onMove }) {
-  const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(f.title);
-  const [notes, setNotes] = useState(f.notes ?? "");
-  const [copied, setCopied] = useState(null);
-  const link = findingLink(f);
-  const e = f.evidence ?? {};
-  const save = () => {
-    notebook.updateFinding(f.id, { title: title.trim() || f.title, notes: notes.trim() });
-    setEditing(false);
+/**
+ * Editing a title and notes: null while not editing, else the draft being
+ * written, taken from the saved values when editing starts (so it is never a
+ * stale copy of them).
+ */
+function useDraft(saved, onSave) {
+  const [draft, setDraft] = useState(null);
+  return {
+    draft,
+    editing: draft !== null,
+    start: () => setDraft({ title: saved.title, notes: saved.notes ?? "" }),
+    change: (field, value) => setDraft((d) => ({ ...d, [field]: value })),
+    cancel: () => setDraft(null),
+    save: () => {
+      onSave({ title: draft.title.trim() || saved.title, notes: draft.notes.trim() });
+      setDraft(null);
+    },
   };
+}
+
+function CopyLinkButton({ link }) {
+  const [copied, setCopied] = useState(null);
+  const label = { ok: "Copied ✓", blocked: "Copy blocked" }[copied] ?? "Copy link";
+  return (
+    <button
+      type="button"
+      className="btn btn-small btn-secondary"
+      onClick={async () => {
+        setCopied((await copyText(link)) ? "ok" : "blocked");
+        window.setTimeout(() => setCopied(null), 1800);
+      }}
+    >
+      {label}
+    </button>
+  );
+}
+
+/** What the app showed when the finding was saved, kept apart from the viewer's notes. */
+function FindingData({ f }) {
+  const e = f.evidence ?? {};
+  return (
+    <section className="note-data" aria-label="From the data">
+      <p className="note-label">From the data · app-generated</p>
+      <p className="small">{evidenceLine(f) || "—"}</p>
+      {e.caption && <p className="small muted">{e.caption}</p>}
+      {e.footprint && <p className="small muted">{e.footprint}</p>}
+      {e.mode && <p className="small muted">Acquisition mode {e.mode}</p>}
+      <p className="small muted">Saved {fmt(f.createdAt)}{e.source ? ` · ${e.source}` : ""}</p>
+    </section>
+  );
+}
+
+/** Reorder or take out a finding in a story; add a loose one to a story, or delete it. */
+function StoryActions({ f, stories, inStory, notebook, onMove }) {
+  if (inStory) {
+    return (
+      <>
+        <button type="button" className="btn btn-small btn-secondary" aria-label="Move up" onClick={() => onMove(-1)}>↑</button>
+        <button type="button" className="btn btn-small btn-secondary" aria-label="Move down" onClick={() => onMove(1)}>↓</button>
+        <button type="button" className="btn btn-small btn-link" onClick={() => notebook.removeFromStory(inStory, f.id)}>
+          Take out of story
+        </button>
+      </>
+    );
+  }
   const others = stories.filter((s) => !s.findingIds.includes(f.id));
+  return (
+    <>
+      {others.length > 0 && (
+        <select
+          className="note-add"
+          value=""
+          aria-label={`Add “${f.title}” to a story`}
+          onChange={(ev) => ev.target.value && notebook.addToStory(ev.target.value, f.id)}
+        >
+          <option value="">Add to story…</option>
+          {others.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
+        </select>
+      )}
+      <button type="button" className="btn btn-small btn-link" onClick={() => window.confirm(`Delete “${f.title}”?`) && notebook.removeFinding(f.id)}>
+        Delete
+      </button>
+    </>
+  );
+}
+
+function FindingActions({ f, editor, onShow, onOpenEvidence, story }) {
+  if (editor.editing) {
+    return (
+      <>
+        <button type="button" className="btn btn-small btn-primary" onClick={editor.save}>Save</button>
+        <button type="button" className="btn btn-small btn-secondary" onClick={editor.cancel}>Cancel</button>
+      </>
+    );
+  }
+  const link = findingLink(f);
+  return (
+    <>
+      <button type="button" className="btn btn-small btn-primary" onClick={() => onShow(f)}>Show on map</button>
+      <button type="button" className="btn btn-small btn-secondary" onClick={editor.start}>Edit</button>
+      {f.kind === "moment" && f.source?.slug && (
+        <button type="button" className="btn btn-small btn-secondary" onClick={() => onOpenEvidence(f)}>Evidence card</button>
+      )}
+      {link && <CopyLinkButton link={link} />}
+      <StoryActions f={f} {...story} />
+    </>
+  );
+}
+
+function FindingItem({ f, stories, inStory, notebook, onShow, onOpenEvidence, onMove }) {
+  const editor = useDraft(f, (changes) => notebook.updateFinding(f.id, changes));
+  const { draft } = editor;
   return (
     <li className="note-item">
       <div className="note-head">
-        {editing ? (
-          <input className="note-title-input" value={title} onChange={(ev) => setTitle(ev.target.value)} aria-label="Title" />
+        {draft ? (
+          <input className="note-title-input" value={draft.title} onChange={(ev) => editor.change("title", ev.target.value)} aria-label="Title" />
         ) : (
           <strong className="note-title">{f.title}</strong>
         )}
@@ -50,99 +150,36 @@ function FindingItem({ f, stories, inStory, notebook, onShow, onOpenEvidence, on
       </div>
       <section className="note-yours" aria-label="Your notes">
         <p className="note-label">Your notes</p>
-        {editing ? (
-          <textarea value={notes} onChange={(ev) => setNotes(ev.target.value)} rows={3} aria-label="Your notes" />
+        {draft ? (
+          <textarea value={draft.notes} onChange={(ev) => editor.change("notes", ev.target.value)} rows={3} aria-label="Your notes" />
         ) : (
           <p className="small">{f.notes || <span className="muted">No notes yet.</span>}</p>
         )}
       </section>
-      <section className="note-data" aria-label="From the data">
-        <p className="note-label">From the data · app-generated</p>
-        <p className="small">{evidenceLine(f) || "—"}</p>
-        {e.caption && <p className="small muted">{e.caption}</p>}
-        {e.footprint && <p className="small muted">{e.footprint}</p>}
-        {e.mode && <p className="small muted">Acquisition mode {e.mode}</p>}
-        <p className="small muted">Saved {fmt(f.createdAt)}{e.source ? ` · ${e.source}` : ""}</p>
-      </section>
+      <FindingData f={f} />
       <div className="note-actions">
-        {editing ? (
-          <>
-            <button type="button" className="btn btn-small btn-primary" onClick={save}>Save</button>
-            <button type="button" className="btn btn-small btn-secondary" onClick={() => { setEditing(false); setTitle(f.title); setNotes(f.notes ?? ""); }}>
-              Cancel
-            </button>
-          </>
-        ) : (
-          <>
-            <button type="button" className="btn btn-small btn-primary" onClick={() => onShow(f)}>Show on map</button>
-            <button type="button" className="btn btn-small btn-secondary" onClick={() => setEditing(true)}>Edit</button>
-            {f.kind === "moment" && f.source?.slug && (
-              <button type="button" className="btn btn-small btn-secondary" onClick={() => onOpenEvidence(f)}>Evidence card</button>
-            )}
-            {link && (
-              <button
-                type="button"
-                className="btn btn-small btn-secondary"
-                onClick={async () => {
-                  setCopied((await copyText(link)) ? "ok" : "blocked");
-                  window.setTimeout(() => setCopied(null), 1800);
-                }}
-              >
-                {copied === "ok" ? "Copied ✓" : copied === "blocked" ? "Copy blocked" : "Copy link"}
-              </button>
-            )}
-            {inStory ? (
-              <>
-                <button type="button" className="btn btn-small btn-secondary" aria-label="Move up" onClick={() => onMove(-1)}>↑</button>
-                <button type="button" className="btn btn-small btn-secondary" aria-label="Move down" onClick={() => onMove(1)}>↓</button>
-                <button type="button" className="btn btn-small btn-link" onClick={() => notebook.removeFromStory(inStory, f.id)}>
-                  Take out of story
-                </button>
-              </>
-            ) : (
-              <>
-                {others.length > 0 && (
-                  <select
-                    className="note-add"
-                    value=""
-                    aria-label={`Add “${f.title}” to a story`}
-                    onChange={(ev) => ev.target.value && notebook.addToStory(ev.target.value, f.id)}
-                  >
-                    <option value="">Add to story…</option>
-                    {others.map((s) => <option key={s.id} value={s.id}>{s.title}</option>)}
-                  </select>
-                )}
-                <button
-                  type="button"
-                  className="btn btn-small btn-link"
-                  onClick={() => window.confirm(`Delete “${f.title}”?`) && notebook.removeFinding(f.id)}
-                >
-                  Delete
-                </button>
-              </>
-            )}
-          </>
-        )}
+        <FindingActions
+          f={f}
+          editor={editor}
+          onShow={onShow}
+          onOpenEvidence={onOpenEvidence}
+          story={{ stories, inStory, notebook, onMove }}
+        />
       </div>
     </li>
   );
 }
 
 function UserStory({ story, findings, notebook, onShow, onOpenEvidence }) {
-  const [editing, setEditing] = useState(false);
-  const [title, setTitle] = useState(story.title);
-  const [notes, setNotes] = useState(story.notes ?? "");
+  const editor = useDraft(story, (changes) => notebook.updateStory(story.id, changes));
+  const { draft } = editor;
   const byId = new Map(findings.map((f) => [f.id, f]));
   const items = story.findingIds.map((id) => byId.get(id)).filter(Boolean);
-  const save = () => {
-    notebook.updateStory(story.id, { title: title.trim() || story.title, notes: notes.trim() });
-    setEditing(false);
-  };
   return (
     <section className="user-story" aria-label={story.title}>
       <div className="note-head">
-        {editing ? (
-          <input className="note-title-input" value={title} onChange={(ev) => setTitle(ev.target.value)} aria-label="Story title" />
+        {draft ? (
+          <input className="note-title-input" value={draft.title} onChange={(ev) => editor.change("title", ev.target.value)} aria-label="Story title" />
         ) : (
           <h3>{story.title}</h3>
         )}
@@ -150,21 +187,21 @@ function UserStory({ story, findings, notebook, onShow, onOpenEvidence }) {
       </div>
       <section className="note-yours" aria-label="Your introduction">
         <p className="note-label">Your notes</p>
-        {editing ? (
-          <textarea value={notes} onChange={(ev) => setNotes(ev.target.value)} rows={3} aria-label="Your introduction" />
+        {draft ? (
+          <textarea value={draft.notes} onChange={(ev) => editor.change("notes", ev.target.value)} rows={3} aria-label="Your introduction" />
         ) : (
           <p className="small">{story.notes || <span className="muted">No introduction yet.</span>}</p>
         )}
       </section>
       <div className="note-actions">
-        {editing ? (
+        {draft ? (
           <>
-            <button type="button" className="btn btn-small btn-primary" onClick={save}>Save</button>
-            <button type="button" className="btn btn-small btn-secondary" onClick={() => setEditing(false)}>Cancel</button>
+            <button type="button" className="btn btn-small btn-primary" onClick={editor.save}>Save</button>
+            <button type="button" className="btn btn-small btn-secondary" onClick={editor.cancel}>Cancel</button>
           </>
         ) : (
           <>
-            <button type="button" className="btn btn-small btn-secondary" onClick={() => setEditing(true)}>Edit</button>
+            <button type="button" className="btn btn-small btn-secondary" onClick={editor.start}>Edit</button>
             <button
               type="button"
               className="btn btn-small btn-secondary"

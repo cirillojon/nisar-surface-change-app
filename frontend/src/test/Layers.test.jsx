@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "./render.jsx";
 import { describe, expect, it, vi } from "vitest";
 
 import LayerSelect from "../components/LayerSelect.jsx";

@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
@@ -19,10 +19,14 @@ import TimelineDock from "./components/TimelineDock.jsx";
 import { LANGTANG, SYLHET } from "../components/tour/steps.js";
 import { setWorkspaceContext } from "../platform/workspaceContext.js";
 import { TOUR_BOX, TOUR_IMAGERY, TOUR_LINE, tourSeen } from "../services/tour.js";
-import { assetUrl, fetchStory } from "../services/api.js";
+import { assetUrl } from "../services/api.js";
+import { findingQuery, storyQuery } from "../services/queries.js";
 import { siteQuery, useCatalog, useLandChange, useSite, useStories } from "./data/queries.js";
 import { defaultSceneIndex, useSelection } from "./state/selection.js";
 import { useWorkspaceUrl } from "./state/useWorkspaceUrl.js";
+import { useAreaCatalog } from "./useAreaCatalog.js";
+import { useLandPlayer } from "../components/land/useLandPlayer.js";
+import { CatalogContext } from "../components/catalog/CatalogContext.js";
 import { useTour } from "./tour/useTour.js";
 import { loadImage } from "../services/imageCache.js";
 import { imageLayerOptions, layerLegend, useLayerMapper } from "../services/layers.js";
@@ -69,15 +73,11 @@ export default function WorkspaceApp({ active = true }) {
     setKeepDate,
     setSiteLayer,
     setLandLayer,
-    setLandOverlay,
     setLandDates,
-    setLandFocus,
-    setAreaRange,
-    setAreaSeries,
-    setAreaFocus,
+    setLandShift,
     setCatalogOpen,
-    setGranules,
-    setRegionLayers,
+    setSearch,
+    setExplorer,
     setEvidenceOpen,
     setShareOpen,
   }] = useSelection({ keepDate: Boolean(searchParams.get("date")) });
@@ -87,15 +87,11 @@ export default function WorkspaceApp({ active = true }) {
     keepDate,
     siteLayer,
     landLayer,
-    landOverlay,
     landDates,
-    landFocus,
-    areaRange,
-    areaSeries,
-    areaFocus,
+    landShift,
     catalogOpen,
-    granules,
-    regionLayers,
+    search,
+    explorer,
     evidenceOpen,
     shareOpen,
   } = selection;
@@ -136,8 +132,6 @@ export default function WorkspaceApp({ active = true }) {
   const [mode, setMode] = useState(() =>
     modeFrom(searchParams.get("mode"), DEFAULT_MODE, { hasFinding: Boolean(searchParams.get("finding")) }));
   const [openFinding, setOpenFinding] = useState(() => parseFinding(searchParams.get("finding")));
-  // A finding to put on the map once the sites have loaded.
-  const [pendingFinding, setPendingFinding] = useState(null);
   // My findings (this browser), the finding being saved, and the note after a save.
   const notebook = useNotebook();
   const [saveDraft, setSaveDraft] = useState(null);
@@ -263,17 +257,13 @@ export default function WorkspaceApp({ active = true }) {
       setPanelOpen(true);
     }
   };
-  // Put a finding's place and pass on the map. A card does this by itself when
-  // it opens (`focusMap: false`, so the card stays in view on a phone); the
-  // card's "Show on map" button also brings the map forward.
+  // Put a finding's place and pass on the map. An open card's place goes on
+  // the map by itself (`focusMap: false`, so the card stays in view on a
+  // phone); the card's "Show on map" button also brings the map forward.
   const showFindingOnMap = (finding, { focusMap = true } = {}) => {
     if (finding.story.source === "site") {
       const target = sites.find((s) => s.slug === finding.site.slug);
-      if (!target) {
-        // A finding opened from a link can load before the sites do: wait for them.
-        if (sites.length === 0) setPendingFinding(finding);
-        return;
-      }
+      if (!target) return;
       if (target.id === selectedSiteId) {
         const i = site?.id === target.id ? site.scenes?.findIndex((x) => x.date === finding.claim.end) ?? -1 : -1;
         if (i >= 0) setSceneIndex(i);
@@ -292,12 +282,13 @@ export default function WorkspaceApp({ active = true }) {
       mapTitleRef.current?.scrollIntoView({ block: "nearest" });
     }
   };
-  const showPendingFinding = useStableCallback((finding) => showFindingOnMap(finding, { focusMap: false }));
+  // The open evidence card's finding (shared with the card through the
+  // query cache) goes on the map once it and the site list have loaded.
+  const { data: openFindingData } = useQuery(findingQuery(openFinding?.slug, openFinding?.moment ?? null));
+  const showOpenFinding = useStableCallback((finding) => showFindingOnMap(finding, { focusMap: false }));
   useEffect(() => {
-    if (!pendingFinding || sites.length === 0) return;
-    setPendingFinding(null);
-    showPendingFinding(pendingFinding);
-  }, [pendingFinding, sites, showPendingFinding]);
+    if (openFindingData && !loading) showOpenFinding(openFindingData);
+  }, [openFindingData, loading, showOpenFinding]);
 
   // A line drawn with the line tool: height profile over time.
   const selectLine = (line) => {
@@ -337,7 +328,7 @@ export default function WorkspaceApp({ active = true }) {
         select({ kind: "place", slug });
       }
       setLandLayer(layer);
-      setLandFocus(date ? (f) => ({ date, n: (f?.n ?? 0) + 1 }) : null);
+      if (date) setLandDates((d) => ({ ...d, to: date }));
     }
   };
 
@@ -365,13 +356,13 @@ export default function WorkspaceApp({ active = true }) {
     buildMomentDraft({ site, changeType: changeTypeOf(site?.change_type), siteLayer, storyTitle, moment, index });
   // A gallery place's story or view: the two dates its change map compares.
   const placeDraft = (kind) =>
-    buildPlaceDraft({ place: landSite, kind, layer: landLayer, dates: landDates, story: landSite && storyIndex.get(landSite.slug) });
+    buildPlaceDraft({ place: landSite, kind, layer: landLayer, dates: land.compared, story: landSite && storyIndex.get(landSite.slug) });
   // Whatever is on the map now ("Save view").
   const viewDraft = () =>
     buildViewDraft({
       place: landSite,
       placeLayer: landLayer,
-      placeDates: landDates,
+      placeDates: land.compared,
       placeStory: landSite && storyIndex.get(landSite.slug),
       site,
       scene,
@@ -406,7 +397,7 @@ export default function WorkspaceApp({ active = true }) {
   const saveShownStoryMoment = async (signal) => {
     const slug = site?.slug ?? landSite?.slug;
     if (!slug || !storyIndex.has(slug)) return;
-    const story = await fetchStory(slug).catch(() => null);
+    const story = await queryClient.fetchQuery(storyQuery(slug)).catch(() => null);
     if (!story || signal.aborted) return;
     const moments = story.saw?.moments ?? [];
     const date = site?.scenes?.[sceneIndex]?.date;
@@ -436,7 +427,6 @@ export default function WorkspaceApp({ active = true }) {
       stopActivity: () => {
         cancelDraw();
         setSaveDraft(null);
-        setLandFocus(null);
       },
       resetView,
       showInvestigate: (panel) => {
@@ -477,7 +467,7 @@ export default function WorkspaceApp({ active = true }) {
           }
         },
         // Show this date of the land-change place on the map (its bar moves to it).
-        focusLandDate: (date) => setLandFocus((f) => ({ date, n: (f?.n ?? 0) + 1 })),
+        focusLandDate: (date) => setLandDates((d) => ({ ...d, to: date })),
         showList: () => {
           clearSelection();
           cancelDraw();
@@ -606,9 +596,12 @@ export default function WorkspaceApp({ active = true }) {
       finding: openFinding,
     });
   }, [site, shownDate, aoi, profileLine, landSlug, mode, openFinding]);
+  // Closing a site's catalog drops its search; opening it again starts afresh.
   const toggleCatalog = (open) => {
     setCatalogOpen(open);
-    if (!open) setGranules([]);
+    if (open) return;
+    setSearch(null);
+    setExplorer(null);
   };
   const returnToStudy = () => {
     toggleCatalog(false);
@@ -616,19 +609,34 @@ export default function WorkspaceApp({ active = true }) {
   };
   const granuleProps = {
     products,
-    granules,
-    onGranuleResults: setGranules,
     onBack: backToList,
     overlayOpacity,
     onOverlayOpacityChange: setOverlayOpacity,
-    onMapLayers: setRegionLayers,
     timelineHost,
-    // The tour's steps and imagery are for backscatter only.
-    lockedProduct: touring ? "GCOV" : null,
-    // SME2 backscatter is drawn like the GCOV (crop) sites, so reuse their legend.
-    backscatterLegend: changeTypes.find((ct) => ct.product === "GCOV")
-      ?.image_legend,
   };
+  // SME2 backscatter is drawn like the GCOV (crop) sites, so reuse their legend.
+  const backscatterLegend = changeTypes.find((ct) => ct.product === "GCOV")?.image_legend;
+  // The tours' Kīlauea box plays its own imagery (no catalog search).
+  const aoiImagery = aoi?.imagery ? landChange?.imagery?.[aoi.imagery] ?? null : null;
+  // The NISAR catalog over a drawn area, or a study site's while it is open.
+  let catalogTarget = null;
+  if (aoi && !aoiImagery) {
+    // The tour's steps are for backscatter only.
+    catalogTarget = { bbox: aoi.bbox, defaultProduct: changeTypes[0]?.product ?? "GCOV", imagery: null, lockedProduct: touring ? "GCOV" : null };
+  } else if (site && catalogOpen) {
+    catalogTarget = { bbox: site.bbox, defaultProduct: changeTypeOf(site.change_type)?.product ?? "GCOV", imagery: null, lockedProduct: null };
+  }
+  const catalog = useAreaCatalog({
+    target: catalogTarget,
+    search,
+    explorer,
+    setSearch,
+    setExplorer,
+    opacity: overlayOpacity,
+    backscatterLegend,
+  });
+  const regionLayers = catalog.mapLayers;
+  const areaSeries = catalog.observation;
 
   const landSite = landSlug
     ? landChange?.sites.find((s) => s.slug === landSlug)
@@ -646,6 +654,17 @@ export default function WorkspaceApp({ active = true }) {
   // It opens on the first pass, so the timelapse runs forward from the start.
   const firstPass = tourImagery?.passes?.[0]?.date;
   const tourPlace = tourImagery ? { ...tourImagery, bbox: aoi.bbox, suggested: [firstPass, firstPass] } : null;
+
+  // A gallery place's player, or the tour's box played like one: the dates
+  // compared, the layer, the change map and the image on the map.
+  const land = useLandPlayer({
+    site: tourPlace ?? landSite,
+    dbRange: landChange?.db_range,
+    dates: landDates,
+    layer: landLayer,
+    removeShift: landShift,
+    setDates: setLandDates,
+  });
 
   // Is something selected on the map? Its panel (SelectionDetails) shows one
   // of: a gallery place, a line, a site (loaded or loading), the tour's box
@@ -666,7 +685,7 @@ export default function WorkspaceApp({ active = true }) {
   const onCompareImages = landSite ? (from, date, layer = "change") => {
     const before = landSite.passes.find((p) => p.date === from);
     if (!before || !landSite.passes.some((p) => p.date === date)) return;
-    setLandFocus((previous) => ({ from, date, n: (previous?.n ?? 0) + 1 }));
+    setLandDates({ from, to: date });
     setLandLayer(layer === "change" && !before.hh_url ? "hh" : layer);
     if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
   } : null;
@@ -703,8 +722,8 @@ export default function WorkspaceApp({ active = true }) {
     : [];
   const mapSiteUrl = useLayerMapper(siteLayers ? siteLayer : "colour", siteImages);
   let sceneOverlay = null;
-  if (landOverlay) {
-    sceneOverlay = { ...landOverlay, opacity: overlayOpacity };
+  if (land.overlay) {
+    sceneOverlay = { ...land.overlay, opacity: overlayOpacity };
   } else if (!catalogOnMap && scene?.image_url) {
     sceneOverlay = {
       url: siteLayers ? mapSiteUrl(assetUrl(scene.image_url)) : assetUrl(scene.image_url),
@@ -721,7 +740,7 @@ export default function WorkspaceApp({ active = true }) {
     ? siteSeries(changeTypeOf(site.change_type), site.observations, site.story_metric)
     : null;
   const chainArea = aoi && !tourPlace
-    ? { bbox: aoi.bbox.join(","), ...areaRange }
+    ? { bbox: aoi.bbox.join(","), start: catalog.results.query?.start, end: catalog.results.query?.end }
     : null;
   // The chart panel takes its place as soon as a site is picked, so the map
   // is laid out once and the site's record loads alongside its passes.
@@ -733,14 +752,13 @@ export default function WorkspaceApp({ active = true }) {
     : profileLine
     ? "Height profile"
     : site?.name ?? pendingSite?.name ?? (aoi ? (aoi.drawn ? "Drawn area" : "Selected area") : null);
-  const backscatterLegend = changeTypes.find((ct) => ct.product === "GCOV")?.image_legend;
   const siteLegend = site
     ? layerLegend(siteLayers ? siteLayer : "colour", changeTypeOf(site.change_type)?.image_legend)
     : { ramp: null, text: null };
 
   const selectAnalysisDate = (date) => {
     if (aoi) {
-      setAreaFocus({ date });
+      catalog.actions.selectDate(date);
       return;
     }
     if (!site) {
@@ -880,40 +898,39 @@ export default function WorkspaceApp({ active = true }) {
             </div>
             {/* Kept mounted while another tab shows, so a search or a profile isn't run again. */}
             <div id="selection-details" className="sidebar-scroll" hidden={!showDetails}>
-              <SelectionDetails
-                onBack={backToList}
-                changeTypeOf={changeTypeOf}
-                landSite={landSite}
-                landLayer={landLayer}
-                onLandLayerChange={setLandLayer}
-                profileLine={profileLine}
-                site={site}
-                selectedDate={shownSiteDate}
-                onSceneIndexChange={setSceneIndex}
-                catalogOpen={catalogOpen}
-                onCatalogToggle={toggleCatalog}
-                granuleProps={granuleProps}
-                selectedSiteId={selectedSiteId}
-                pendingSite={pendingSite}
-                siteError={siteError}
-                onRetrySite={retrySite}
-                backLabel={mode === "stories" && story ? "← All stories" : "← All places"}
-                tourPlace={tourPlace}
-                aoi={aoi}
-                aoiImagery={aoi?.imagery ? landChange?.imagery?.[aoi.imagery] ?? null : null}
-                changeTypes={changeTypes}
-                onAreaRange={setAreaRange}
-                onAreaSeries={setAreaSeries}
-                areaFocus={areaFocus}
-                activeStory={activeStory}
-                onStorySelectDate={onStorySelectDate}
-                activeChangePair={landLayer === "change" ? landDates : null}
-                onCompareImages={onCompareImages}
-                onOpenFinding={openFindingCard}
-                onSaveStory={(ctx) => openSaveFor(storyDraft(ctx))}
-                shareOpen={shareOpen}
-                onShareToggle={() => setShareOpen((v) => !v)}
-              />
+              <CatalogContext.Provider value={catalog}>
+                <SelectionDetails
+                  onBack={backToList}
+                  changeTypeOf={changeTypeOf}
+                  landSite={landSite}
+                  landLayer={landLayer}
+                  onLandLayerChange={setLandLayer}
+                  profileLine={profileLine}
+                  site={site}
+                  selectedDate={shownSiteDate}
+                  onSceneIndexChange={setSceneIndex}
+                  catalogOpen={catalogOpen}
+                  onCatalogToggle={toggleCatalog}
+                  granuleProps={granuleProps}
+                  selectedSiteId={selectedSiteId}
+                  pendingSite={pendingSite}
+                  siteError={siteError}
+                  onRetrySite={retrySite}
+                  backLabel={mode === "stories" && story ? "← All stories" : "← All places"}
+                  tourPlace={tourPlace}
+                  aoi={aoi}
+                  aoiImagery={aoiImagery}
+                  changeTypes={changeTypes}
+                  activeStory={activeStory}
+                  onStorySelectDate={onStorySelectDate}
+                  activeChangePair={landLayer === "change" ? land.compared : null}
+                  onCompareImages={onCompareImages}
+                  onOpenFinding={openFindingCard}
+                  onSaveStory={(ctx) => openSaveFor(storyDraft(ctx))}
+                  shareOpen={shareOpen}
+                  onShareToggle={() => setShareOpen((v) => !v)}
+                />
+              </CatalogContext.Provider>
             </div>
           </div>
         </aside>
@@ -984,15 +1001,10 @@ export default function WorkspaceApp({ active = true }) {
                   opacity={overlayOpacity}
                   onOpacityChange={setOverlayOpacity}
                   colourLegend={backscatterLegend}
-                  dbRange={landChange?.db_range}
-                  tourPlace={tourPlace}
-                  tourKey={aoi?.imagery}
-                  landSite={landSite}
-                  landLayer={landLayer}
+                  land={land}
+                  landKey={tourPlace ? `tour-${aoi.imagery}` : landSite?.slug}
                   onLandLayerChange={setLandLayer}
-                  onLandOverlay={setLandOverlay}
-                  onLandDatesChange={setLandDates}
-                  landFocus={landFocus}
+                  onLandShiftChange={setLandShift}
                   guideDates={touring ? tour.guide : null}
                   site={site}
                   catalogOnMap={catalogOnMap}
@@ -1042,7 +1054,7 @@ export default function WorkspaceApp({ active = true }) {
             aoiDrawn: Boolean(aoi?.drawn),
             profileLine: Boolean(profileLine),
             snapped: tour.snapped,
-            landDate: landDates?.to ?? null,
+            landDate: landSite ? land.compared.to : null,
           }}
           actions={tour.actions}
           onEnd={tour.end}

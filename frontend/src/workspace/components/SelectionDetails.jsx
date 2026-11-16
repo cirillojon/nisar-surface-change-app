@@ -55,9 +55,6 @@ export default function SelectionDetails({
   aoi,
   aoiImagery,
   changeTypes,
-  onAreaRange,
-  onAreaSeries,
-  areaFocus,
   // The story shown around the selection, and what its panel does.
   activeStory,
   onStorySelectDate,
@@ -112,9 +109,6 @@ export default function SelectionDetails({
         changeTypes={changeTypes}
         imagery={aoiImagery}
         {...granuleProps}
-        onAreaRange={onAreaRange}
-        onAreaSeries={onAreaSeries}
-        areaFocus={areaFocus}
       >
         {aoi.drawn && !aoi.imagery && <CoverageCheck key={`cov-${aoi.bbox.join(",")}`} bbox={aoi.bbox} />}
       </AoiPanel>

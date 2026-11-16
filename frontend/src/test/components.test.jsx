@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "./render.jsx";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../services/api.js", () => ({
@@ -15,6 +15,7 @@ import SiteDetail from "../components/SiteDetail.jsx";
 import TimeSeriesChart from "../components/TimeSeriesChart.jsx";
 import { fetchCoverage, searchGranules } from "../services/api.js";
 import { LOAD_TIMEOUT_MS } from "../services/imageCache.js";
+import { CatalogHarness } from "./catalogHarness.jsx";
 import { pauseAllPlayback } from "../services/usePlayback.js";
 
 const scenes = [
@@ -152,44 +153,36 @@ describe("<GranulePanel />", () => {
     thumbnail_url: null,
     data_url: "https://example.test/x.h5",
   };
+  const panel = (products, harness = {}) =>
+    render(
+      <CatalogHarness bbox={[0, 0, 1, 1]} {...harness}>
+        <GranulePanel products={products} />
+      </CatalogHarness>,
+    );
 
   it("searches on mount and reports results", async () => {
     searchGranules.mockResolvedValueOnce({ hits: 1, granules: [granule] });
     const onResults = vi.fn();
-    render(
-      <GranulePanel
-        bbox={[0, 0, 1, 1]}
-        defaultProduct="GUNW"
-        products={[
-          { id: "GCOV", label: "Backscatter", description: "" },
-          { id: "GUNW", label: "Interferogram", description: "" },
-        ]}
-        granules={[]}
-        onResults={onResults}
-      />,
+    panel(
+      [
+        { id: "GCOV", label: "Backscatter", description: "" },
+        { id: "GUNW", label: "Interferogram", description: "" },
+      ],
+      { defaultProduct: "GUNW", onResults },
     );
     await waitFor(() => expect(onResults).toHaveBeenCalledWith([granule]));
-    expect(searchGranules.mock.calls[0][0]).toMatchObject({
-      bbox: [0, 0, 1, 1],
-      product: "GUNW",
-    });
+    expect(searchGranules.mock.calls[0][0]).toMatchObject({ bbox: [0, 0, 1, 1], product: "GUNW" });
     expect(screen.getByText(/1 granule found/i)).toBeInTheDocument();
   });
 
   it("stays on the locked product, whatever the default", async () => {
     searchGranules.mockResolvedValueOnce({ hits: 1, granules: [granule] });
-    render(
-      <GranulePanel
-        bbox={[0, 0, 1, 1]}
-        defaultProduct="GUNW"
-        lockedProduct="GCOV"
-        products={[
-          { id: "GCOV", label: "Backscatter", description: "" },
-          { id: "GUNW", label: "Interferogram", description: "" },
-        ]}
-        granules={[]}
-        onResults={() => {}}
-      />,
+    panel(
+      [
+        { id: "GCOV", label: "Backscatter", description: "" },
+        { id: "GUNW", label: "Interferogram", description: "" },
+      ],
+      { defaultProduct: "GUNW", lockedProduct: "GCOV" },
     );
     await waitFor(() => expect(searchGranules).toHaveBeenCalled());
     expect(searchGranules.mock.calls[0][0]).toMatchObject({ product: "GCOV" });
@@ -199,19 +192,11 @@ describe("<GranulePanel />", () => {
   it("offers only the products that have data over the area", async () => {
     searchGranules.mockResolvedValue({ hits: 1, granules: [granule] });
     fetchCoverage.mockResolvedValueOnce({ GCOV: 12, GUNW: 0, SME2: null });
-    render(
-      <GranulePanel
-        bbox={[0, 0, 1, 1]}
-        defaultProduct="GCOV"
-        products={[
-          { id: "GCOV", label: "Backscatter", description: "" },
-          { id: "GUNW", label: "Interferogram", description: "" },
-          { id: "SME2", label: "Soil moisture", description: "" },
-        ]}
-        granules={[]}
-        onResults={() => {}}
-      />,
-    );
+    panel([
+      { id: "GCOV", label: "Backscatter", description: "" },
+      { id: "GUNW", label: "Interferogram", description: "" },
+      { id: "SME2", label: "Soil moisture", description: "" },
+    ]);
     const none = await screen.findByRole("option", { name: "Interferogram (none here)" });
     expect(none).toBeDisabled();
     // A product whose search failed (null) stays selectable.
@@ -222,41 +207,18 @@ describe("<GranulePanel />", () => {
   it("lists granules with downloads and sizes in GB", async () => {
     const big = { ...granule, size_mb: 20981.3 };
     searchGranules.mockResolvedValue({ hits: 1, granules: [big] });
-    render(
-      <GranulePanel
-        bbox={[0, 0, 1, 1]}
-        products={[{ id: "GCOV", label: "Backscatter", description: "" }]}
-        granules={[big]}
-        onResults={() => {}}
-      />,
-    );
+    panel([{ id: "GCOV", label: "Backscatter", description: "" }]);
     expect(await screen.findByText(/20\.5 GB/)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /download/i })).toHaveAttribute(
-      "href",
-      granule.data_url,
-    );
-    expect(
-      screen.getByRole("button", { name: /show on map/i }),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /download/i })).toHaveAttribute("href", granule.data_url);
+    expect(screen.getByRole("button", { name: /show on map/i })).toBeInTheDocument();
     // Asks for enough granules to fill a large drawn area.
     expect(searchGranules.mock.calls[0][0].limit).toBe(200);
   });
 
   it("shows backend errors", async () => {
-    searchGranules.mockRejectedValueOnce({
-      message: "NASA CMR search is unavailable",
-    });
-    render(
-      <GranulePanel
-        bbox={[0, 0, 1, 1]}
-        products={[]}
-        granules={[]}
-        onResults={() => {}}
-      />,
-    );
-    expect(
-      await screen.findByText(/cmr search is unavailable/i),
-    ).toBeInTheDocument();
+    searchGranules.mockRejectedValueOnce({ message: "NASA CMR search is unavailable" });
+    panel([]);
+    expect(await screen.findByText(/cmr search is unavailable/i)).toBeInTheDocument();
   });
 
   it("retries an unchanged search after an error", async () => {
@@ -264,14 +226,7 @@ describe("<GranulePanel />", () => {
       .mockRejectedValueOnce({ message: "NASA CMR search is unavailable" })
       .mockResolvedValueOnce({ hits: 1, granules: [granule] });
     const onResults = vi.fn();
-    render(
-      <GranulePanel
-        bbox={[0, 0, 1, 1]}
-        products={[]}
-        granules={[]}
-        onResults={onResults}
-      />,
-    );
+    panel([], { onResults });
     await screen.findByText(/cmr search is unavailable/i);
     fireEvent.click(screen.getByRole("button", { name: /search/i }));
     await waitFor(() => expect(onResults).toHaveBeenCalledWith([granule]));

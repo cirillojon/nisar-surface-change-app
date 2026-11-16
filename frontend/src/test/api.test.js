@@ -1,13 +1,8 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
-import {
-  api,
-  fetchBrowseBounds,
-  fetchHealth,
-  fetchSites,
-  invalidateCache,
-  searchGranules,
-} from "../services/api.js";
+import { api, fetchHealth, searchGranules } from "../services/api.js";
+import { browseBoundsQuery, sitesQuery } from "../services/queries.js";
+import { testQueryClient } from "./render.jsx";
 
 const ok = (data, status = 200) => ({
   data,
@@ -26,19 +21,21 @@ function withAdapter(adapter, fn) {
 }
 
 describe("services/api", () => {
+  let client;
   beforeEach(() => {
-    invalidateCache();
+    client = testQueryClient();
   });
 
-  it("fetchSites caches across calls and dedupes", async () => {
+  it("asks for the sites once, however many ask at once or later (query cache)", async () => {
     const adapter = vi
       .fn()
       .mockResolvedValue(ok({ sites: [{ id: 1, name: "x" }] }));
     await withAdapter(adapter, async () => {
-      const a = await fetchSites();
-      const b = await fetchSites();
+      const [a, b] = await Promise.all([client.fetchQuery(sitesQuery()), client.fetchQuery(sitesQuery())]);
+      const c = await client.fetchQuery(sitesQuery());
       expect(a).toEqual([{ id: 1, name: "x" }]);
       expect(b).toEqual(a);
+      expect(c).toEqual(a);
       expect(adapter).toHaveBeenCalledTimes(1);
     });
   });
@@ -66,12 +63,12 @@ describe("services/api", () => {
     });
   });
 
-  it("fetchBrowseBounds returns the bbox and caches it", async () => {
+  it("browse bounds come back as a bbox, asked for once per KML", async () => {
     const adapter = vi.fn().mockResolvedValue(ok({ bbox: [1, 2, 3, 4] }));
     await withAdapter(adapter, async () => {
       const kml = "https://nisar.asf.earthdatacloud.nasa.gov/x_LATLON.kml";
-      expect(await fetchBrowseBounds(kml)).toEqual([1, 2, 3, 4]);
-      await fetchBrowseBounds(kml);
+      expect(await client.fetchQuery(browseBoundsQuery(kml))).toEqual([1, 2, 3, 4]);
+      await client.fetchQuery(browseBoundsQuery(kml));
       expect(adapter).toHaveBeenCalledTimes(1);
       expect(adapter.mock.calls[0][0].params).toEqual({ kml });
     });

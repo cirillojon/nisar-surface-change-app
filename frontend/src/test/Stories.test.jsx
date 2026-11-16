@@ -1,4 +1,4 @@
-import { act, fireEvent, render, renderHook, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, renderHook, screen, waitFor, within } from "./render.jsx";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../services/api.js", () => ({
@@ -131,6 +131,8 @@ describe("StoryPanel", () => {
     expect(screen.queryByText(story.question)).toBeNull();
 
     await act(async () => resolveStory(story));
+    // The query cache passes the story on in its next tick.
+    await waitFor(() => expect(screen.getByText(story.question)).toBeVisible());
 
     expect(screen.getByRole("heading", { name: story.title })).toBe(title);
     expect(screen.getByRole("button", { name: "← All stories" })).toBe(back);
@@ -343,15 +345,6 @@ describe("FindingCard", () => {
     render(<FindingCard slug="okavango-flood-pulse" moment={1} variant="brief" />);
     await screen.findByText("−9.3 pts");
     expect(screen.queryByRole("button", { name: "Copy link" })).not.toBeInTheDocument();
-  });
-
-  it("puts itself on the map when opened, without taking the card away", async () => {
-    fetchFinding.mockResolvedValue(finding);
-    const onShowOnMap = vi.fn();
-    render(<FindingCard slug="okavango-flood-pulse" moment={1} onShowOnMap={onShowOnMap} autoShow />);
-    await screen.findByText("−9.3 pts");
-    expect(onShowOnMap).toHaveBeenCalledTimes(1);
-    expect(onShowOnMap).toHaveBeenCalledWith(finding, { focusMap: false });
   });
 
   it("offers no explanation for a moment that no hypothesis addresses", async () => {

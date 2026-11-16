@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "./render.jsx";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../services/api.js", () => ({

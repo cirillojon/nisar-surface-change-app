@@ -24,20 +24,19 @@ export const FRESH_VIEW = Object.freeze({
   pendingDate: null,
   keepDate: false,
   siteLayer: "colour",
-  // A gallery place: its layer (null: its starting one), its map overlay,
-  // the two dates it compares, and a date asked of its player ({ date, n }).
+  // A gallery place (or the tour's imagery) in its player: its layer (null:
+  // its starting one), the dates it compares ({ from?, to? }; null: its
+  // suggested pair), and whether change maps remove the area-wide shift
+  // (see components/land/useLandPlayer.js).
   landLayer: null,
-  landOverlay: null,
   landDates: null,
-  landFocus: null,
-  // An area: its searched dates, its NISAR series, and a date asked for from the chart.
-  areaRange: null,
-  areaSeries: null,
-  areaFocus: null,
-  // The catalog search beside a site or area, its results and their map layers.
+  landShift: true,
+  // The catalog search beside a site or area: open (a site's), the search
+  // submitted (null: the default), and the explorer's view of its results
+  // (see workspace/useAreaCatalog.js).
   catalogOpen: false,
-  granules: [],
-  regionLayers: null,
+  search: null,
+  explorer: null,
   // The evidence (charts) panel, and a story's Save / share menu.
   evidenceOpen: true,
   shareOpen: false,

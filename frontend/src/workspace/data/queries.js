@@ -1,61 +1,55 @@
-// The workspace's server data, as TanStack Query hooks. Each query's key
-// names what it holds, so a newer selection never sees an older answer and
-// a place opened twice is served from the cache.
+// The workspace's server data, as hooks over the app's query definitions
+// (services/queries.js). Each query's key names what it holds, so a newer
+// selection never sees an older answer and a place opened twice is served
+// from the cache.
 
-import { queryOptions, useQuery } from "@tanstack/react-query";
+import { useQueries, useQuery } from "@tanstack/react-query";
 
 import {
-  fetchChangeTypes,
-  fetchLandChange,
-  fetchProducts,
-  fetchSite,
-  fetchSites,
-  fetchStories,
-} from "../../services/api.js";
+  changeTypesQuery,
+  landChangeQuery,
+  productsQuery,
+  siteQuery,
+  sitesQuery,
+  storiesQuery,
+} from "../../services/queries.js";
+
+export { siteQuery };
 
 const NO_PLACES = { sites: [] };
 const NO_STORIES = { themes: [], stories: [] };
 const NONE = [];
 
-/** One study site with its passes and observations. */
-export const siteQuery = (id) =>
-  queryOptions({
-    queryKey: ["site", id],
-    queryFn: () => fetchSite(id),
-    enabled: id != null,
-  });
-
 /**
  * What the workspace needs before anything else: change types, products and
- * the study sites. One query, so the map waits for all three, and one error
- * says the backend can't be reached.
+ * the study sites. Loading until all three have answered or one has failed;
+ * a failure says the backend can't be reached.
  */
 export function useCatalog() {
-  const { data, error, isPending } = useQuery({
-    queryKey: ["catalog"],
-    queryFn: async () => {
-      const [changeTypes, products, sites] = await Promise.all([fetchChangeTypes(), fetchProducts(), fetchSites()]);
-      return { changeTypes, products, sites };
+  return useQueries({
+    queries: [changeTypesQuery(), productsQuery(), sitesQuery()],
+    combine: ([types, products, sites]) => {
+      const failed = [types, products, sites].find((q) => q.isError);
+      return {
+        changeTypes: types.data ?? NONE,
+        products: products.data ?? NONE,
+        sites: sites.data ?? NONE,
+        loading: !failed && [types, products, sites].some((q) => q.isPending),
+        error: failed ? `Can't reach the backend: ${failed.error?.message || "unknown error"}` : null,
+      };
     },
   });
-  return {
-    changeTypes: data?.changeTypes ?? NONE,
-    products: data?.products ?? NONE,
-    sites: data?.sites ?? NONE,
-    loading: isPending,
-    error: error ? `Can't reach the backend: ${error?.message || "unknown error"}` : null,
-  };
 }
 
 /** The land-change gallery: null while loading, no places if it failed. */
 export function useLandChange() {
-  const { data, isError } = useQuery({ queryKey: ["landChange"], queryFn: fetchLandChange });
+  const { data, isError } = useQuery(landChangeQuery());
   return isError ? NO_PLACES : data ?? null;
 }
 
 /** The curated stories: null while loading, none if they failed. */
 export function useStories() {
-  const { data, isError } = useQuery({ queryKey: ["stories"], queryFn: fetchStories });
+  const { data, isError } = useQuery(storiesQuery());
   return isError ? NO_STORIES : data ?? null;
 }
 

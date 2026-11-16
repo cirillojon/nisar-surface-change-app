@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "./render.jsx";
 import { describe, expect, it, vi } from "vitest";
 
 import DemoTour from "../components/tour/DemoTour.jsx";

@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useEffect, useRef } from "react";
 import { Link, useLocation } from "react-router-dom";
 
 import { API_BASE } from "../../services/api.js";
@@ -50,16 +51,21 @@ function suggestions(pathname, ws) {
   ];
 }
 
+/** Whether the assistant is set up on the backend, asked once the drawer first opens. */
+const statusQuery = {
+  queryKey: ["assistant-status"],
+  queryFn: async () => {
+    try {
+      const r = await fetch(`${API_BASE}/api/assistant/status`);
+      return r.ok ? await r.json() : { enabled: false, unreachable: true };
+    } catch {
+      return { enabled: false, unreachable: true };
+    }
+  },
+};
+
 function useStatus(open) {
-  const [status, setStatus] = useState(null);
-  useEffect(() => {
-    if (!open || status) return;
-    fetch(`${API_BASE}/api/assistant/status`)
-      .then((r) => (r.ok ? r.json() : { enabled: false, unreachable: !r.ok }))
-      .then(setStatus)
-      .catch(() => setStatus({ enabled: false, unreachable: true }));
-  }, [open, status]);
-  return status;
+  return useQuery({ ...statusQuery, enabled: open }).data ?? null;
 }
 
 export default function AssistantDrawer() {
