@@ -1,0 +1,7 @@
+# Used instead of .dockerignore when building Dockerfile.mcp (BuildKit).
+# Allowlist: only what the MCP image needs.
+*
+!mcp_server/
+!requirements-mcp.txt
+**/__pycache__/
+**/*.py[cod]

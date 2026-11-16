@@ -1,0 +1,22 @@
+# MCP server image for Fly.io (see fly.mcp.toml and docs/DEPLOYMENT.md).
+# Stateless: it only talks to the backend over HTTP (NISAR_API_URL).
+FROM python:3.11.13-slim
+
+WORKDIR /app
+
+COPY requirements-mcp.txt .
+RUN pip install --no-cache-dir -r requirements-mcp.txt uvicorn
+
+COPY mcp_server/ ./mcp_server/
+
+# Drop privileges
+RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
+USER app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1
+
+EXPOSE 8765
+
+# Streamable HTTP endpoint is served at /mcp
+CMD ["python", "-m", "mcp_server", "--http", "--host", "0.0.0.0", "--port", "8765"]
