@@ -1061,11 +1061,12 @@ export default function WorkspaceApp({ active = true }) {
           if (layer) setSiteLayer(layer);
           if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
         }}
-        onCompareImages={landSite ? (from, date) => {
+        activeChangePair={landLayer === "change" ? landDates : null}
+        onCompareImages={landSite ? (from, date, layer = "change") => {
           const before = landSite.passes.find((p) => p.date === from);
           if (!before || !landSite.passes.some((p) => p.date === date)) return;
           setLandFocus((previous) => ({ from, date, n: (previous?.n ?? 0) + 1 }));
-          setLandLayer(before.hh_url ? "change" : "hh");
+          setLandLayer(layer === "change" && !before.hh_url ? "hh" : layer);
           if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
         } : null}
         onOpenFinding={openFindingCard}

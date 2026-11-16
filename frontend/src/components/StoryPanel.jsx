@@ -3,6 +3,7 @@ import { useEffect, useId, useState } from "react";
 import { absoluteApiUrl, fetchStory } from "../services/api.js";
 import { STATUS_LABEL } from "../services/landchange.js";
 import { footprintText } from "../services/chain.js";
+import { LandChangeCallout } from "./LandChangePanel.jsx";
 
 const dayFmt = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
 const shortDayFmt = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", timeZone: "UTC" });
@@ -84,16 +85,17 @@ function Hypothesis({ h, moments, selectedDate, onMoment, imagePair, onCompareIm
   );
 }
 
-function StoryEvidence({ story, selectedDate, onSelectDate, onCompareImages }) {
+function StoryEvidence({ story, selectedDate, onSelectDate, onCompareImages, activeChangePair }) {
   const { saw } = story;
-  if (story.source === "landchange" && saw?.suggested?.length >= 2 && onCompareImages) {
-    const [from, to] = saw.suggested;
+  if (story.source === "landchange" && saw?.look_for) {
+    const [from, to] = saw.suggested ?? [];
+    const changeShown = activeChangePair?.from === from && activeChangePair?.to === to && Boolean(from && to);
+    const toggleChange = from && to && onCompareImages
+      ? () => onCompareImages(from, to, changeShown ? null : "change")
+      : null;
     return (
-      <div className="story-lead" role="group" aria-label="Featured NISAR evidence">
-        <p>{saw.headline}</p>
-        <button type="button" className="story-evidence-action" onClick={() => onCompareImages(from, to)}>
-          <span>Compare images</span><strong>{shortDayFmt.formatRange(day(from), day(to))}</strong>
-        </button>
+      <div className="story-lead story-image-evidence" role="group" aria-label="Featured NISAR evidence">
+        <LandChangeCallout lookFor={saw.look_for} changeShown={changeShown} onToggleChange={toggleChange} />
       </div>
     );
   }
@@ -222,6 +224,7 @@ export default function StoryPanel({
   onOpenFinding,
   onSave,
   onCompareImages,
+  activeChangePair = null,
   shareOpen = false,
   onShareToggle,
   onBack,
@@ -299,6 +302,7 @@ export default function StoryPanel({
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
             onCompareImages={onCompareImages}
+            activeChangePair={activeChangePair}
           />
           {(site.scene_count || dates) && (
             <p className="story-record">

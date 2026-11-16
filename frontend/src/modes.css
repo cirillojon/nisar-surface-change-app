@@ -449,6 +449,13 @@
 .story-lead-label {
   color: var(--fg-muted);
 }
+.story-image-evidence > .callout,
+.story-image-evidence > .land-change-toggle {
+  margin-block: 0;
+}
+.story-image-evidence > .land-change-toggle {
+  justify-self: start;
+}
 .story-pass-pair {
   position: relative;
   isolation: isolate;
