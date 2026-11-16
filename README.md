@@ -49,7 +49,7 @@ might explain it. Three modes:
 | --------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
 | **Stories**     | A guided look at what NISAR shows at 12 places             | A question, labelled hypotheses, what the record can't show |
 | **Investigate** | Your own area or line, and every place with data           | Passes over your area, a series, a height profile      |
-| **Findings**    | Keeping and sharing a result                               | A card with evidence and limits, a printable brief, CSV, REST and MCP calls |
+| **My findings** | Keeping and sharing a result                               | A card with evidence and limits, a printable brief, CSV, REST and MCP calls |
 
 Each tab owns the side panel and its tools: drawing and clicking the map
 are on **Investigate**.
