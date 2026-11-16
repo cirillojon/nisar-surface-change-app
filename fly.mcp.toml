@@ -1,6 +1,7 @@
-# Fly.io config for the NISAR MCP server (streamable HTTP at /mcp).
-# Separate app from the backend (fly.toml). Deploy with:
-#   fly deploy --config fly.mcp.toml --dockerfile Dockerfile.mcp
+# fly.toml app configuration file generated for nisar-mcp on 2026-11-15T22:53:24-05:00
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
 
 app = 'nisar-mcp'
 primary_region = 'sjc'
@@ -9,8 +10,8 @@ primary_region = 'sjc'
   dockerfile = 'Dockerfile.mcp'
 
 [env]
-  NISAR_API_URL = 'https://nisar-surface-change.fly.dev'
   NISAR_API_TIMEOUT = '120'
+  NISAR_API_URL = 'https://nisar-surface-change.fly.dev'
 
 [http_service]
   internal_port = 8765
