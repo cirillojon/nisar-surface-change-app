@@ -92,6 +92,8 @@ export function useTour({ active, initial, workspace }) {
     leaveKilauea,
     // Point at these dates on the land player's bar.
     setGuide,
+    // Demo mode: which panels the step shows (everything else is hidden).
+    showPanels: setDemoView,
     // A Kīlauea step: its tab and panel, what to draw on the map, and the
     // map held on the summit.
     showKilauea: ({ marks: shown, panel } = {}) => {

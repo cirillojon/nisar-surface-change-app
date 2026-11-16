@@ -329,6 +329,13 @@ describe("<WorkspaceApp />", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the backend: Network error");
   });
 
+  it("keeps a linked site and date in the address when the site list can't be loaded", async () => {
+    fetchSites.mockRejectedValueOnce({ message: "Network error" });
+    open("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-09");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the backend");
+    await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-09");
+  });
+
   it("says why a site couldn't load, and loads it on another try", async () => {
     fetchSite.mockRejectedValueOnce({ message: "The server is busy." });
     open("/workspace?mode=investigate");

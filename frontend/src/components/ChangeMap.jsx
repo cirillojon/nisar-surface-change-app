@@ -247,7 +247,14 @@ function useFrameStack(value, id) {
     const pending = timers.current;
     return () => pending.forEach(clearTimeout);
   }, []);
+  // Only the newest frame's paint counts: an older frame behind it can fire
+  // its load event again, and mustn't come back on top.
+  const newest = useRef(id);
+  useLayoutEffect(() => {
+    newest.current = id;
+  });
   const onPainted = useCallback((done, shown) => {
+    if (done !== newest.current) return;
     setPainted((ps) => [...ps.filter((f) => f.id !== done).slice(-2), { id: done, value: shown }]);
     // Older frames go once the new one has fully faded in.
     const timer = setTimeout(() => {

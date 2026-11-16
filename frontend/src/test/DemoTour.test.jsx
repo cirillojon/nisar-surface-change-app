@@ -15,6 +15,7 @@ const actions = () => ({
   openStory: vi.fn(),
   setGuide: vi.fn(),
   focusLandDate: vi.fn(),
+  showPanels: vi.fn(),
 });
 const at = (id) => DEMO_STEPS.findIndex((s) => s.id === id);
 const idle = { drawing: null, aoiDrawn: false, profileLine: false };
@@ -46,8 +47,9 @@ describe("demo mode's script", () => {
 
 describe("DemoTour", () => {
   it("moves on with Space and back with Backspace, and says which panels to show", () => {
-    const onView = vi.fn();
-    render(<DemoTour state={idle} actions={actions()} onEnd={() => {}} onView={onView} />);
+    const a = actions();
+    const onView = a.showPanels;
+    render(<DemoTour state={idle} actions={a} onEnd={() => {}} />);
     expect(stepShown()).toBe("problem");
     expect(screen.getByText("We built Google Maps for NISAR.")).toBeInTheDocument();
     press(" ");
@@ -60,20 +62,21 @@ describe("DemoTour", () => {
   it("starts the drawing on a drawing step, and Space draws the suggested box if the presenter hasn't", () => {
     const a = actions();
     const { rerender } = render(
-      <DemoTour state={idle} actions={a} onEnd={() => {}} onView={() => {}} startAt={at("kilauea-box")} />,
+      <DemoTour state={idle} actions={a} onEnd={() => {}} startAt={at("kilauea-box")} />,
     );
     expect(a.draw).toHaveBeenCalledWith("area");
     press(" ");
     expect(a.setScene).toHaveBeenLastCalledWith("area");
     expect(stepShown()).toBe("kilauea-box");
     // The box is drawn: the step moves on by itself.
-    rerender(<DemoTour state={{ ...idle, aoiDrawn: true }} actions={a} onEnd={() => {}} onView={() => {}} startAt={at("kilauea-box")} />);
+    rerender(<DemoTour state={{ ...idle, aoiDrawn: true }} actions={a} onEnd={() => {}} startAt={at("kilauea-box")} />);
     expect(stepShown()).toBe("kilauea-play");
   });
 
   it("shows the left panel for the profile and the right one for Sylhet's charts", () => {
-    const onView = vi.fn();
-    render(<DemoTour state={idle} actions={actions()} onEnd={() => {}} onView={onView} startAt={at("kilauea-profile")} />);
+    const a = actions();
+    const onView = a.showPanels;
+    render(<DemoTour state={idle} actions={a} onEnd={() => {}} startAt={at("kilauea-profile")} />);
     expect(onView).toHaveBeenLastCalledWith({ panel: true, chain: false });
     press(" ");
     expect(onView).toHaveBeenLastCalledWith({ panel: false, chain: false });
@@ -83,7 +86,7 @@ describe("DemoTour", () => {
 
   it("switches between Langtang's two passes with the arrow keys", () => {
     const a = actions();
-    render(<DemoTour state={idle} actions={a} onEnd={() => {}} onView={() => {}} startAt={at("langtang")} />);
+    render(<DemoTour state={idle} actions={a} onEnd={() => {}} startAt={at("langtang")} />);
     expect(a.setGuide).toHaveBeenCalledWith(LANGTANG_PAIR);
     press("ArrowRight");
     expect(a.focusLandDate).toHaveBeenLastCalledWith(LANGTANG_PAIR[1]);
@@ -94,21 +97,21 @@ describe("DemoTour", () => {
 
   it("goes back to the workspace with Backspace from the first step", () => {
     const onEnd = vi.fn();
-    render(<DemoTour state={idle} actions={actions()} onEnd={onEnd} onView={() => {}} />);
+    render(<DemoTour state={idle} actions={actions()} onEnd={onEnd} />);
     press("Backspace");
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 
   it("goes back a step with Backspace even mid-drawing", () => {
     render(
-      <DemoTour state={{ ...idle, drawing: "line" }} actions={actions()} onEnd={() => {}} onView={() => {}} startAt={at("kilauea-line")} />,
+      <DemoTour state={{ ...idle, drawing: "line" }} actions={actions()} onEnd={() => {}} startAt={at("kilauea-line")} />,
     );
     press("Backspace");
     expect(stepShown()).toBe("kilauea-play");
   });
 
   it("tells a screen reader what the screen no longer shows, and the keys", () => {
-    render(<DemoTour state={idle} actions={actions()} onEnd={() => {}} onView={() => {}} />);
+    render(<DemoTour state={idle} actions={actions()} onEnd={() => {}} />);
     expect(screen.getByRole("status")).toHaveTextContent(/Backspace, back/);
     expect(screen.getByRole("dialog")).toHaveFocus();
     for (const step of DEMO_STEPS.filter((s) => !s.card)) expect(step.sr, step.id).toBeTruthy();
@@ -119,7 +122,7 @@ describe("DemoTour", () => {
       <>
         <button type="button">Play</button>
         <input aria-label="Notes" />
-        <DemoTour state={idle} actions={actions()} onEnd={() => {}} onView={() => {}} startAt={at("kilauea-play")} />
+        <DemoTour state={idle} actions={actions()} onEnd={() => {}} startAt={at("kilauea-play")} />
       </>,
     );
     screen.getByRole("button", { name: "Play" }).focus();
@@ -135,7 +138,7 @@ describe("DemoTour", () => {
 
   it("ends on Escape, and with Space on the last card", () => {
     const onEnd = vi.fn();
-    render(<DemoTour state={idle} actions={actions()} onEnd={onEnd} onView={() => {}} startAt={DEMO_STEPS.length - 1} />);
+    render(<DemoTour state={idle} actions={actions()} onEnd={onEnd} startAt={DEMO_STEPS.length - 1} />);
     press(" ");
     expect(onEnd).toHaveBeenCalledTimes(1);
     press("Escape");
