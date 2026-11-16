@@ -1909,3 +1909,61 @@ h3:hover > .pf-anchor,
     gap: 4px;
   }
 }
+
+/* ── Mobile touch polish (phones only; desktop layout untouched) ── */
+@media (max-width: 760px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    overflow-x: hidden;
+    overscroll-behavior-y: none;
+  }
+  a,
+  button,
+  summary,
+  [role="button"],
+  [role="tab"],
+  input,
+  select {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* 16px stops iOS Safari zooming the page when a field is focused. */
+  input:not([type="range"], [type="checkbox"], [type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+  .pf-breadcrumbs a,
+  .pf-edit,
+  .pf-footer a {
+    display: inline-block;
+    padding-block: 11px;
+    margin-block: -11px;
+  }
+  .pf-footer li {
+    margin-bottom: 0;
+  }
+  .pf-footer-grid {
+    gap: 20px 16px;
+  }
+  .pf-sidebar-link {
+    min-height: 44px;
+  }
+  .pf-pager-link {
+    min-height: 56px;
+  }
+  .pf-prose pre,
+  .pf-table-wrap {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+  .pf-footer {
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+  .pf-topbar-row {
+    padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  }
+}
