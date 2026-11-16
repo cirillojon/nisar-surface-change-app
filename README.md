@@ -9,6 +9,30 @@ the NASA Space Apps 2026 challenge
 
 **Demo video:** [SubjectToChange_NISAR.mp4](SubjectToChange_NISAR.mp4) (30 s)
 
+**Space Apps project page:** [Subject to Change](https://www.spaceappschallenge.org/2026/find-a-team/subject-to-change/?tab=project)
+
+## Why we built it
+
+Think of it as "Google Maps for NISAR". NISAR's data is valuable, but it
+ships as large HDF5 granules that are slow to find and hard to open.
+We started this as an internal tool for our own analysis and realised it
+could lower that barrier for researchers, hobbyists and enthusiasts too:
+
+- **Point, draw or select** on the map to find the passes you want; no
+  granule IDs or downloads needed. Only the pixels for your area are
+  read from each HDF5 file, using HTTP range requests.
+- **Mosaic mode** tiles as many passes as it takes to cover an area no
+  single pass covers, and you can scrub through time to see each one in
+  context.
+- **Plain-language context**: tooltips and side panels explain what
+  terms like GCOV, GUNW and "interferogram" mean.
+- **Other open data alongside**: rain, river flow and terrain on the
+  same dates and places.
+- **Stories** for new users: volcanoes, glaciers, sinking cities,
+  landslides, floods and crops.
+- **Keyboard navigation** throughout, a guided tour on the first visit,
+  and a layout that works on phones.
+
 NISAR values and images come from real granules. Rain and river flow
 are public model records shown on the same dates; the app draws no
 conclusions from them. Physical explanations are offered as labelled
