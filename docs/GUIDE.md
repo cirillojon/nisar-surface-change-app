@@ -1,17 +1,16 @@
-# Team Startup Guide: NISAR Surface Change Explorer
+# Guide: NISAR Surface Change Explorer
 
-Read this first. It covers getting the app running on your machine, the
-NISAR background you need for the challenge, where everything lives in
-the code, and how we'll work together.
+Start here. It covers getting the app running on your machine, the
+NISAR background behind it, the data pipeline, and where everything
+lives in the code.
 
 **The challenge** ([_Dancing with the SARs_](https://www.spaceappschallenge.org/2026/challenges/dancing-with-the-sars/)):
 build an interactive, open-source app that uses radar data from the
 NASA-ISRO Synthetic Aperture Radar (NISAR) mission to track and
 visualize one or more types of surface change at locations around the
 world (wetlands, wildfires, earthquakes, farming, glaciers, subsidence,
-and so on), and make it understandable to a broad audience. Judges
-will look for real NISAR data, compelling storytelling, and a
-hypothesis about the physical drivers behind what the radar sees.
+and so on), and make it understandable to a broad audience, with
+hypotheses about the physical drivers behind what the radar sees.
 
 ---
 
@@ -32,8 +31,8 @@ sections below.
 ### Clone
 
 ```bash
-git clone https://github.com/<OWNER>/nisar-surface-change.git
-cd nisar-surface-change
+git clone https://github.com/cirillojon/nisar-surface-change-app.git
+cd nisar-surface-change-app
 ```
 
 ### macOS
@@ -105,8 +104,8 @@ slower, and Vite's hot reload can miss file changes.
 
 ```bash
 mkdir -p ~/code && cd ~/code
-git clone https://github.com/<OWNER>/nisar-surface-change.git
-cd nisar-surface-change
+git clone https://github.com/cirillojon/nisar-surface-change-app.git
+cd nisar-surface-change-app
 code .                    # optional: opens VS Code connected to WSL
 ```
 
@@ -125,7 +124,7 @@ bin/start dev             # API on http://localhost:8880
 **Terminal 2: frontend**
 
 ```bash
-cd ~/code/nisar-surface-change/frontend
+cd ~/code/nisar-surface-change-app/frontend
 cp .env.example .env
 npm install
 npm run dev
@@ -186,7 +185,8 @@ npm run dev
 
 1. <http://localhost:8880/api/health> shows `"status": "ok"` and
    `"site_count": 6`.
-2. <http://localhost:5173> shows a world map with six colored dots.
+2. <http://localhost:5173/workspace> shows the map, with a marker for
+   every place and the Stories list beside it.
 3. Click **Mexico City**. A red subsidence map appears over the city,
    with a chart dropping to about −200 mm. Press **▶ Play** to watch
    the city sink pass by pass.
@@ -205,8 +205,7 @@ cd frontend && npm test       # frontend
 - **NASA Earthdata Login** (free, instant): <https://urs.earthdata.nasa.gov/>.
   Needed to **compute** NISAR values (read the HDF5 files) and to
   download granules. Not needed to run the app, browse images or search
-  the catalog. Everyone on the data track should create one now. Put it
-  in `~/.netrc` (never in the repo):
+  the catalog. Put it in `~/.netrc` (never in the repo):
 
   ```bash
   printf 'machine urs.earthdata.nasa.gov login YOUR_USER password YOUR_PASS\n' > ~/.netrc
@@ -215,7 +214,7 @@ cd frontend && npm test       # frontend
 
 ---
 
-## 2. What the app does today
+## 2. What the app does
 
 | Area                 | What you can do                                                                         |
 | -------------------- | --------------------------------------------------------------------------------------- |
@@ -227,8 +226,7 @@ cd frontend && npm test       # frontend
 | Getting around       | What you open stays on the map across tabs. A panel's **← All …** link returns to its list and the whole world; **Hide panel** only hides; the top bar's **Workspace** link starts over |
 | Site panel           | Site notes, **how radar sees it**, catalog search; NISAR **time-lapse** on the map       |
 | Charts               | Click a point to jump the map to that pass                                              |
-| NISAR story (beside the map) | The NISAR series, moments that sum it up (they pop up over the map, starting at the first), the site's other NISAR series, and one related series (rain, river flow, prices) right under the NISAR chart; click or drag to change the pass. Drawn areas show rain only next to a measured series (SME2) |
-| Price overlay        | **Market context** on the map (Investigate tab): more instruments for the site, with radar milestones |
+| NISAR story (beside the map) | The NISAR series, moments that sum it up (they pop up over the map, starting at the first), the site's other NISAR series, and one related series (rain or river flow) right under the NISAR chart; click or drag to change the pass. Drawn areas show rain only next to a measured series (SME2) |
 | Live catalog search  | In a site ("Search the live NISAR catalog"), or click anywhere on the map on the Investigate tab |
 | Granule list         | Thumbnails, date, quality badge; **Show on map** overlays the browse image; **Download** |
 
@@ -250,7 +248,7 @@ illustrative.
 The full stories are the `description` fields in
 [`app/data/sites.json`](../app/data/sites.json).
 
-### Honest caveats (say these out loud in the pitch)
+### Caveats
 
 - **Most granules are provisional** (early-mission processing). Each
   pass shows its quality badge.
@@ -457,9 +455,8 @@ up in a few **moments**. Its content lives in `SITE_CHAINS` in
 or key is needed. The rule: **NISAR first, no causes, no verdicts.**
 
 1. Add an entry for the site's slug: the NISAR metric to chart, any
-   related series (`rain` or `river` with a `lat`/`lon`), any Pink Sheet
-   benchmarks (`rice`, `whea`, `rice_vn`, or another code in
-   `app/data/markets/prices.json`), and 2–5 `moments`.
+   related series (`rain` or `river` with a `lat`/`lon`), and 2–5
+   `moments`.
 2. Each moment is a `start` and `end` **pass date**, a short `title`,
    an optional `season` label (only with a source; Punjab's follow FAO's
    crop calendar), a `stat` (`change`, `rate`, `peak`, `low`, `value`),
@@ -525,12 +522,13 @@ tour. Not done yet:
 
 ---
 
-## 7. How we work
+## 7. Contributing
 
-- `main` must always run. Branch per feature: `git checkout -b feat/story-mode`.
-- Pull often: `git pull --rebase origin main`.
-- Open a PR. CI runs backend tests, frontend tests, lint, build, and a
-  schema-drift check. Merge when it's green.
+Branch, test and pull-request conventions are in
+[CONTRIBUTING.md](../CONTRIBUTING.md). In short:
+
+- Branch off `main`. CI runs backend tests, frontend tests, lint, build
+  and a schema-drift check on every pull request.
 - Changed a model? Run `flask db migrate -m "..."` and commit the new
   file in `app/migrations/versions/`.
 - Don't commit `.env`, `.netrc`, `*.db`, `*.h5` or `nisar-downloads/`

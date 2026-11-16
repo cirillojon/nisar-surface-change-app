@@ -10,7 +10,7 @@ import { mdxComponents } from "./mdx.jsx";
 import { findPage, findTab, firstPageHref } from "./nav.js";
 
 const TITLE = "NISAR Surface Change Explorer";
-const REPO_EDIT = "https://github.com/cirillojon/nisar-surface-change/edit/main/frontend/src/content/docs";
+const REPO_EDIT = "https://github.com/cirillojon/nisar-surface-change-app/edit/main/frontend/src/content/docs";
 
 function Sidebar({ tab, open, onNavigate }) {
   return (

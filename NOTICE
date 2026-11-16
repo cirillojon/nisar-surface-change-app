@@ -1,0 +1,30 @@
+NISAR Surface Change Explorer
+Copyright 2026 NISAR Surface Change Explorer contributors
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This project was built for the 2026 NASA Space Apps Challenge
+("Dancing with the SARs"). It is not a NASA or ISRO product, and its use of
+NASA data and imagery does not imply endorsement by NASA or ISRO.
+
+This repository includes third-party material under its own terms:
+
+- Basis Universal transcoder (frontend/public/decoders/basis/basis_transcoder.*),
+  unmodified copies from Three.js 0.187.0. Apache License 2.0, Binomial LLC.
+  See frontend/public/decoders/basis/LICENSE-Basis.txt.
+- Three.js notice. MIT License, Copyright (c) 2010-2026 three.js authors.
+  See frontend/public/decoders/basis/LICENSE-Three.txt.
+- meshoptimizer notice. MIT License, Copyright (c) 2016-2026 Arseny Kapoulkine.
+  See frontend/public/decoders/basis/LICENSE-Meshoptimizer.txt.
+- BDO Grotesk font (frontend/public/fonts/). SIL Open Font License 1.1,
+  Copyright 2020 The BDO Grotesk Project Authors. See frontend/public/fonts/OFL.txt.
+- NISAR spacecraft 3D model (frontend/public/models/nisar/, assets/nisar/),
+  derived from NASA/JPL-Caltech's public NISAR visualization in NASA Eyes.
+  Credit: NASA/JPL-Caltech. See assets/nisar/README.md.
+- NISAR-derived values and images (app/data/), computed from NISAR data
+  products by NASA/JPL-Caltech and ISRO, distributed by the NASA Alaska
+  Satellite Facility DAAC.
+- Rain and river-flow series (app/data/drivers.json) from Open-Meteo
+  (CC BY 4.0), based on ECMWF IFS, ERA5 and GloFAS data.
+
+Full source citations are in README.md and docs/DATA_AND_METHODS.md.

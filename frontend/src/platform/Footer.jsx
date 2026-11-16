@@ -33,7 +33,7 @@ export default function Footer() {
         <nav aria-label="Project">
           <p className="pf-footer-h">Project</p>
           <ul>
-            <li><a href="https://github.com/cirillojon/nisar-surface-change" target="_blank" rel="noreferrer">GitHub</a></li>
+            <li><a href="https://github.com/cirillojon/nisar-surface-change-app" target="_blank" rel="noreferrer">GitHub</a></li>
             <li><Link to="/docs/data/methods">Data & methods</Link></li>
             <li><Link to="/docs/get-started/faq">Limitations</Link></li>
           </ul>

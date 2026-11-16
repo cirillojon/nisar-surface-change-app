@@ -106,5 +106,5 @@ don't matter for single-user local dev.
   Collection short names are listed in `PRODUCTS`. Results are cached
   in-process for 10 minutes.
 
-See [TEAM_GUIDE.md](TEAM_GUIDE.md) for the NISAR primer and the data
+See [GUIDE.md](GUIDE.md) for the NISAR primer and the data
 pipeline.

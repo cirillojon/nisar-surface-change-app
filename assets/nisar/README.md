@@ -12,6 +12,7 @@ The deployed satellite model is checked into this repository and can be loaded l
 | [`frontend/public/models/nisar/manifest.json`](../../frontend/public/models/nisar/manifest.json) | Model hashes, dimensions convention, source credit, and measured metrics | — |
 | [`frontend/public/decoders/basis/`](../../frontend/public/decoders/basis/) | Shared KTX2 texture transcoder and software licenses | — |
 | [`frontend/src/services/nisarModel.js`](../../frontend/src/services/nisarModel.js) | Three.js loader, model URLs, and resource cleanup | — |
+| [`frontend/public/models/nisar/nisar-hero-poster.png`](../../frontend/public/models/nisar/nisar-hero-poster.png) | Transparent render used while loading and when WebGL is unavailable | — |
 
 At the default Vite base, the web model is served at `/models/nisar/nisar-web.glb`. `npm run build` copies both models and the decoders into `frontend/dist/`; the Blender source remains outside the public build. No Git LFS or separate download step is required.
 
@@ -35,7 +36,7 @@ const cleanup = () => {
 };
 ```
 
-Use the existing renderer, camera, and render loop. Metallic surfaces need an environment or suitable fill lighting. Preserve the helper's transparent-material settings to match the measured seven draw calls. Model file sizes exclude Three.js and the shared decoders. The files are available for future globe integration; no model view or orbit tracking has been added to the current app UI.
+Use the existing renderer, camera, and render loop. Metallic surfaces need an environment or suitable fill lighting. Preserve the helper's transparent-material settings to match the measured seven draw calls. Model file sizes exclude Three.js and the shared decoders. The home hero now uses this loader in `nisarHeroScene.js`, with the real pass imagery and controls in `HeroObservatory.jsx`. The hero is an illustration, not live orbit tracking. See [hero implementation notes](../../docs/NISAR_HERO.md).
 
 For React, create the loader inside an effect. If a load finishes after the effect was cleaned up, dispose that returned model immediately instead of adding it to the scene. Wait until outstanding loads settle before disposing the loader's workers. Do not dispose model resources that are still shared by a clone or a cache.
 

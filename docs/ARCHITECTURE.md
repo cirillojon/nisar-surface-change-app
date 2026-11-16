@@ -48,7 +48,7 @@ change types that chart them are defined in `app/change_types.py`.
 | `app/__init__.py`          | App factory, extension init, CORS, JSON error handlers, request-id middleware.         |
 | `app/config.py`            | Static fallback config (mostly env passthrough).                                       |
 | `app/models.py`            | SQLAlchemy models (`Site`, `Scene`, `Observation`, `LoadJob`).                         |
-| `app/routes/api.py`        | Health, change types, sites, site stories and markets, drawn-area context, the land-change gallery, scene images. |
+| `app/routes/api.py`        | Health, change types, sites, site stories, drawn-area context, the land-change gallery, scene images. |
 | `app/routes/nisar.py`      | NISAR catalog search, SME2 scenes and height-profile jobs (`/api/nisar/*`).            |
 | `app/routes/stories.py`    | Stories, findings, series CSV and the coverage check (`/api/stories`, `/api/findings`, `/api/coverage-check`). |
 | `app/routes/tools.py`      | `/api/openapi.json`; the agent tool registry (`/api/tools`) unless `ENABLE_MCP=0`.     |
@@ -63,10 +63,8 @@ change types that chart them are defined in `app/change_types.py`.
 | `app/assistant.py`         | The AI assistant's tool-use loop (off unless `ENABLE_AI=1`).                           |
 | `app/change_types.py`      | Change categories + metrics (product, units, image legend, radar explainer).           |
 | `app/stories.py`           | The workspace's modes: stories (`app/data/stories.json`), findings built from a story's moments, CSV export, the coverage check. |
-| `app/chains.py`            | Site story per site: moments computed from the NISAR series, related series, benchmark prices; rain for drawn areas. |
+| `app/chains.py`            | Site story per site: moments computed from the NISAR series and related series; rain for drawn areas. |
 | `app/drivers.py`           | Related series (ECMWF IFS rain, ERA5 seasonal normals, GloFAS river flow; INGV earthquakes available): fetchers, the committed snapshot, per-pass windows. |
-| `app/markets.py`           | Price comparisons for study sites (Yahoo Finance closes, cached in `app-data/markets/`). |
-| `app/area_markets.py`      | Matches a drawn area to mapped crops or oil fields and their Pink Sheet prices.        |
 | `app/loader.py`            | Validates and mirrors `app/data/` into the DB.                                         |
 | `app/cli.py`               | `flask nisar …` AppGroup (load, search, status, check-schema).                         |
 | `app/logging_config.py`    | Log format; sets request-id on every record.                                           |
@@ -75,7 +73,7 @@ change types that chart them are defined in `app/change_types.py`.
 | `scripts/extract_nisar.py` | Offline NISAR pipeline (GCOV backscatter, GUNW displacement, images).                  |
 | `scripts/build_driver_data.py` | Fetches each site's related series into `app/data/drivers.json` (no login).        |
 | `scripts/build_landchange.py` | Builds the land-change gallery (`app/data/landchange.json` and its images).         |
-| `scripts/build_market_data.py` | Prepares the crop and oil-field indexes and monthly prices used by drawn areas.    |
+| `scripts/shared_footprint.py` | The area every pass of a site imaged, used to compare open water like for like.     |
 | `scripts/chain_evidence.py` | Prints every number behind the site stories from the committed files; `--write` refreshes the tables in [`DATA_AND_METHODS.md`](DATA_AND_METHODS.md). |
 
 ## Site stories
@@ -84,7 +82,7 @@ change types that chart them are defined in `app/change_types.py`.
 app/chains.py (SITE_CHAINS, hand-edited) ──► scripts/build_driver_data.py ──► app/data/drivers.json
                                              (Open-Meteo; no key)             (generated, committed)
                                                                                       │
-Site observations (DB) + drivers.json + app/data/markets/prices.json ──► GET /api/sites/<id>/chain
+Site observations (DB) + drivers.json ──► GET /api/sites/<id>/chain
 ```
 
 A story leads with the site's headline NISAR series. Its moments are
@@ -125,7 +123,7 @@ selection, or its list when it has none (`src/workspace/navigation.js`):
 
 The tabs:
 
-- **Stories** (`StoryList`, `StoryPanel`): eleven stories, each a study
+- **Stories** (`StoryList`, `StoryPanel`): twelve stories, each a study
   site or gallery place, listed with one of the place's own NISAR passes
   as a thumbnail. `stories.json` holds the question, hypotheses
   (linked to the moments they address), limits and what the record
@@ -138,8 +136,7 @@ The tabs:
   tools and click-to-search, which exist only on this tab. While
   drawing, a bar over the map says what to do next and has Undo, Finish
   line and Cancel (the rules are in `src/services/drawing.js`). A drawn
-  box lists the passes over it. The market overlay appears only here,
-  for a study site or a drawn area.
+  box lists the passes over it.
 - **Findings** (`FindingsPanel`, `FindingCard`): a finding is rebuilt from
   the data on every request (`build_finding`), so links, printed briefs
   (`/brief/<slug>`) and MCP calls agree. Saved findings are references
@@ -207,7 +204,6 @@ control sizing rather than introducing separate fonts or button styles.
 | `src/services/chain.js`              | Chain helpers: readouts, time ticks, the drawn-area chain.         |
 | `src/services/usePlayback.js`        | Timelapse playback that advances only onto loaded frames; `pauseAllPlayback()`. |
 | `src/services/imageCache.js`         | Image preload/decode cache; the map swaps overlays once they're ready. |
-| `src/components/MarketImpactPanel.jsx` | Price overlay on the map: instruments, dual-axis chart, events.  |
 | `src/components/ErrorBoundary.jsx`   | Catches render errors, shows a fallback.                           |
 
 ## Environment variables

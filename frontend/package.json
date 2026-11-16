@@ -3,11 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "description": "NISAR Surface Change Explorer web client — React + Vite + Leaflet, backed by the Flask API.",
-  "license": "MIT",
+  "license": "Apache-2.0",
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "https://github.com/<your-org>/<your-repo>.git"
+    "url": "https://github.com/cirillojon/nisar-surface-change-app.git",
+    "directory": "frontend"
   },
   "scripts": {
     "dev": "vite",
