@@ -14,9 +14,10 @@
 // Until a navigation has been applied the URL is left as it is, so a link
 // isn't overwritten while its site loads.
 
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 
+import { useStableCallback } from "../../services/useStableCallback.js";
 import { historyAction, readWorkspaceUrl, workspaceParams } from "../navigation.js";
 
 // Marks the URL changes made here, so they aren't applied back as navigations.
@@ -40,10 +41,7 @@ export function useWorkspaceUrl({ active, ready, view, onNavigate }) {
   // Was the workspace showing before the latest navigation?
   const seen = useRef({ key: null, active: false, fromWorkspace: false });
   // The latest onNavigate, called from the effect below without re-running it.
-  const apply = useRef(onNavigate);
-  useLayoutEffect(() => {
-    apply.current = onNavigate;
-  });
+  const apply = useStableCallback(onNavigate);
 
   // In: apply each navigation once, when what it names can be found.
   useEffect(() => {
@@ -60,9 +58,9 @@ export function useWorkspaceUrl({ active, ready, view, onNavigate }) {
     const request = readWorkspaceUrl(searchParams);
     if ((request.site && !ready.sites) || (request.place && !ready.places)) return;
     const home = seen.current.fromWorkspace && navigationType === "PUSH" && !location.search;
-    apply.current(request, { pop, home });
+    apply(request, { pop, home });
     setAppliedKey(location.key);
-  }, [active, appliedKey, location.key, location.state, location.search, navigationType, searchParams, ready.sites, ready.places]);
+  }, [active, appliedKey, apply, location.key, location.state, location.search, navigationType, searchParams, ready.sites, ready.places]);
 
   // Out: once the latest navigation is applied, the URL follows the view.
   const next = new URLSearchParams(workspaceParams(view)).toString();

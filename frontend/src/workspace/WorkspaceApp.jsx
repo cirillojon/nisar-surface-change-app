@@ -18,23 +18,17 @@ import SelectionDetails from "./components/SelectionDetails.jsx";
 import TimelineDock from "./components/TimelineDock.jsx";
 import { LANGTANG, SYLHET } from "../components/tour/steps.js";
 import { setWorkspaceContext } from "../platform/workspaceContext.js";
-import {
-  KILAUEA,
-  TOUR_BOX,
-  TOUR_IMAGERY,
-  TOUR_LINE,
-  TOUR_VIEW,
-  markTourSeen,
-  tourSeen,
-} from "../services/tour.js";
+import { TOUR_BOX, TOUR_IMAGERY, TOUR_LINE, tourSeen } from "../services/tour.js";
 import { assetUrl, fetchStory } from "../services/api.js";
 import { siteQuery, useCatalog, useLandChange, useSite, useStories } from "./data/queries.js";
 import { defaultSceneIndex, useSelection } from "./state/selection.js";
 import { useWorkspaceUrl } from "./state/useWorkspaceUrl.js";
+import { useTour } from "./tour/useTour.js";
 import { loadImage } from "../services/imageCache.js";
 import { imageLayerOptions, layerLegend, useLayerMapper } from "../services/layers.js";
 import { siteSeries } from "../services/measurements.js";
 import { useNotebook } from "../services/notebook.js";
+import { useStableCallback } from "../services/useStableCallback.js";
 import {
   momentDraft as buildMomentDraft,
   placeDraft as buildPlaceDraft,
@@ -130,29 +124,6 @@ export default function WorkspaceApp({ active = true }) {
   const [drawHost, setDrawHost] = useState(null);
   // Bumped to send the map back to the whole world (a back link, the default workspace).
   const [homeKey, setHomeKey] = useState(0);
-  // The guided tour: on a first visit it opens on its first step (how radar
-  // sees), which offers to skip. Not when someone arrives on a specific
-  // place or evidence card from a link.
-  const [touring, setTouring] = useState(
-    () => Boolean(searchParams.get("demo"))
-      || !(tourSeen() || searchParams.get("site") || searchParams.get("place") || searchParams.get("finding")),
-  );
-  // Demo mode: the tour cut down for a live pitch (DemoTour.jsx), and which
-  // panels its step shows (everything else is hidden while it runs).
-  const [demo, setDemo] = useState(() => Boolean(searchParams.get("demo")));
-  const [demoView, setDemoView] = useState({ panel: false, chain: false });
-  const tourButtonRef = useRef(null);
-  // Kīlauea steps: the pin / box / line drawn on the map, the place the map
-  // is held on, a nonce that returns the map to it, and whether the line
-  // the viewer drew was matched to the suggested one.
-  const [tourMarks, setTourMarks] = useState(null);
-  const [tourFocus, setTourFocus] = useState(null);
-  const [tourRefit, setTourRefit] = useState(0);
-  const [tourSnapped, setTourSnapped] = useState(false);
-  const tourFocusRef = useRef(tourFocus);
-  tourFocusRef.current = tourFocus;
-  // Dates marked with yellow lines on the land player's bar (Langtang steps).
-  const [tourGuide, setTourGuide] = useState(null);
   const [momentHost, setMomentHost] = useState(null);
   const sidebarRef = useRef(null);
   const workspaceRef = useRef(null);
@@ -321,13 +292,12 @@ export default function WorkspaceApp({ active = true }) {
       mapTitleRef.current?.scrollIntoView({ block: "nearest" });
     }
   };
+  const showPendingFinding = useStableCallback((finding) => showFindingOnMap(finding, { focusMap: false }));
   useEffect(() => {
     if (!pendingFinding || sites.length === 0) return;
     setPendingFinding(null);
-    showFindingOnMap(pendingFinding, { focusMap: false });
-    // showFindingOnMap is recreated each render; the finding and the site list drive this.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pendingFinding, sites]);
+    showPendingFinding(pendingFinding);
+  }, [pendingFinding, sites, showPendingFinding]);
 
   // A line drawn with the line tool: height profile over time.
   const selectLine = (line) => {
@@ -335,7 +305,7 @@ export default function WorkspaceApp({ active = true }) {
     // result ships with the app, so it opens at once).
     const snapped = touring ? TOUR_LINE : null;
     setMode("investigate");
-    setTourSnapped(Boolean(snapped));
+    tour.setSnapped(Boolean(snapped));
     select({ kind: "line", line: snapped ?? line });
     cancelDraw();
     revealSelection();
@@ -445,158 +415,114 @@ export default function WorkspaceApp({ active = true }) {
     openSaveFor(storyDraft({ story, moment: momentIndex == null ? null : moments[momentIndex], momentIndex }));
   };
 
-  const startTour = () => {
-    cancelDraw();
-    setSaveDraft(null);
-    setTouring(true);
-  };
-  const startDemo = () => {
-    cancelDraw();
-    setSaveDraft(null);
-    setDemoView({ panel: false, chain: false });
-    setDemo(true);
-    setTouring(true);
-  };
-  const endTour = useCallback(() => {
-    markTourSeen();
-    cancelDraw();
-    if (tourFocusRef.current) {
-      // Ending mid-demo at Kīlauea: leave nothing the tour had the user draw, and hand back the default workspace.
-      clearSelection();
-      setMode(DEFAULT_MODE);
-      setPanelOpen(!narrow());
-      setHomeKey((n) => n + 1);
-    }
-    setTouring(false);
-    setSaveDraft(null);
-    setLandFocus(null);
-    setTourMarks(null);
-    setTourFocus(null);
-    setTourGuide(null);
-    tourButtonRef.current?.focus({ preventScroll: true });
-  }, [cancelDraw, clearSelection, setLandFocus]);
-  // Leaving demo mode: the default workspace, out of full screen.
-  const endDemo = useCallback(() => {
-    endTour();
-    setDemo(false);
+  // ── The guided tour and demo mode (tour/useTour.js) ──
+  // The default workspace: Stories, nothing selected, the whole world.
+  const resetView = () => {
     clearSelection();
     setMode(DEFAULT_MODE);
     setPanelOpen(!narrow());
     setHomeKey((n) => n + 1);
-    if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-  }, [endTour, clearSelection]);
-  // The page around the workspace (the top bar) hides in demo mode too.
-  useEffect(() => {
-    if (!demo || !active) return undefined;
-    document.documentElement.dataset.demo = "";
-    return () => {
-      delete document.documentElement.dataset.demo;
-    };
-  }, [demo, active]);
-  const tourActions = {
-    // Demo mode's cards: the whole world, nothing selected, no panel.
-    showWorld: () => {
-      clearSelection();
-      cancelDraw();
-      setOpenFinding(null);
-      setMode("investigate");
-      setPanelOpen(false);
-      setHomeKey((n) => n + 1);
-    },
-    // Start drawing a box ("area") or a line, as the Draw buttons do.
-    draw: (tool) => {
-      setMode("investigate");
-      setDrawing(tool);
-    },
-    // Fetch every frame demo mode shows (Kīlauea, Sylhet, Langtang) ahead of time,
-    // so each timelapse plays at its own pace instead of waiting on downloads.
-    preloadDemo: () => {
-      const urls = [
-        ...(landChange?.imagery?.[TOUR_IMAGERY]?.passes ?? []).map((p) => p.image_url),
-        ...(landChange?.sites?.find((x) => x.slug === LANGTANG)?.passes ?? []).map((p) => p.image_url),
-      ];
-      urls.forEach((u) => loadImage(assetUrl(u)));
-      const sylhet = sites.find((x) => x.slug === SYLHET);
-      if (sylhet) {
-        // Through the cache, so opening Sylhet later in the demo is instant.
-        queryClient
-          .fetchQuery(siteQuery(sylhet.id))
-          .then((s) => (s.scenes ?? []).forEach((scene) => scene.image_url && loadImage(assetUrl(scene.image_url))))
-          .catch(() => {});
-      }
-    },
-    // Show this date of the land-change place on the map (its bar moves to it).
-    focusLandDate: (date) => setLandFocus((f) => ({ date, n: (f?.n ?? 0) + 1 })),
-    showList: () => {
-      clearSelection();
-      cancelDraw();
-      setOpenFinding(null);
-      setMode("stories");
-      setPanelOpen(true);
-      setHomeKey((n) => n + 1);
-    },
-    openStory,
-    openShare: (open) => setShareOpen(open),
-    openSave: (signal) => {
-      if (!saveDraft) saveShownStoryMoment(signal);
-    },
-    closeSave: () => setSaveDraft(null),
-    openNotebook: () => {
-      setMode("mine");
-      setPanelOpen(true);
-    },
-    // Each step starts from a map free of the Kīlauea drawings and place,
-    // and a bar free of yellow lines.
-    leaveKilauea: () => {
-      setTourMarks(null);
-      setTourFocus(null);
-      setTourGuide(null);
-    },
-    // Point at these dates on the land player's bar.
-    setGuide: setTourGuide,
-    // A Kīlauea step: its tab and panel (undefined: as it is), what to draw
-    // on the map, and the map held on the summit.
-    showKilauea: ({ marks, panel } = {}) => {
-      setMode("investigate");
-      if (panel != null) setPanelOpen(panel);
-      else if (narrow()) setPanelOpen(false);
-      setTourMarks(
-        marks && {
-          pin: marks.pin ? KILAUEA : null,
-          box: marks.box ? TOUR_BOX : null,
-          line: marks.line ? TOUR_LINE : null,
-        },
-      );
-      setTourFocus(TOUR_VIEW);
-      setTourRefit((n) => n + 1);
-    },
-    // Back in the tour: put the map as the step expects. A scene that's
-    // already showing is left alone: redrawing the same box would clear its
-    // search results without searching again.
-    setScene: (scene) => {
-      if (scene === "area") {
-        if (aoi?.bbox === TOUR_BOX && !profileLine) cancelDraw();
-        else selectArea(TOUR_BOX);
-      } else if (scene === "line") {
-        if (profileLine === TOUR_LINE) cancelDraw();
-        else selectLine(TOUR_LINE);
-      } else {
-        clearSelection();
-        cancelDraw();
-      }
-    },
   };
+  const tour = useTour({
+    active,
+    // The tour opens on a first visit, not when someone arrives on a specific
+    // place or evidence card from a link; ?demo=1 opens demo mode.
+    initial: {
+      touring: () => Boolean(searchParams.get("demo"))
+        || !(tourSeen() || searchParams.get("site") || searchParams.get("place") || searchParams.get("finding")),
+      demo: () => Boolean(searchParams.get("demo")),
+    },
+    workspace: {
+      stopActivity: () => {
+        cancelDraw();
+        setSaveDraft(null);
+        setLandFocus(null);
+      },
+      resetView,
+      showInvestigate: (panel) => {
+        setMode("investigate");
+        if (panel != null) setPanelOpen(panel);
+        else if (narrow()) setPanelOpen(false);
+      },
+      actions: {
+        // Demo mode's cards: the whole world, nothing selected, no panel.
+        showWorld: () => {
+          clearSelection();
+          cancelDraw();
+          setOpenFinding(null);
+          setMode("investigate");
+          setPanelOpen(false);
+          setHomeKey((n) => n + 1);
+        },
+        // Start drawing a box ("area") or a line, as the Draw buttons do.
+        draw: (tool) => {
+          setMode("investigate");
+          setDrawing(tool);
+        },
+        // Fetch every frame demo mode shows (Kīlauea, Sylhet, Langtang) ahead of time,
+        // so each timelapse plays at its own pace instead of waiting on downloads.
+        preloadDemo: () => {
+          const urls = [
+            ...(landChange?.imagery?.[TOUR_IMAGERY]?.passes ?? []).map((p) => p.image_url),
+            ...(landChange?.sites?.find((x) => x.slug === LANGTANG)?.passes ?? []).map((p) => p.image_url),
+          ];
+          urls.forEach((u) => loadImage(assetUrl(u)));
+          const sylhet = sites.find((x) => x.slug === SYLHET);
+          if (sylhet) {
+            // Through the cache, so opening Sylhet later in the demo is instant.
+            queryClient
+              .fetchQuery(siteQuery(sylhet.id))
+              .then((s) => (s.scenes ?? []).forEach((scene) => scene.image_url && loadImage(assetUrl(scene.image_url))))
+              .catch(() => {});
+          }
+        },
+        // Show this date of the land-change place on the map (its bar moves to it).
+        focusLandDate: (date) => setLandFocus((f) => ({ date, n: (f?.n ?? 0) + 1 })),
+        showList: () => {
+          clearSelection();
+          cancelDraw();
+          setOpenFinding(null);
+          setMode("stories");
+          setPanelOpen(true);
+          setHomeKey((n) => n + 1);
+        },
+        openStory,
+        openShare: (open) => setShareOpen(open),
+        openSave: (signal) => {
+          if (!saveDraft) saveShownStoryMoment(signal);
+        },
+        closeSave: () => setSaveDraft(null),
+        openNotebook: () => {
+          setMode("mine");
+          setPanelOpen(true);
+        },
+        // Back in the tour: put the map as the step expects. A scene that's
+        // already showing is left alone: redrawing the same box would clear its
+        // search results without searching again.
+        setScene: (scene) => {
+          if (scene === "area") {
+            if (aoi?.bbox === TOUR_BOX && !profileLine) cancelDraw();
+            else selectArea(TOUR_BOX);
+          } else if (scene === "line") {
+            if (profileLine === TOUR_LINE) cancelDraw();
+            else selectLine(TOUR_LINE);
+          } else {
+            clearSelection();
+            cancelDraw();
+          }
+        },
+      },
+    },
+  });
+  const { touring, demo, demoView } = tour;
 
   const changeTypeOf = (id) => changeTypes.find((ct) => ct.id === id);
 
   // Nothing selected, the Stories list, the whole world: where the workspace starts.
   const goHome = () => {
-    clearSelection();
+    resetView();
     cancelDraw();
     setOpenFinding(null);
-    setMode(DEFAULT_MODE);
-    setPanelOpen(!narrow());
-    setHomeKey((n) => n + 1);
   };
   // ── The URL (state/useWorkspaceUrl.js): links, Back / Forward, the top bar ──
   // A link that names a place but no tab: My findings has no view of a
@@ -650,7 +576,7 @@ export default function WorkspaceApp({ active = true }) {
       showLinkedPlace(linked.slug, request);
     }
     // ?demo=1 (the search menu's "Demo mode"); the URL then drops it.
-    if (request.demo && !demo) startDemo();
+    if (request.demo && !demo) tour.startDemo();
   };
   const shownDate = site?.scenes?.[sceneIndex]?.date ?? null;
   useWorkspaceUrl({
@@ -866,11 +792,11 @@ export default function WorkspaceApp({ active = true }) {
   // The Tour button ends a running tour, or starts one. Shift-click starts
   // demo mode, for presenting (full screen, Space to move on).
   const onTourClick = (e) => {
-    if (touring) endTour();
+    if (touring) tour.end();
     else if (e.shiftKey) {
       document.documentElement.requestFullscreen?.().catch(() => {});
-      startDemo();
-    } else startTour();
+      tour.startDemo();
+    } else tour.start();
   };
   // "Clear" removes a drawing and nothing else: the map stays where it is.
   const clearDrawing = () => {
@@ -906,7 +832,7 @@ export default function WorkspaceApp({ active = true }) {
           question={activeStory && !panelOpen ? activeStory.question : null}
           titleRef={mapTitleRef}
           panelButtonRef={panelButtonRef}
-          tourButtonRef={tourButtonRef}
+          tourButtonRef={tour.buttonRef}
           panelOpen={panelOpen}
           showPanelLabel={showPanelLabel}
           onTogglePanel={togglePanel}
@@ -1008,20 +934,20 @@ export default function WorkspaceApp({ active = true }) {
                       selectedSiteId={selectedSiteId}
                       places={galleryPlaces}
                       selectedPlace={landSlug}
-                      focusBbox={site?.bbox ?? pendingSite?.bbox ?? aoi?.bbox ?? landSite?.bbox ?? profileBbox ?? tourFocus}
+                      focusBbox={site?.bbox ?? pendingSite?.bbox ?? aoi?.bbox ?? landSite?.bbox ?? profileBbox ?? tour.focus}
                       focusObstructionRef={evidenceRef}
                       sceneOverlay={sceneOverlay}
                       footprintOverlay={footprintOverlay}
                       referencePoint={site?.reference ?? null}
                       regionLayers={regionLayers}
                       studyLayers={studyLayers}
-                      showFocusOutline={!profileLine && !(tourFocus && nothingSelected)}
-                      focusMaxZoom={landSite ? 14 : tourFocus ? 13 : 11}
-                      tourMarks={touring ? tourMarks : null}
+                      showFocusOutline={!profileLine && !(tour.focus && nothingSelected)}
+                      focusMaxZoom={landSite ? 14 : tour.focus ? 13 : 11}
+                      tourMarks={touring ? tour.marks : null}
                       onSelectSite={touring ? ignore : selectSiteOnMap}
                       onSelectPlace={touring ? ignore : selectPlaceOnMap}
                       onMapClick={touring || mode !== "investigate" ? ignore : selectPoint}
-                      fitKey={touring ? tourRefit : 0}
+                      fitKey={touring ? tour.refit : 0}
                       homeKey={homeKey}
                       onDrawArea={selectArea}
                       onDrawLine={selectLine}
@@ -1067,7 +993,7 @@ export default function WorkspaceApp({ active = true }) {
                   onLandOverlay={setLandOverlay}
                   onLandDatesChange={setLandDates}
                   landFocus={landFocus}
-                  guideDates={touring ? tourGuide : null}
+                  guideDates={touring ? tour.guide : null}
                   site={site}
                   catalogOnMap={catalogOnMap}
                   sceneIndex={sceneIndex}
@@ -1102,9 +1028,9 @@ export default function WorkspaceApp({ active = true }) {
       {touring && demo && (
         <DemoTour
           state={{ drawing, aoiDrawn: Boolean(aoi?.drawn), profileLine: Boolean(profileLine) }}
-          actions={tourActions}
-          onEnd={endDemo}
-          onView={setDemoView}
+          actions={tour.actions}
+          onEnd={tour.endDemo}
+          onView={tour.setDemoView}
         />
       )}
       {touring && !demo && (
@@ -1115,11 +1041,11 @@ export default function WorkspaceApp({ active = true }) {
             drawing,
             aoiDrawn: Boolean(aoi?.drawn),
             profileLine: Boolean(profileLine),
-            snapped: tourSnapped,
+            snapped: tour.snapped,
             landDate: landDates?.to ?? null,
           }}
-          actions={tourActions}
-          onEnd={endTour}
+          actions={tour.actions}
+          onEnd={tour.end}
         />
       )}
     </div>
