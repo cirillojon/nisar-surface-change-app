@@ -203,11 +203,12 @@ describe("<LandChangePanel />", () => {
     expect(screen.getByText(/HH; HV on 2 of them/)).toBeInTheDocument();
   });
 
-  it("leaves the back link and summary to the story when inside one", () => {
-    render(<LandChangePanel site={site} onBack={() => {}} embedded />);
+  it("keeps the image notes and leaves the evidence callout to the story", () => {
+    render(<LandChangePanel site={site} onBack={() => {}} onToggleChange={() => {}} embedded />);
     expect(screen.queryByRole("button", { name: "← All places" })).toBeNull();
-    expect(screen.queryByText(/Lava refills/)).toBeNull();
-    expect(screen.getByText(/The crater floor changing texture\./)).toBeInTheDocument();
+    expect(screen.getByText(/Lava refills/)).toBeVisible();
+    expect(screen.queryByText(/The crater floor changing texture\./)).toBeNull();
+    expect(screen.queryByRole("button", { name: "Show the change map" })).toBeNull();
   });
 });
 

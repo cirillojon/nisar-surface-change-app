@@ -10,12 +10,25 @@ function channels(passes) {
   return hv === 0 ? "HH only" : `HH; HV on ${hv} of them`;
 }
 
+export function LandChangeCallout({ lookFor, changeShown = false, onToggleChange }) {
+  return (
+    <>
+      <div className="callout"><strong>What to look for:</strong> {lookFor}</div>
+      {onToggleChange && (
+        <button type="button" className="btn btn-secondary btn-small land-change-toggle" onClick={onToggleChange}>
+          {changeShown ? "Show the images" : "Show the change map"}
+        </button>
+      )}
+    </>
+  );
+}
+
 /**
  * One land-change place in words: what was reported there, what to look
  * for, and where the images come from. The images are on the map; their
  * dates, layers and change map are in the dock under it (LandPlayer), so
  * nothing here changes while a time-lapse plays. `embedded` (inside a
- * story) leaves out the back link and summary, which the story shows.
+ * story) keeps the image notes while the story shows the callout and controls.
  */
 export default function LandChangePanel({ site, onBack, changeShown = false, onToggleChange = null, embedded = false }) {
   const { event, passes } = site;
@@ -38,23 +51,18 @@ export default function LandChangePanel({ site, onBack, changeShown = false, onT
               </>
             )}
           </p>
-          <p>
-            <strong>{site.headline}.</strong> {site.story}
-          </p>
         </>
       )}
+      <p>
+        <strong>{site.headline}.</strong> {site.story}
+      </p>
       {event && (
         <p className="small">
           <span className="badge">{event.date}</span> {event.label}
         </p>
       )}
-      <div className="callout">
-        <strong>What to look for:</strong> {site.look_for}
-      </div>
-      {onToggleChange && (
-        <button type="button" className="btn btn-secondary btn-small land-change-toggle" onClick={onToggleChange}>
-          {changeShown ? "Show the images" : "Show the change map"}
-        </button>
+      {!embedded && (
+        <LandChangeCallout lookFor={site.look_for} changeShown={changeShown} onToggleChange={onToggleChange} />
       )}
       {!embedded && first && (
         <p className="muted small land-record">

@@ -218,7 +218,10 @@ describe("StoryPanel", () => {
         name: "Jakobshavn Isbræ", scene_count: 11, first_date: "2026-06-18", last_date: "2026-10-28", pixel_m: 62,
         channels: { passes: 11, hv_passes: 0, label: "HH only on all 11 passes; HV was not collected" },
       },
-      saw: { status: "likely", headline: "A broad area of the fjord brightened.", suggested: ["2026-06-18", "2026-10-28"] },
+      saw: {
+        status: "likely", headline: "A broad area of the fjord brightened.", look_for: "Brighter areas near the ice front.",
+        suggested: ["2026-06-18", "2026-10-28"],
+      },
       hypotheses: [{
         ...hypothesis, moments: [], imagery_pair: ["2026-06-18", "2026-07-12"],
         caveat_summary: "Wind can brighten open water.",
@@ -226,13 +229,19 @@ describe("StoryPanel", () => {
     });
     const onOpenFinding = vi.fn();
     const onCompareImages = vi.fn();
-    render(
-      <StoryPanel slug="jakobshavn" onOpenFinding={onOpenFinding} onCompareImages={onCompareImages}>
+    const panel = (activeChangePair) => (
+      <StoryPanel slug="jakobshavn" onOpenFinding={onOpenFinding} onCompareImages={onCompareImages} activeChangePair={activeChangePair}>
         <p>dates and change map</p>
-      </StoryPanel>,
+      </StoryPanel>
     );
-    fireEvent.click(await screen.findByRole("button", { name: /Compare images/ }));
-    expect(onCompareImages).toHaveBeenCalledWith("2026-06-18", "2026-10-28");
+    const { rerender } = render(panel(null));
+    const evidence = await screen.findByRole("group", { name: "Featured NISAR evidence" });
+    expect(within(evidence).getByText("Brighter areas near the ice front.")).toBeVisible();
+    fireEvent.click(within(evidence).getByRole("button", { name: "Show the change map" }));
+    expect(onCompareImages).toHaveBeenCalledWith("2026-06-18", "2026-10-28", "change");
+    rerender(panel({ from: "2026-06-18", to: "2026-10-28" }));
+    fireEvent.click(within(evidence).getByRole("button", { name: "Show the images" }));
+    expect(onCompareImages).toHaveBeenLastCalledWith("2026-06-18", "2026-10-28", null);
     const notes = screen.getByText("dates and change map");
     expect(notes).not.toBeVisible();
     fireEvent.click(screen.getByText("Image notes & sources"));
