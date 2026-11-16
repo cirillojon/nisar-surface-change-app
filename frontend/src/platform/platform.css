@@ -11,10 +11,10 @@
   --pf-canvas: var(--bg);
   --pf-sunken: var(--bg-elevated);
   --pf-brand: var(--accent);
-  --pf-brand-strong: #2f4a05;
+  --pf-brand-strong: #1431b3;
   --pf-brand-soft: var(--accent-soft);
-  --pf-logo-bg: #1d2b0a;
-  --pf-logo-fg: #d7f29a;
+  --pf-logo-bg: var(--action-bg);
+  --pf-logo-fg: var(--action-fg);
   --pf-code-bg: #15171c;
   --pf-code-fg: #e6e8ee;
   --pf-code-line: #2a2d35;
@@ -855,11 +855,15 @@ h3:hover > .pf-anchor,
   font-weight: 500;
   font-size: 13.5px;
   padding: 7px 14px;
-  color: #10120c;
-  background: #b6e06a;
+  color: var(--pf-brand-strong);
+  background: var(--pf-brand-soft);
   border: 0;
   border-radius: 7px;
   cursor: pointer;
+}
+:root[data-theme="dark"] .pf-run-btn {
+  color: #10120c;
+  background: #b6e06a;
 }
 .pf-run-btn:disabled {
   opacity: 0.6;
