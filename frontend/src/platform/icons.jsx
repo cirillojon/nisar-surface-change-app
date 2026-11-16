@@ -2,7 +2,7 @@
 
 export function Logo({ size = 32 }) {
   return (
-    <img className="pf-logo" src={`${import.meta.env.BASE_URL}nisar-logo.png`} width={size} height={size} alt="" />
+    <img className="pf-logo" src={`${import.meta.env.BASE_URL}nisar-app-icon.png`} width={size} height={size} alt="" />
   );
 }
 
