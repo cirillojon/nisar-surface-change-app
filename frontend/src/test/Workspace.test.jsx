@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Link, MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
@@ -37,6 +38,7 @@ vi.mock("../components/FindingCard.jsx", () => ({
 
 import SitePending from "../components/SitePending.jsx";
 import { fetchChangeTypes, fetchLandChange, fetchProducts, fetchSite, fetchSites, fetchStories, fetchStory } from "../services/api.js";
+import { createQueryClient } from "../services/queryClient.js";
 import { TOUR_STORAGE_KEY } from "../services/tour.js";
 import WorkspaceApp from "../workspace/WorkspaceApp.jsx";
 import {
@@ -209,14 +211,17 @@ describe("<WorkspaceApp />", () => {
     const { pathname, search } = useLocation();
     return <output data-testid="url">{pathname + search}</output>;
   }
+  // A fresh query cache per test, so no test sees another's answers.
   const open = (url = "/workspace") =>
     render(
-      <MemoryRouter initialEntries={[url]}>
-        <Link to="/workspace">Top bar: Workspace</Link>
-        <WorkspaceApp />
-        <Where />
-        <Back />
-      </MemoryRouter>,
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={[url]}>
+          <Link to="/workspace">Top bar: Workspace</Link>
+          <WorkspaceApp />
+          <Where />
+          <Back />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
   // The address follows the selection in an effect, just after the view changes.
   const urlIs = (expected) => waitFor(() => expect(screen.getByTestId("url").textContent).toBe(expected));
@@ -295,9 +300,16 @@ describe("<WorkspaceApp />", () => {
     expect(screen.queryByTestId("player")).toBeNull();
 
     await act(async () => answer[2](loaded(SITES[1])));
-    expect(screen.getByRole("article", { name: "Okavango Delta" })).not.toHaveAttribute("aria-busy");
+    // The query cache passes the answer on in its next tick.
+    await waitFor(() => expect(screen.getByRole("article", { name: "Okavango Delta" })).not.toHaveAttribute("aria-busy"));
     expect(screen.getByTestId("player")).toHaveTextContent("2026-03-21");
     await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-21");
+  });
+
+  it("says when the backend can't be reached", async () => {
+    fetchSites.mockRejectedValueOnce({ message: "Network error" });
+    open("/workspace?mode=investigate");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the backend: Network error");
   });
 
   it("says why a site couldn't load, and loads it on another try", async () => {

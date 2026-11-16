@@ -1,3 +1,4 @@
+import { QueryClientProvider } from "@tanstack/react-query";
 import { Suspense, useEffect, useLayoutEffect, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
@@ -13,6 +14,7 @@ import NotFound from "./platform/NotFound.jsx";
 import TopBar from "./platform/TopBar.jsx";
 import WorkspaceHost from "./platform/WorkspaceHost.jsx";
 import { isTyping, modalOpen } from "./services/keys.js";
+import { createQueryClient } from "./services/queryClient.js";
 
 const TITLE = "NISAR Surface Change Explorer";
 
@@ -34,6 +36,8 @@ export default function App() {
   const { pathname } = useLocation();
   const inWorkspace = pathname === "/workspace" || pathname.startsWith("/workspace/");
   const [searchOpen, setSearchOpen] = useState(false);
+  // Server data shared by the pages (one cache per app).
+  const [queryClient] = useState(createQueryClient);
   const navigate = useNavigate();
 
   // Plain <a href="/docs/..."> links (in MDX, the spec, assistant replies)
@@ -88,34 +92,36 @@ export default function App() {
   }, [inWorkspace, pathname]);
 
   return (
-    <AssistantProvider>
-      <div className="pf-root">
-        <a className="pf-skip" href="#pf-main">Skip to content</a>
-        <TopBar inWorkspace={inWorkspace} onSearch={() => setSearchOpen(true)} />
-        <div className="pf-stage">
-          <div className="pf-main-col">
-            {!inWorkspace && (
-              <div id="pf-main" className="pf-page">
-                <Suspense fallback={<p className="pf-loading" role="status">Loading documentation…</p>}>
-                  <Routes>
-                    <Route path="/" element={<Home />} />
-                    <Route path="/docs" element={<Navigate to="/docs/get-started/what-is-nisar" replace />} />
-                    <Route path="/docs/:tabId" element={<DocsLayout />} />
-                    <Route path="/docs/:tabId/:slug" element={<DocsLayout />} />
-                    <Route path="/brief/:slug" element={<BriefPage />} />
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                  <PageScroll />
-                </Suspense>
-                <Footer />
-              </div>
-            )}
-            <WorkspaceHost active={inWorkspace} />
+    <QueryClientProvider client={queryClient}>
+      <AssistantProvider>
+        <div className="pf-root">
+          <a className="pf-skip" href="#pf-main">Skip to content</a>
+          <TopBar inWorkspace={inWorkspace} onSearch={() => setSearchOpen(true)} />
+          <div className="pf-stage">
+            <div className="pf-main-col">
+              {!inWorkspace && (
+                <div id="pf-main" className="pf-page">
+                  <Suspense fallback={<p className="pf-loading" role="status">Loading documentation…</p>}>
+                    <Routes>
+                      <Route path="/" element={<Home />} />
+                      <Route path="/docs" element={<Navigate to="/docs/get-started/what-is-nisar" replace />} />
+                      <Route path="/docs/:tabId" element={<DocsLayout />} />
+                      <Route path="/docs/:tabId/:slug" element={<DocsLayout />} />
+                      <Route path="/brief/:slug" element={<BriefPage />} />
+                      <Route path="*" element={<NotFound />} />
+                    </Routes>
+                    <PageScroll />
+                  </Suspense>
+                  <Footer />
+                </div>
+              )}
+              <WorkspaceHost active={inWorkspace} />
+            </div>
+            {AI_ENABLED && <AssistantDrawer />}
           </div>
-          {AI_ENABLED && <AssistantDrawer />}
+          <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
         </div>
-        <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
-      </div>
-    </AssistantProvider>
+      </AssistantProvider>
+    </QueryClientProvider>
   );
 }

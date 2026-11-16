@@ -16,7 +16,7 @@ const PAD = 6; // space between a highlighted element and its outline
 
 const box = (r) => ({ left: r.left, top: r.top, width: r.width, height: r.height, right: r.right, bottom: r.bottom });
 // The tour's view of the page before it has looked.
-const NOTHING = { index: -1, rect: null, spots: [], marks: [], grip: null, settled: false, key: "" };
+const NOTHING = { index: -1, rect: null, spots: [], marks: [], grip: null, exit: null, settled: false, key: "" };
 
 function targetElement(selectors = []) {
   for (const sel of selectors) {
@@ -208,7 +208,7 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
     });
   }, [index, step, state.landDate]);
   // A look at an earlier step says nothing about this one.
-  const { rect, spots, marks, grip, settled } = look.index === index ? look : NOTHING;
+  const { rect, spots, marks, grip, exit, settled } = look.index === index ? look : NOTHING;
   const looked = look.index === index;
   // Let the entry actions apply before evaluating completion. Back from
   // Notes closes its form, so Share must not react to the outgoing form.
@@ -305,7 +305,9 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
         .map((b) => ({ left: b.left - 8, top: b.top - 8, right: b.right + 8, bottom: b.bottom + 8 }));
       const handle = visibleRect(targetElement([".sidebar-resizer"]));
       if (handle) m.push(handle);
-      const bounds = [r, ...s, ...m].map((b) => b && [b.left, b.top, b.right, b.bottom].map(Math.round));
+      // The header's End tour button stays usable on every step.
+      const exitButton = visibleRect(targetElement([".tour-button"]));
+      const bounds = [r, ...s, ...m, exitButton].map((b) => b && [b.left, b.top, b.right, b.bottom].map(Math.round));
       const now = JSON.stringify([window.innerWidth, window.innerHeight, ...bounds]);
       waited = r ? waited + 1 : 0;
       const still = !step.target.length || (Boolean(r) && (tracked === el || now === seen || waited > SETTLE_GIVE_UP));
@@ -316,7 +318,7 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
       setLook((prev) =>
         prev.index === index && prev.settled === still && prev.key === now
           ? prev
-          : { index, rect: r, spots: s, marks: m, grip: handle, settled: still, key: now });
+          : { index, rect: r, spots: s, marks: m, grip: handle, exit: exitButton, settled: still, key: now });
       seen = now;
       setPlaying(Boolean(document.querySelector('.map-timeline .scene-controls button[aria-pressed="true"]')));
     };
@@ -457,7 +459,10 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
   const inside = (a, b) => a !== b && a.x >= b.x && a.y >= b.y && a.x + a.w <= b.x + b.w && a.y + a.h <= b.y + b.h;
   const cutouts = holes.filter((h) => !holes.some((other) => inside(h, other)));
   const shade = `M0 0H${vw}V${vh}H0Z${cutouts.map((h) => roundRect(h)).join("")}`;
-  const gripClip = grip ? `url(#${resizeClipId})` : undefined;
+  // Controls the shade and glass leave clickable: the sidebar's resize grip
+  // and the End tour button (clipped out of them).
+  const passThrough = [grip, exit].filter(Boolean);
+  const gripClip = passThrough.length ? `url(#${resizeClipId})` : undefined;
   // Clicks are caught over every lit area except, on action steps, the
   // target itself (cut out of the spotlight it sits in).
   const glassHoles = interactive ? spotHoles : holes;
@@ -472,9 +477,12 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
           <marker id="tour-arrowhead" viewBox="0 0 10 10" refX="7" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
             <path d="M0 0 L10 5 L0 10 z" fill="#ffd34d" stroke="#0b1220" strokeWidth="1" />
           </marker>
-          {grip && (
+          {gripClip && (
             <clipPath id={resizeClipId}>
-              <path clipRule="evenodd" d={`M0 0H${vw}V${vh}H0ZM${grip.left} ${grip.top}H${grip.right}V${grip.bottom}H${grip.left}Z`} />
+              <path
+                clipRule="evenodd"
+                d={`M0 0H${vw}V${vh}H0Z${passThrough.map((b) => `M${b.left} ${b.top}H${b.right}V${b.bottom}H${b.left}Z`).join("")}`}
+              />
             </clipPath>
           )}
         </defs>

@@ -428,6 +428,16 @@ describe("<Tour />", () => {
     }
   });
 
+  it("leaves the header's End tour button clickable through the shade", () => {
+    const place = onPage('<button type="button" class="tour-button">End tour</button>', "button");
+    place(900, 70);
+    render(<Tour state={idle} actions={actions()} onEnd={() => {}} />);
+    act(() => vi.advanceTimersByTime(100));
+    // Clipped out of the shade (and the glass), so the click reaches the button.
+    expect(screen.getByTestId("tour-shade").getAttribute("clip-path")).toMatch(/^url/);
+    expect(document.querySelector(".tour-dim clipPath path").getAttribute("d")).toContain("M900 70H1000V100H900Z");
+  });
+
   it("shields the page from stray clicks and nudges the bubble instead", () => {
     render(<Tour state={idle} actions={actions()} onEnd={() => {}} />);
     fireEvent.pointerDown(screen.getByTestId("tour-shade"));

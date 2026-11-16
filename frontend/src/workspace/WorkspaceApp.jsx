@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 
@@ -26,16 +27,8 @@ import {
   markTourSeen,
   tourSeen,
 } from "../services/tour.js";
-import {
-  assetUrl,
-  fetchChangeTypes,
-  fetchLandChange,
-  fetchProducts,
-  fetchSite,
-  fetchSites,
-  fetchStories,
-  fetchStory,
-} from "../services/api.js";
+import { assetUrl, fetchStory } from "../services/api.js";
+import { siteQuery, useCatalog, useLandChange, useSite, useStories } from "./data/queries.js";
 import { loadImage } from "../services/imageCache.js";
 import { imageLayerOptions, layerLegend, useLayerMapper } from "../services/layers.js";
 import { siteSeries } from "../services/measurements.js";
@@ -72,14 +65,17 @@ export default function WorkspaceApp({ active = true }) {
   // A site (its id) or place (its slug) selected from the URL, until it shows.
   const pendingSiteRef = useRef(null);
   const pendingPlaceRef = useRef(null);
-  const [changeTypes, setChangeTypes] = useState([]);
-  const [products, setProducts] = useState([]);
-  const [sites, setSites] = useState([]);
+  // Server data (data/queries.js): the catalog, the gallery and the stories.
+  const queryClient = useQueryClient();
+  const { changeTypes, products, sites, loading, error } = useCatalog();
+  const landChange = useLandChange();
+  const stories = useStories();
   const [selectedSiteId, setSelectedSiteId] = useState(null);
+  // The selected site as fetched, why it couldn't be (cleared while trying
+  // again), and another try.
+  const { data: loadedSite, error: siteError, retry: retrySite } = useSite(selectedSiteId);
+  // The site shown: set together with its pass (sceneIndex) once it loads.
   const [site, setSite] = useState(null);
-  // Why the selected site couldn't be loaded, and a counter to try again.
-  const [siteError, setSiteError] = useState(null);
-  const [siteAttempt, setSiteAttempt] = useState(0);
   const [aoi, setAoi] = useState(null);
   const [granules, setGranules] = useState([]);
   const [sceneIndex, setSceneIndex] = useState(0);
@@ -98,7 +94,6 @@ export default function WorkspaceApp({ active = true }) {
   const [profileLine, setProfileLine] = useState(null);
   // Land-change gallery: data, the selected place, its layer (null: the
   // place's starting layer), its map overlay and the two dates it compares.
-  const [landChange, setLandChange] = useState(null);
   const [landSlug, setLandSlug] = useState(null);
   const [landLayer, setLandLayer] = useState(null);
   const [landOverlay, setLandOverlay] = useState(null);
@@ -152,11 +147,8 @@ export default function WorkspaceApp({ active = true }) {
   const [areaRange, setAreaRange] = useState(null);
   const [areaSeries, setAreaSeries] = useState(null);
   const [areaFocus, setAreaFocus] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [mode, setMode] = useState(() =>
     modeFrom(searchParams.get("mode"), DEFAULT_MODE, { hasFinding: Boolean(searchParams.get("finding")) }));
-  const [stories, setStories] = useState(null);
   const [openFinding, setOpenFinding] = useState(() => parseFinding(searchParams.get("finding")));
   // True while the shown pass was asked for by a link or a finding, so the
   // chart panel doesn't move off it to the site's first moment.
@@ -172,53 +164,18 @@ export default function WorkspaceApp({ active = true }) {
 
   const showGranules = useCallback((rows) => setGranules(rows), []);
 
+  // The selected site's passes arrived: show it, on the date asked for
+  // (a link, a finding) or else its latest pass. The query's key is the
+  // site, so an answer for an earlier pick never lands here. If it fails,
+  // the selection stays and its panel says why and offers to try again.
   useEffect(() => {
-    Promise.all([fetchChangeTypes(), fetchProducts(), fetchSites()])
-      .then(([types, prods, rows]) => {
-        setChangeTypes(types);
-        setProducts(prods);
-        setSites(rows);
-      })
-      .catch((err) =>
-        setError(`Can't reach the backend: ${err?.message || "unknown error"}`),
-      )
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => {
-    fetchLandChange()
-      .then(setLandChange)
-      .catch(() => setLandChange({ sites: [] }));
-  }, []);
-
-  useEffect(() => {
-    fetchStories()
-      .then(setStories)
-      .catch(() => setStories({ themes: [], stories: [] }));
-  }, []);
-
-  useEffect(() => {
-    if (selectedSiteId === null) return undefined;
-    let cancelled = false;
-    setSiteError(null);
-    fetchSite(selectedSiteId)
-      .then((s) => {
-        // A newer selection replaced this one while it loaded: drop it.
-        if (cancelled) return;
-        setSite(s);
-        const wanted = pendingDateRef.current;
-        pendingDateRef.current = null;
-        const asked = wanted ? (s.scenes ?? []).findIndex((x) => x.date === wanted) : -1;
-        setSceneIndex(asked >= 0 ? asked : Math.max(0, (s.scenes?.length ?? 0) - 1));
-      })
-      .catch((err) => {
-        // The selection stays, so the panel can say what failed and offer to retry.
-        if (!cancelled) setSiteError(err?.message || "Couldn't load this site.");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [selectedSiteId, siteAttempt]);
+    if (!loadedSite || site === loadedSite) return;
+    setSite(loadedSite);
+    const wanted = pendingDateRef.current;
+    pendingDateRef.current = null;
+    const asked = wanted ? (loadedSite.scenes ?? []).findIndex((x) => x.date === wanted) : -1;
+    setSceneIndex(asked >= 0 ? asked : Math.max(0, (loadedSite.scenes?.length ?? 0) - 1));
+  }, [loadedSite, site]);
 
   const clearSelection = () => {
     setEvidenceOpen(true);
@@ -230,7 +187,6 @@ export default function WorkspaceApp({ active = true }) {
     setAreaFocus(null);
     setSelectedSiteId(null);
     setSite(null);
-    setSiteError(null);
     setSiteLayer("colour");
     setAoi(null);
     setProfileLine(null);
@@ -241,7 +197,6 @@ export default function WorkspaceApp({ active = true }) {
     setLandFocus(null);
     setShareOpen(false);
     setKeepDate(false);
-    setError(null);
     pendingDateRef.current = null;
     pendingSiteRef.current = null;
   };
@@ -297,7 +252,7 @@ export default function WorkspaceApp({ active = true }) {
       clearSelection();
       setSelectedSiteId(id);
     } else if (siteError) {
-      setSiteAttempt((n) => n + 1);
+      retrySite();
     }
     setEvidenceOpen(true);
     cancelDraw();
@@ -600,7 +555,9 @@ export default function WorkspaceApp({ active = true }) {
       urls.forEach((u) => loadImage(assetUrl(u)));
       const sylhet = sites.find((x) => x.slug === SYLHET);
       if (sylhet) {
-        fetchSite(sylhet.id)
+        // Through the cache, so opening Sylhet later in the demo is instant.
+        queryClient
+          .fetchQuery(siteQuery(sylhet.id))
           .then((s) => (s.scenes ?? []).forEach((scene) => scene.image_url && loadImage(assetUrl(scene.image_url))))
           .catch(() => {});
       }
@@ -1101,7 +1058,7 @@ export default function WorkspaceApp({ active = true }) {
                 selectedSiteId={selectedSiteId}
                 pendingSite={pendingSite}
                 siteError={siteError}
-                onRetrySite={() => setSiteAttempt((n) => n + 1)}
+                onRetrySite={retrySite}
                 backLabel={mode === "stories" && story ? "← All stories" : "← All places"}
                 tourPlace={tourPlace}
                 aoi={aoi}

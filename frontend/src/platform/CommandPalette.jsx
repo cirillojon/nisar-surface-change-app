@@ -25,14 +25,29 @@ export default function CommandPalette({ open, onClose }) {
   const { ask } = useAssistant();
   const pages = useMemo(() => allPages(), []);
 
+  // Each opening starts empty, with the field focused.
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     setQuery("");
     setCursor(0);
-    setTimeout(() => inputRef.current?.focus(), 0);
-    if (!corpus) {
-      loadAllRaw().then((rows) => setCorpus(Object.fromEntries(rows.map((r) => [r.key, plain(r.text)]))));
-    }
+    const timer = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  // The pages' full text, loaded on first open (titles are searchable before
+  // it arrives, and if it can't load). Kept apart from the effect above, so
+  // its arrival doesn't clear what has been typed meanwhile.
+  useEffect(() => {
+    if (!open || corpus) return undefined;
+    let cancelled = false;
+    loadAllRaw()
+      .then((rows) => {
+        if (!cancelled) setCorpus(Object.fromEntries(rows.map((r) => [r.key, plain(r.text)])));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [open, corpus]);
 
   const results = useMemo(() => {
