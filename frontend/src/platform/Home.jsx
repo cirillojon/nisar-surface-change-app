@@ -106,7 +106,7 @@ export default function Home() {
         <div><strong>Data</strong><span>NISAR L2/L3 products from NASA’s ASF DAAC, via NASA CMR</span></div>
         <div><strong>Status</strong><span>NISAR products are provisional until reprocessing ends</span></div>
         <div><strong>Methods</strong><span><Link to="/docs/data/methods">Every number’s source and limits</Link></span></div>
-        <div><strong>License</strong><span>Open source (MIT) · <a href="https://github.com/cirillojon/nisar-surface-change-app" target="_blank" rel="noreferrer">GitHub</a></span></div>
+        <div><strong>License</strong><span>Open source (Apache-2.0) · <a href="https://github.com/cirillojon/nisar-surface-change-app" target="_blank" rel="noreferrer">GitHub</a></span></div>
       </section>
     </div>
   );

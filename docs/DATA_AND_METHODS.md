@@ -10,8 +10,8 @@ kinds:
 | Kind | What it means | Where it appears |
 | --- | --- | --- |
 | **Measured** | A value computed from NISAR granules, or a statistic computed from those values. | The NISAR chart, the moment tiles and the pop-up over the map. [Sections 2](#2-nisar-measurements) and [3](#3-moments). |
-| **Shown alongside** | Public data on the same dates: rain, river flow, prices. Nothing is tested and no link is claimed. | The "Same dates" lane and the Market context panel. [Sections 4](#4-related-series-rain-and-river-flow) and [5](#5-prices). |
-| **Background** | A sentence from outside our data, with its source. | Only in "Site notes & data sources". [Section 8](#8-background-statements-and-their-sources). |
+| **Shown alongside** | Public data on the same dates: rain and river flow. Nothing is tested and no link is claimed. | The "Same dates" lane. [Section 4](#4-related-series-rain-and-river-flow). |
+| **Background** | A sentence from outside our data, with its source. | Only in "Site notes & data sources". [Section 7](#7-background-statements-and-their-sources). |
 
 A _pass_ is one date on which NISAR imaged a site.
 
@@ -25,7 +25,7 @@ A _pass_ is one date on which NISAR imaged a site.
   computed from the NISAR values, and a test checks that each caption
   still describes the data.
 - **It does not say why something changed.** The app gives no causes,
-  no correlations and no verdicts. Rain, river flow and prices are drawn
+  no correlations and no verdicts. Rain and river flow are drawn
   on the same time axis, labelled "Shown for comparison. Lining up in
   time doesn't show that one affects the other."
 - **It offers hypotheses, labelled as such.** Each story
@@ -36,7 +36,7 @@ A _pass_ is one date on which NISAR imaged a site.
   They are labelled as hypotheses wherever they appear (workspace, REST,
   MCP, printed briefs). A hypothesis is offered only for the moments it
   was written for, and a moment that may be an artifact (Sylhet's
-  coverage check, Mexico City's mid-April step) is explained as one.
+  mode check, Mexico City's mid-April step) is explained as one.
   `tests/test_stories.py` requires every field, rejects causal wording
   ("caused", "due to", "proves"), checks the numbers in the text against
   the committed data, and checks that a story names only the
@@ -48,8 +48,8 @@ A _pass_ is one date on which NISAR imaged a site.
 - **It does not give advice.** We are not qualified to recommend action
   on groundwater, farming or markets, and the data could not support it.
 - **Drawn rectangles are data only.** For an area you draw, the app
-  shows the NISAR passes, rain at the centre of the box and any mapped
-  crop or oil prices side by side, and says that nothing is tested.
+  shows the NISAR passes and rain at the centre of the box side by
+  side, and says that nothing is tested.
 - **The record is short.** Each site has 10 to 29 passes from one year,
   most of them provisional.
 
@@ -90,13 +90,13 @@ The DOIs are the ones registered for each collection in CMR.
 | Value | Computation | Known limit |
 | --- | --- | --- |
 | HH and HV backscatter (dB) | Median over the valid pixels in the site's box, from GCOV frequency B (5 MHz, 80 m) gamma-naught. | One number for the whole box. Punjab's box includes the city of Ludhiana. |
-| Open water (%) | Share of valid pixels with HH below −18 dB. | A single threshold. It misses wind-roughened water and water under vegetation, so it understates flooding in the Okavango. |
+| Open water (%) | Share of pixels with HH below −18 dB, over the part of the box that every pass of the site imaged (the shared footprint; `scripts/shared_footprint.py`). | A single threshold. It misses wind-roughened water and water under vegetation, so it understates flooding in the Okavango. |
 | Line-of-sight displacement (mm) | The longest unbroken chain of interferogram pairs on one frame. For each pair: unwrapped phase minus the ionosphere phase screen, converted to mm, taken relative to a stable reference point, then summed over the chain. Both points use the median of a ±0.01° box. | Motion along the radar's line of sight, not vertical. Relative to the reference point. No correction for the atmosphere, which adds noise to every step. |
 
 A GCOV date is skipped when under 60% of the box has valid pixels, and
 pixels within 8 pixels of the edge of the valid area are discarded. Most
 granules are provisional, early-mission products; the first table in
-[Section 6](#6-the-numbers) gives the count per site, and how many
+[Section 5](#5-the-numbers) gives the count per site, and how many
 passes saw less than 95% of the box.
 
 ## 3. Moments
@@ -119,7 +119,7 @@ statistics, all computed in `_moment`:
   months only. Punjab's follow the [FAO GIEWS crop calendar for
   India](https://www.fao.org/giews/countrybrief/country.jsp?code=IND);
   Mexico City's "drier" and "rainy" months are the ones with less and
-  more rain in the related series ([Section 6](#6-the-numbers)).
+  more rain in the related series ([Section 5](#5-the-numbers)).
 - **Captions describe the series, not a cause.** For example, "HV
   climbs through the winter, with a dip in late February and early
   March", not "the wheat grows".
@@ -141,9 +141,12 @@ statistics, all computed in `_moment`:
 
 Each pass records the share of the box with usable pixels. On the NISAR
 chart, passes that saw less than 95% of the box are drawn hollow, and
-the ⓘ note gives the selected pass's coverage. At Sylhet, half the passes
-saw 83% of the box; the "Coverage check" moment points at one such pair,
-because some of that site's zigzag may come from coverage rather than
+the ⓘ note gives the selected pass's coverage. Open water is computed
+over the shared footprint, so a pass that imaged less of the box does
+not change the area being compared (Section 5). At Sylhet, half the
+passes saw 83% of the box, and passes alternate between two
+acquisition modes; the "Mode check" moment points at one such pair,
+because some of that site's zigzag follows the mode rather than the
 water.
 
 ## 4. Related series: rain and river flow
@@ -187,23 +190,7 @@ cell each source returned. The app reads that file, so what you see does
 not change unless someone reruns the script. Drawn areas fetch daily rain
 live for the centre of the box.
 
-## 5. Prices
-
-| Where | Source | Detail |
-| --- | --- | --- |
-| "Same dates" lane on a study site | World Bank Commodity Price Data ("Pink Sheet"), monthly averages | Thai 5% broken rice, U.S. hard red winter wheat and Vietnam 5% broken rice, in US dollars per tonne. Stored in [`app/data/markets/prices.json`](../app/data/markets/prices.json). |
-| Drawn areas | Pink Sheet monthly series for crops and Brent crude, matched to the area by crop maps (IFPRI MapSPAM 2020) and an oil-field list (Global Energy Monitor) | See [`app/data/markets/README.md`](../app/data/markets/README.md). |
-| "Market context" panel on a study site | Yahoo Finance daily closing prices, fetched live. The Mekong site uses the Pink Sheet instead. | Not stored in the repository. |
-
-The Market context panel lists futures, company shares and exchange
-rates with one plain sentence saying what each is ("A Mexican airport
-operator"). It shows the price on the selected pass and the change since
-the first pass. Its milestones ("Most open water", "Steepest HV drop")
-mark dates in the NISAR record, not market events. Earlier versions
-showed correlations and phrases such as "Positive correlation between
-passes"; they are gone ([Section 11](#12-corrections)).
-
-## 6. The numbers
+## 5. The numbers
 
 These tables are produced from the committed data files by
 [`scripts/chain_evidence.py`](../scripts/chain_evidence.py). Rerun it
@@ -238,12 +225,12 @@ _Generated by `scripts/chain_evidence.py` from NISAR values dated 2026-11-14 and
 | Mekong Delta (An Giang), Vietnam | Sep–Oct | 2026-09-11 to 2026-10-29 | 5 | change | **−1.5 pts** | 9.6 → 8.1% |  |
 | Sylhet haor basin, Bangladesh | Late Jun–mid Jul | 2026-06-20 to 2026-07-14 | 3 | change | **+18.4 pts** | 34.9 → 53.3% | Rain 521 mm (total) |
 | Sylhet haor basin, Bangladesh | Mid Jul–Nov | 2026-07-14 to 2026-11-11 | 10 | change | **−39.6 pts** | 53.3 → 13.7% | Rain 1,192 mm (total) |
-| Sylhet haor basin, Bangladesh | Coverage check | 2026-09-12 to 2026-09-24 | 2 | change | **−13.2 pts** | 36.3 → 23.1% · 12 days apart |  |
+| Sylhet haor basin, Bangladesh | Mode check | 2026-09-12 to 2026-09-24 | 2 | change | **−14.6 pts** | 37.7 → 23.1% · 12 days apart |  |
 | Okavango Delta, Botswana | Early July | 2026-07-08 | 1 | value | **11.0%** | 8 Jul 2026 | Okavango inflow 293 m³/s (12 days to the pass) |
-| Okavango Delta, Botswana | Jul–Oct | 2026-07-08 to 2026-10-24 | 9 | change | **−9.3 pts** | 11.0 → 1.7% | Rain 11 mm (total) |
+| Okavango Delta, Botswana | Jul–Oct | 2026-07-08 to 2026-10-24 | 9 | change | **−9.3 pts** | 11.0 → 1.7% | Rain 10 mm (total) |
 | Columbia Basin (Quincy–Moses Lake), Washington | Jun–Aug | 2026-06-19 to 2026-08-18 | 5 | change | **+1.1 dB** | −19.5 → −18.4 dB | Rain 12 mm (total) |
 | Columbia Basin (Quincy–Moses Lake), Washington | Late Aug–Oct | 2026-08-18 to 2026-10-29 | 7 | change | **−2.6 dB** | −18.4 → −20.9 dB | Rain 24 mm (total) |
-| Columbia Basin (Quincy–Moses Lake), Washington | Late October | 2026-10-29 | 1 | value of the open-water measure | **11.4%** | Very dark pixels, 29 Oct 2026 |  |
+| Columbia Basin (Quincy–Moses Lake), Washington | Late October | 2026-10-29 | 1 | value of the open-water measure | **11.6%** | Very dark pixels, 29 Oct 2026 |  |
 | Mexico City | Nov–Apr (Drier months) | 2025-10-30 to 2026-04-28 | 16 | rate | **−20.0 mm/month** | ±1.2 · 16 passes | Rain 129 mm (total) |
 | Mexico City | Mid April | 2026-04-04 to 2026-04-16 | 2 | change | **−32 mm** | −100 → −132 mm · 12 days apart |  |
 | Mexico City | May–Oct (Rainy months) | 2026-05-10 to 2026-10-13 | 13 | rate | **−14.1 mm/month** | ±0.8 · 13 passes | Rain 818 mm (total) |
@@ -297,23 +284,38 @@ Least-squares slope = −0.6585 mm/day × 30.44 days = −20.0 mm/month, shown a
 | --- | --- | --- | --- | --- | --- | --- |
 | Punjab rice–wheat belt, India | June–August 2026 | 221.5 mm | 446.4 mm (2001–2025 mean) | 50% | 1 of 26 (1 = driest) | ERA5, cell 31.000°N, 75.750°E |
 
-**Prices charted**
+**Open water: the shared footprint**
 
-| Site | Price series | Months | First → last | Change |
+| Site | Shared footprint (of the box) | Passes | Status | Computed from |
 | --- | --- | --- | --- | --- |
-| Punjab rice–wheat belt, India | U.S. wheat HRW | 2025-11 to 2026-10 (12) | 245.9 → 317.0 USD/metric ton | +28.9% |
-| Punjab rice–wheat belt, India | Thai 5% broken rice | 2025-11 to 2026-10 (12) | 368.0 → 489.0 USD/metric ton | +32.9% |
-| Mekong Delta (An Giang), Vietnam | Vietnam 5% broken rice | 2026-06 to 2026-10 (5) | 391.3 → 413.9 USD/metric ton | +5.8% |
-| Sylhet haor basin, Bangladesh | Thai 5% broken rice | 2026-06 to 2026-10 (5) | 494.0 → 489.0 USD/metric ton | −1.0% |
-| Okavango Delta, Botswana | none |  |  |  |
-| Columbia Basin (Quincy–Moses Lake), Washington | none |  |  |  |
-| Mexico City | none |  |  |  |
+| Columbia Basin (Quincy–Moses Lake), Washington | 96.7% | 11 | ok | scene images, calibrated (±0.6 pts on 10 passes) |
+| Mekong Delta (An Giang), Vietnam | 100.0% | 11 | ok | scene images, calibrated (±0.6 pts on 0 passes) |
+| Okavango Delta, Botswana | 99.4% | 10 | ok | scene images, calibrated (±0.6 pts on 9 passes) |
+| Punjab rice–wheat belt, India | 90.3% | 26 | ok | scene images, calibrated (±0.6 pts on 25 passes) |
+| Sylhet haor basin, Bangladesh | 83.1% | 12 | ok | scene images, calibrated (±0.6 pts on 12 passes) |
+
+Per pass: Sylhet haor basin, Bangladesh.
+
+| Pass | Acquisition mode | Box imaged | Open water, pixels this pass imaged | Open water, shared footprint (charted) |
+| --- | --- | --- | --- | --- |
+| 2026-06-20 | `2005_QPDH` | 83.3% | 34.9% | **34.9%** |
+| 2026-07-02 | `4005_DHDH` | 100.0% | 49.2% | **50.6%** |
+| 2026-07-14 | `2005_QPDH` | 83.3% | 53.3% | **53.3%** |
+| 2026-07-26 | `4005_DHDH` | 100.0% | 38.5% | **39.7%** |
+| 2026-08-19 | `4005_DHDH` | 100.0% | 32.2% | **34.0%** |
+| 2026-08-31 | `2005_QPDH` | 83.3% | 24.0% | **24.0%** |
+| 2026-09-12 | `4005_DHDH` | 100.0% | 36.3% | **37.7%** |
+| 2026-09-24 | `2005_QPDH` | 83.3% | 23.1% | **23.1%** |
+| 2026-10-06 | `4005_DHDH` | 100.0% | 35.1% | **37.6%** |
+| 2026-10-18 | `2005_QPDH` | 83.3% | 17.2% | **17.2%** |
+| 2026-10-30 | `4005_DHDH` | 100.0% | 14.7% | **15.0%** |
+| 2026-11-11 | `2005_QPDH` | 83.3% | 13.7% | **13.7%** |
 <!-- evidence:end -->
 
-## 7. Site by site
+## 6. Site by site
 
 What each site's NISAR record shows, what the app sums up, and what it
-leaves unsaid. The numbers are in [Section 6](#6-the-numbers).
+leaves unsaid. The numbers are in [Section 5](#5-the-numbers).
 
 ### Punjab rice–wheat belt, India
 
@@ -329,17 +331,15 @@ leaves unsaid. The numbers are in [Section 6](#6-the-numbers).
   harvested from March to May, rice sown from June to August and
   harvested from September.
 - **Alongside:** rain at Ludhiana; June–August 2026 brought 50% of the
-  2001–2025 normal in ERA5, the driest of 26 years. Wheat and rice
-  prices.
+  2001–2025 normal in ERA5, the driest of 26 years.
 - **Not claimed:** why the canopy changed, or any effect of the dry
-  monsoon or of these fields on prices.
+  monsoon.
 
 ### Mekong Delta (An Giang), Vietnam
 
 - **NISAR shows** open water under 0.5% from 19 June to 25 July, 9.6% by
   11 September and 8.1% on 29 October.
-- **Alongside:** Mekong flow near Tan Chau, local rain, and Vietnam's
-  rice export price.
+- **Alongside:** Mekong flow near Tan Chau and local rain.
 - **Not claimed:** where the water came from. The modelled river peak
   (57,147 m³/s) looks high for this reach, so only its shape should be
   read.
@@ -348,18 +348,19 @@ leaves unsaid. The numbers are in [Section 6](#6-the-numbers).
 
 - **NISAR shows** open water rising from 34.9% on 20 June to 53.3% on
   14 July and falling to 13.7% by 11 November, with ups and downs.
-- **Coverage.** Six of the 12 passes saw 83% of the box, and some of the
-  ups and downs line up with them.
-- **Alongside:** rain over the basin, Surma river flow and a rice price.
-- **Not claimed:** that rain or the river filled the wetlands, or any
-  effect on rice.
+- **Coverage and mode.** Six of the 12 passes saw 83% of the box, so
+  every value is computed over that shared 83%. Passes alternate
+  between two acquisition modes, and from mid-August to early October
+  the readings alternate with them.
+- **Alongside:** rain over the basin and Surma river flow.
+- **Not claimed:** that rain or the river filled the wetlands.
 
 ### Okavango Delta, Botswana
 
 - **NISAR shows** open water at its highest on 8 July (11.0%), then
   falling or holding at every pass to 1.7% by 24 October.
-- **Alongside:** modelled inflow at Mohembo, and local rain (11 mm over
-  the whole record in the 9 km model).
+- **Alongside:** modelled inflow at Mohembo, and local rain (10 mm from
+  8 July to 24 October in the 9 km model).
 - **Not claimed:** where the flood came from. Open water is a low-HH
   threshold, and water under papyrus or grass brightens the radar
   instead, so the share may understate the flooded area.
@@ -372,7 +373,7 @@ leaves unsaid. The numbers are in [Section 6](#6-the-numbers).
   circular fields darken over the same weeks.
 - **Very dark pixels.** The share of pixels with HH below −18 dB, the
   open-water measure at flood sites, climbs from 0.6% on 30 August to
-  11.4% on 29 October. Comparing the scene images for the two dates (red
+  11.6% on 29 October. Comparing the scene images for the two dates (red
   value below 40, the image equivalent of −18 dB) shows the new dark
   pixels in field-shaped patches across the farmland, while the only
   pixels dark on both dates are the river channel. We don't know why
@@ -396,7 +397,7 @@ leaves unsaid. The numbers are in [Section 6](#6-the-numbers).
   one year we can't tell a seasonal effect from other changes.
   Movement is along the radar's line of sight, not straight down.
 
-## 8. Background statements and their sources
+## 7. Background statements and their sources
 
 These are the only statements in the app that don't come from our data.
 They appear in "Site notes & data sources"
@@ -409,7 +410,7 @@ come from.
 | Published studies attribute the city's sinking to groundwater extraction. | Mexico City | Chaussard et al. (2021) | Abstract read in part. It treats the subsidence as a result of groundwater extraction and finds rates "mostly constant" since at least 1950. |
 | Water under vegetation brightens L-band HH rather than darkening it. | Okavango | General radar physics ("double bounce"); not tied to one paper | **No specific source yet.** Stated as a limit of the measurement. |
 
-## 9. Limits
+## 8. Limits
 
 - **One year, mostly provisional.** Each site has 10 to 29 passes from
   2025–26, and all but a few granules are provisional, early-mission
@@ -421,26 +422,26 @@ come from.
   wind-roughened water and water under vegetation.
 - **Displacement is relative** to one reference point and along the
   line of sight, with no atmospheric correction; single steps are noisy
-  (Section 6).
+  (Section 5).
 - **Related series are models.** Rain and river flow are model output
   for one grid cell, and two rain models disagree by 10% to 30%.
 - **Site selection.** Sites were kept because their NISAR series showed
   a clear change; others were dropped
-  ([Team Guide](TEAM_GUIDE.md#sites-we-tried-and-dropped)).
+  ([Guide](GUIDE.md#sites-we-tried-and-dropped)).
 
-## 10. Check it yourself
+## 9. Check it yourself
 
 From the repository root, with the Python environment active:
 
 | Command | What it does | Needs |
 | --- | --- | --- |
-| `python scripts/chain_evidence.py` | Prints the tables in Section 6 from the committed files. | Nothing |
+| `python scripts/chain_evidence.py` | Prints the tables in Section 5 from the committed files. | Nothing |
 | `python scripts/build_driver_data.py` | Re-fetches every rain and river series. | Network |
 | `pytest tests/test_chains.py` | Fails if a moment's dates or caption no longer match the data. | Nothing |
 | `curl localhost:8880/api/sites/<id>/chain` | Returns everything the story panel shows, as JSON. | The app running |
 | `python scripts/extract_nisar.py --site <slug>` | Recomputes a site's NISAR values from the granules. | Earthdata Login |
 
-## 11. References
+## 10. References
 
 **NISAR**
 
@@ -469,20 +470,6 @@ From the repository root, with the Python environment active:
   <https://doi.org/10.24381/cds.a4fdd6b9>. See also
   <https://www.globalfloods.eu>.
 
-**Prices and area matching**
-
-- World Bank. _Commodity Price Data (The Pink Sheet)_, November 2026.
-  <https://www.worldbank.org/en/research/commodity-markets>
-- International Food Policy Research Institute (2024). _Global
-  Spatially-Disaggregated Crop Production Statistics Data for 2020
-  Version 2.0 Release 2_. Harvard Dataverse.
-  <https://doi.org/10.7910/DVN/SWPENT>
-- Global Energy Monitor. _Global Oil and Gas Extraction Tracker_, March
-  2026 release.
-  <https://globalenergymonitor.org/projects/global-oil-gas-extraction-tracker>
-- Yahoo Finance, daily closing prices (the "Market context" panel on
-  study sites only).
-
 **Background**
 
 - FAO Global Information and Early Warning System (2026). _GIEWS
@@ -497,8 +484,12 @@ From the repository root, with the Python environment active:
 Each DOI above was checked against its registry record (CMR, Crossref
 or DataCite) on 14 November 2026.
 
-## 12. Corrections
+## 11. Corrections
 
+- **15 November 2026, prices removed.** Earlier versions charted crop
+  and oil prices beside the NISAR series and over drawn areas. Radar
+  from a small area says nothing about commodity prices, so the price
+  series, their sources and the panel that showed them were removed.
 - **15 November 2026, gallery event claims and the cadence wording
   checked.** The land-change gallery's event descriptions were checked
   against their sources, and wording that outran the data was changed:
@@ -564,13 +555,11 @@ or DataCite) on 14 November 2026.
   pass opens in HH.
 - **14 November 2026, conclusions removed.** Earlier versions graded each
   "possible cause → NISAR" link by correlation ("Moves together", "No
-  clear link"), labelled price links ("Timing only") and added
+  clear link") and added
   interpretation ("The haors fill with rain", "What to watch"). With one
   year of passes, mostly in one season, those labels said more than the
   data could. The app now shows the NISAR values, statistics computed
-  from them, and related data on the same dates, with no verdicts. The
-  Market context panel's correlations and causal descriptions were
-  removed for the same reason.
+  from them, and related data on the same dates, with no verdicts.
 - **14 November 2026, Mexico City's pace.** The app said the sinking
   "stayed steady through wet and dry months", based on a weak
   correlation between rain and each 12-day step. Fitting a line to each
