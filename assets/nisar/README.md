@@ -42,9 +42,9 @@ For React, create the loader inside an effect. If a load finishes after the effe
 
 ## Coordinates and accuracy
 
-The exports use glTF's right-handed Y-up coordinates, meter-scale units, and the model's own origin. Blender uses Z-up. The origin is not a measured center of mass; position/orient a parent group and apply the globe engine's unit conversion there.
+The exports use glTF's right-handed Y-up coordinates and retain the source model's meter-scale units and origin. Blender uses Z-up. Use a parent group for positioning, orientation and unit conversion. The origin may differ from the spacecraft's center of mass.
 
-The model was **generated with AI tools** and is not derived from NASA's or JPL's 3D model. NASA's public descriptions of the spacecraft were used only as a visual reference. The compact version reduces only three bus/instrument meshes, preserving the reflector, boom, and solar geometry.
+The Blender adaptation preserves the proportions of the source model. It removes a helper cube and a coincident reverse reflector surface and changes the reflector frame from bright aluminum to dark composite based on NASA's flight description. The compact export simplifies three meshes on the bus and instruments and retains the reflector, boom and solar panels.
 
 This is an illustrative model. NASA specifies a nominal 12 m reflector; this model's reflector is approximately 12.5 m across. Exact flight geometry has not been verified. The files contain no real-time orbital location, attitude telemetry, or deployment animation.
 
@@ -52,7 +52,9 @@ The supplied GLBs were checked in the browser and with geometry and KTX validato
 
 ## Source and attribution
 
-This model is **SI-generated** (Space Apps "Super Intelligence" disclosure). It is an unofficial illustration, not a NASA or ISRO asset, and it carries no NASA logos, flags or mission identifiers. Do not imply NASA/ISRO endorsement.
+Courtesy of **NASA/JPL-Caltech** via [NASA's Eyes](https://eyes.nasa.gov/apps/earth/). The editable Blender file and web exports use geometry and textures from the [original NISAR glTF](https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.gltf). The [source manifest](nasa-source-manifest.json) records the six original files and their hashes.
+
+The source glTF carries no model-specific license statement. The app's Apache 2.0 license covers original project material. See [NASA media-use guidance](https://www.nasa.gov/nasa-brand-center/images-and-media/) and the [JPL image-use policy](https://www.jpl.nasa.gov/jpl-image-use-policy/) for credit and use guidance.
 
 References used for appearance: [NISAR quick facts](https://www.jpl.nasa.gov/press-kits/nisar/quick-facts/) and the [deployed reflector description](https://www.jpl.nasa.gov/news/giant-radar-antenna-reflector-on-nasa-isro-satellite-in-full-bloom/).
 

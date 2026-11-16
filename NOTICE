@@ -19,8 +19,9 @@ This repository includes third-party material under its own terms:
 - BDO Grotesk font (frontend/public/fonts/). SIL Open Font License 1.1,
   Copyright 2020 The BDO Grotesk Project Authors. See frontend/public/fonts/OFL.txt.
 - NISAR spacecraft 3D model (frontend/public/models/nisar/, assets/nisar/),
-  generated with AI tools. It is an unofficial illustration, not derived
-  from a NASA or ISRO model. See assets/nisar/README.md.
+  courtesy of NASA/JPL-Caltech via NASA's Eyes. The project adapted the
+  source geometry and textures in Blender and optimized them for the web.
+  See assets/nisar/README.md for the source and applicable media guidance.
 - NISAR-derived values and images (app/data/), computed from NISAR data
   products by NASA/JPL-Caltech and ISRO, distributed by the NASA Alaska
   Satellite Facility DAAC.

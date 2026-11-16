@@ -236,8 +236,9 @@ The same material is in the app under **Docs**. In the repository:
   each land-change gallery place cites its event source (for example
   the AGU/Eos Landslide Blog) in
   [`app/data/landchange.json`](app/data/landchange.json) and in the app.
-- **NISAR 3D model:** an SI-generated illustration, not a NASA or ISRO
-  asset; see [`assets/nisar/README.md`](assets/nisar/README.md).
+- **NISAR spacecraft visualization:** Courtesy of NASA/JPL-Caltech via
+  [NASA’s Eyes](https://eyes.nasa.gov/apps/earth/). See the
+  [model source and credits](assets/nisar/README.md#source-and-attribution).
 
 Full citations, with DOIs, are in
 [`docs/DATA_AND_METHODS.md`](docs/DATA_AND_METHODS.md#10-references).
@@ -247,34 +248,28 @@ endorsement.
 
 ## Use of Super Intelligence (SI)
 
-Per the NASA Space Apps Challenge guidelines, this project discloses
-where and how SI tools were used:
-
-- **Code:** Most of the code was generated with SI tools (AI coding
-  assistants such as GitHub Copilot), then reviewed and tested by the
-  team.
-- **Text and docs:** Much of the project text, including the in-app
-  copy and the documentation, was SI-generated.
-- **3D model:** The NISAR spacecraft 3D model was generated with SI
-  tools. It is an unofficial illustration and is not derived from a
-  NASA or ISRO model; see
-  [`assets/nisar/README.md`](assets/nisar/README.md).
-- **Data:** Every value and image shown comes from public NASA datasets
-  (NISAR granules) or other public datasets, listed under
-  [Data, sources & credits](#data-sources--credits) and in
-  [Data and methods](docs/DATA_AND_METHODS.md). No data is SI-generated.
-- **NASA branding:** No SI-generated content uses or modifies NASA
-  logos, flags or mission identifiers.
+- **Code and writing:** The team used SI tools, including GitHub Copilot,
+  to write most of the code and draft much of the app copy and documentation.
+  The team reviewed and tested the code.
+- **Spacecraft illustration:** The team adapted geometry and textures
+  from NASA’s Eyes in Blender and optimized the model for the web. The
+  [build records](assets/nisar/README.md) don’t specify whether SI
+  assisted with the adaptation.
+- **Scientific data:** Measurements, radar imagery and supporting series
+  come from the public datasets listed under
+  [Data, sources & credits](#data-sources--credits).
+- **NASA branding:** SI-generated content excludes NASA logos, flags and
+  mission identifiers.
 
 ## License
 
-Original code and content: [Apache License 2.0](LICENSE). See
-[`NOTICE`](NOTICE) for copyright and attribution.
+The [Apache License 2.0](LICENSE) covers the project’s original code and
+content. Bundled material retains its source terms. See [`NOTICE`](NOTICE)
+for attribution.
 
-Bundled third-party material keeps its own license:
-
-| Material | License | Where |
+| Material | License or terms | Where |
 | --- | --- | --- |
+| NISAR spacecraft model and textures | [NASA media-use guidance](https://www.nasa.gov/nasa-brand-center/images-and-media/) and [asset source notes](assets/nisar/README.md#source-and-attribution) | `assets/nisar/`, `frontend/public/models/nisar/` |
 | Basis Universal transcoder (from Three.js 0.187.0) | Apache-2.0 | `frontend/public/decoders/basis/` |
 | Three.js, meshoptimizer notices | MIT | `frontend/public/decoders/basis/` |
 | BDO Grotesk font | SIL OFL 1.1 | `frontend/public/fonts/` |
