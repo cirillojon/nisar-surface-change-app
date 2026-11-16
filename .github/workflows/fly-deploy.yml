@@ -72,10 +72,9 @@ jobs:
           app=$(sed -n "s/^app *= *'\(.*\)'/\1/p" fly.toml)
           url="https://${app}.fly.dev/api/health"
           for i in $(seq 1 60); do
-            body=$(curl -s -w '\n%{http_code}' "$url" || echo "000")
-            code=$(echo "$body" | tail -n1)
+            code=$(curl -sS -m 10 -o health.json -w '%{http_code}' "$url") || true
             echo "[$i/60] HTTP $code"
-            if [ "$code" = "200" ] && echo "$body" | grep -Eq '"status": *"ok"'; then
+            if [ "$code" = "200" ] && grep -Eq '"status": *"ok"' health.json; then
               echo "::notice::Backend is healthy at $url"
               exit 0
             fi
