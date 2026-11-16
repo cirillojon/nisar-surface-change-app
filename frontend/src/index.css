@@ -1635,7 +1635,25 @@ code {
 @media (max-width: 760px) {
   .tour-bubble {
     padding: 10px 12px;
-    max-height: min(44svh, calc(100svh - 24px));
+    max-height: min(32svh, calc(100svh - 24px));
+  }
+  .tour-bubble .tour-step-count {
+    margin-block: 0 2px;
+    font-size: 0.72rem;
+  }
+  .tour-bubble .tour-progress {
+    display: none;
+  }
+  .tour-bubble .tour-actions {
+    gap: 4px;
+  }
+  .tour-bubble .tour-actions .btn {
+    min-height: 36px;
+    padding-inline: 10px;
+    font-size: 0.85rem;
+  }
+  .tour-bubble .tour-hint {
+    font-size: 0.78rem;
   }
   .tour-bubble-intro .tour-art {
     max-height: 18svh;

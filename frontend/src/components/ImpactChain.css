@@ -874,6 +874,9 @@
     .map-evidence {
       block-size: 42%;
     }
+    .app-shell[data-demo] .map-evidence {
+      block-size: 34%;
+    }
     .map-evidence > .panel.chain {
       --chain-radar-height: clamp(64px, 12cqh, 96px);
     }
