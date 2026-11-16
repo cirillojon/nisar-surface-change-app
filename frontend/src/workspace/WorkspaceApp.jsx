@@ -29,6 +29,7 @@ import {
 } from "../services/tour.js";
 import { assetUrl, fetchStory } from "../services/api.js";
 import { siteQuery, useCatalog, useLandChange, useSite, useStories } from "./data/queries.js";
+import { defaultSceneIndex, useSelection } from "./state/selection.js";
 import { loadImage } from "../services/imageCache.js";
 import { imageLayerOptions, layerLegend, useLayerMapper } from "../services/layers.js";
 import { siteSeries } from "../services/measurements.js";
@@ -60,8 +61,6 @@ export default function WorkspaceApp({ active = true }) {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
   const navigationType = useNavigationType();
-  // A date asked for in the URL, applied once its site has loaded.
-  const pendingDateRef = useRef(null);
   // A site (its id) or place (its slug) selected from the URL, until it shows.
   const pendingSiteRef = useRef(null);
   const pendingPlaceRef = useRef(null);
@@ -70,43 +69,72 @@ export default function WorkspaceApp({ active = true }) {
   const { changeTypes, products, sites, loading, error } = useCatalog();
   const landChange = useLandChange();
   const stories = useStories();
-  const [selectedSiteId, setSelectedSiteId] = useState(null);
-  // The selected site as fetched, why it couldn't be (cleared while trying
-  // again), and another try.
-  const { data: loadedSite, error: siteError, retry: retrySite } = useSite(selectedSiteId);
-  // The site shown: set together with its pass (sceneIndex) once it loads.
-  const [site, setSite] = useState(null);
-  const [aoi, setAoi] = useState(null);
-  const [granules, setGranules] = useState([]);
-  const [sceneIndex, setSceneIndex] = useState(0);
+  // What is selected, and how it is viewed (state/selection.js): at most one
+  // target (a study site, a gallery place, an area or a profile line) whose
+  // view settings all start afresh with each new selection.
+  const [selection, {
+    select,
+    clear,
+    setSceneIndex,
+    setPendingDate,
+    setKeepDate,
+    setSiteLayer,
+    setLandLayer,
+    setLandOverlay,
+    setLandDates,
+    setLandFocus,
+    setAreaRange,
+    setAreaSeries,
+    setAreaFocus,
+    setCatalogOpen,
+    setGranules,
+    setRegionLayers,
+    setEvidenceOpen,
+    setShareOpen,
+  }] = useSelection({ keepDate: Boolean(searchParams.get("date")) });
+  const {
+    target,
+    pendingDate,
+    keepDate,
+    siteLayer,
+    landLayer,
+    landOverlay,
+    landDates,
+    landFocus,
+    areaRange,
+    areaSeries,
+    areaFocus,
+    catalogOpen,
+    granules,
+    regionLayers,
+    evidenceOpen,
+    shareOpen,
+  } = selection;
+  const selectedSiteId = target?.kind === "site" ? target.id : null;
+  const landSlug = target?.kind === "place" ? target.slug : null;
+  const aoi = target?.kind === "area" ? target.aoi : null;
+  const profileLine = target?.kind === "line" ? target.line : null;
+  // The selected site as fetched (null until its passes arrive; the query is
+  // keyed by site, so an answer for an earlier pick never shows), why it
+  // couldn't be (cleared while trying again), and another try.
+  const { data: site, error: siteError, retry: retrySite } = useSite(selectedSiteId);
+  // The pass shown: the one picked, else the date asked for (a link, a
+  // finding), else the latest.
+  const sceneIndex = selection.sceneIndex ?? defaultSceneIndex(site, pendingDate);
   const [overlayOpacity, setOverlayOpacity] = useState(0.85);
-  const [catalogOpen, setCatalogOpen] = useState(false);
   // Is the side panel showing? What it holds follows the tab and the
   // selection (navigation.js). An evidence card opened from a link must
   // show even on a phone, where the panel otherwise starts closed.
   const [panelOpen, setPanelOpen] = useState(
     () => !window.matchMedia(NARROW_LAYOUT).matches || Boolean(searchParams.get("finding")),
   );
-  const [evidenceOpen, setEvidenceOpen] = useState(true);
   // Drawing tool in use: null, "area" (rectangle) or "line" (height profile).
   const [drawing, setDrawing] = useState(null);
-  // A line drawn for a height profile: [[lon, lat], ...] or null.
-  const [profileLine, setProfileLine] = useState(null);
-  // Land-change gallery: data, the selected place, its layer (null: the
-  // place's starting layer), its map overlay and the two dates it compares.
-  const [landSlug, setLandSlug] = useState(null);
-  const [landLayer, setLandLayer] = useState(null);
-  const [landOverlay, setLandOverlay] = useState(null);
-  const [landDates, setLandDates] = useState(null);
-  // A date the tour asks the land player to show (n makes a repeat count).
-  const [landFocus, setLandFocus] = useState(null);
   const [timelineHost, setTimelineHost] = useState(null);
   // Where the map draws its drawing bar (instructions, Finish, Cancel).
   const [drawHost, setDrawHost] = useState(null);
   // Bumped to send the map back to the whole world (a back link, the default workspace).
   const [homeKey, setHomeKey] = useState(0);
-  // Which image layer the selected study site's images are drawn as.
-  const [siteLayer, setSiteLayer] = useState("colour");
   // The guided tour: on a first visit it opens on its first step (how radar
   // sees), which offers to skip. Not when someone arrives on a specific
   // place or evidence card from a link.
@@ -141,65 +169,26 @@ export default function WorkspaceApp({ active = true }) {
   const drawButtonRef = useRef(null);
   const lineButtonRef = useRef(null);
   const panelButtonRef = useRef(null);
-  // Images and outlines from the data explorer ({ tiles, outlines, opacity }).
-  const [regionLayers, setRegionLayers] = useState(null);
-  // A drawn area's searched dates, its NISAR series and the date asked for from the chart.
-  const [areaRange, setAreaRange] = useState(null);
-  const [areaSeries, setAreaSeries] = useState(null);
-  const [areaFocus, setAreaFocus] = useState(null);
   const [mode, setMode] = useState(() =>
     modeFrom(searchParams.get("mode"), DEFAULT_MODE, { hasFinding: Boolean(searchParams.get("finding")) }));
   const [openFinding, setOpenFinding] = useState(() => parseFinding(searchParams.get("finding")));
-  // True while the shown pass was asked for by a link or a finding, so the
-  // chart panel doesn't move off it to the site's first moment.
-  const [keepDate, setKeepDate] = useState(() => Boolean(searchParams.get("date")));
   // A finding to put on the map once the sites have loaded.
   const [pendingFinding, setPendingFinding] = useState(null);
   // My findings (this browser), the finding being saved, and the note after a save.
   const notebook = useNotebook();
   const [saveDraft, setSaveDraft] = useState(null);
   const [savedNote, setSavedNote] = useState(null);
-  // A story's Save / share menu.
-  const [shareOpen, setShareOpen] = useState(false);
 
-  const showGranules = useCallback((rows) => setGranules(rows), []);
-
-  // The selected site's passes arrived: show it, on the date asked for
-  // (a link, a finding) or else its latest pass. The query's key is the
-  // site, so an answer for an earlier pick never lands here. If it fails,
-  // the selection stays and its panel says why and offers to try again.
-  useEffect(() => {
-    if (!loadedSite || site === loadedSite) return;
-    setSite(loadedSite);
-    const wanted = pendingDateRef.current;
-    pendingDateRef.current = null;
-    const asked = wanted ? (loadedSite.scenes ?? []).findIndex((x) => x.date === wanted) : -1;
-    setSceneIndex(asked >= 0 ? asked : Math.max(0, (loadedSite.scenes?.length ?? 0) - 1));
-  }, [loadedSite, site]);
-
-  const clearSelection = () => {
-    setEvidenceOpen(true);
-    setCatalogOpen(false);
-    setGranules([]);
-    setRegionLayers(null);
-    setAreaRange(null);
-    setAreaSeries(null);
-    setAreaFocus(null);
-    setSelectedSiteId(null);
-    setSite(null);
-    setSiteLayer("colour");
-    setAoi(null);
-    setProfileLine(null);
-    setLandSlug(null);
-    setLandLayer(null);
-    setLandOverlay(null);
-    setLandDates(null);
-    setLandFocus(null);
-    setShareOpen(false);
-    setKeepDate(false);
-    pendingDateRef.current = null;
+  // Select one thing (or nothing), its view starting afresh plus `view`;
+  // either way nothing is left waiting on the URL.
+  const choose = (next, view) => {
+    select(next, view);
     pendingSiteRef.current = null;
   };
+  const clearSelection = useCallback(() => {
+    clear();
+    pendingSiteRef.current = null;
+  }, [clear]);
 
   const narrow = () => window.matchMedia(NARROW_LAYOUT).matches;
   const cancelDraw = useCallback(() => setDrawing(null), []);
@@ -249,8 +238,7 @@ export default function WorkspaceApp({ active = true }) {
 
   const selectSite = (id) => {
     if (id !== selectedSiteId) {
-      clearSelection();
-      setSelectedSiteId(id);
+      choose({ kind: "site", id });
     } else if (siteError) {
       retrySite();
     }
@@ -260,9 +248,8 @@ export default function WorkspaceApp({ active = true }) {
   };
 
   const selectPoint = ({ latitude, longitude }) => {
-    clearSelection();
     setMode("investigate");
-    setAoi(aoiAround(latitude, longitude));
+    choose({ kind: "area", aoi: aoiAround(latitude, longitude) });
     revealSelection();
   };
 
@@ -274,22 +261,23 @@ export default function WorkspaceApp({ active = true }) {
     // size from pass to pass).
     const snapped = touring ? TOUR_BOX : null;
     const bbox = snapped ?? drawn;
-    clearSelection();
     setMode("investigate");
-    setAoi({
-      latitude: (bbox[1] + bbox[3]) / 2,
-      longitude: (bbox[0] + bbox[2]) / 2,
-      bbox,
-      drawn: true,
-      imagery: snapped ? TOUR_IMAGERY : null,
+    choose({
+      kind: "area",
+      aoi: {
+        latitude: (bbox[1] + bbox[3]) / 2,
+        longitude: (bbox[0] + bbox[2]) / 2,
+        bbox,
+        drawn: true,
+        imagery: snapped ? TOUR_IMAGERY : null,
+      },
     });
     cancelDraw();
     revealSelection();
   };
 
   const selectLandChange = (slug) => {
-    clearSelection();
-    setLandSlug(slug);
+    choose({ kind: "place", slug });
     cancelDraw();
     revealSelection();
   };
@@ -334,17 +322,13 @@ export default function WorkspaceApp({ active = true }) {
         const i = site?.id === target.id ? site.scenes?.findIndex((x) => x.date === finding.claim.end) ?? -1 : -1;
         if (i >= 0) setSceneIndex(i);
         // The site is still loading: apply the date when it arrives.
-        else pendingDateRef.current = finding.claim.end;
+        else setPendingDate(finding.claim.end);
         setKeepDate(true);
       } else {
-        clearSelection();
-        pendingDateRef.current = finding.claim.end;
-        setKeepDate(true);
-        setSelectedSiteId(target.id);
+        choose({ kind: "site", id: target.id }, { pendingDate: finding.claim.end, keepDate: true });
       }
     } else if (finding.site.slug !== landSlug) {
-      clearSelection();
-      setLandSlug(finding.site.slug);
+      choose({ kind: "place", slug: finding.site.slug });
     }
     cancelDraw();
     if (focusMap && narrow()) {
@@ -362,13 +346,12 @@ export default function WorkspaceApp({ active = true }) {
 
   // A line drawn with the line tool: height profile over time.
   const selectLine = (line) => {
-    clearSelection();
     // Likewise any line drawn during a tour becomes the suggested one (its
     // result ships with the app, so it opens at once).
     const snapped = touring ? TOUR_LINE : null;
     setMode("investigate");
     setTourSnapped(Boolean(snapped));
-    setProfileLine(snapped ?? line);
+    choose({ kind: "line", line: snapped ?? line });
     cancelDraw();
     revealSelection();
   };
@@ -388,18 +371,15 @@ export default function WorkspaceApp({ active = true }) {
       if (target.id === selectedSiteId) {
         const i = date && site?.id === target.id ? site.scenes?.findIndex((x) => x.date === date) ?? -1 : -1;
         if (i >= 0) setSceneIndex(i);
-        else if (date) pendingDateRef.current = date;
+        else if (date) setPendingDate(date);
       } else {
-        clearSelection();
-        pendingDateRef.current = date;
-        setSelectedSiteId(target.id);
+        choose({ kind: "site", id: target.id }, { pendingDate: date });
       }
       setKeepDate(Boolean(date));
       if (layer) setSiteLayer(layer);
     } else {
       if (slug !== landSlug) {
-        clearSelection();
-        setLandSlug(slug);
+        choose({ kind: "place", slug });
       }
       setLandLayer(layer);
       setLandFocus(date ? (f) => ({ date, n: (f?.n ?? 0) + 1 }) : null);
@@ -509,8 +489,7 @@ export default function WorkspaceApp({ active = true }) {
     setTourFocus(null);
     setTourGuide(null);
     tourButtonRef.current?.focus({ preventScroll: true });
-    // clearSelection and narrow only call setters; a stale copy is the same.
-  }, [cancelDraw]);
+  }, [cancelDraw, clearSelection, setLandFocus]);
   // Leaving demo mode: the default workspace, out of full screen.
   const endDemo = useCallback(() => {
     endTour();
@@ -520,8 +499,7 @@ export default function WorkspaceApp({ active = true }) {
     setPanelOpen(!narrow());
     setHomeKey((n) => n + 1);
     if (document.fullscreenElement) document.exitFullscreen?.().catch(() => {});
-    // clearSelection and narrow only call setters; a stale copy is the same.
-  }, [endTour]);
+  }, [endTour, clearSelection]);
   // The page around the workspace (the top bar) hides in demo mode too.
   useEffect(() => {
     if (!demo || !active) return undefined;
@@ -701,7 +679,7 @@ export default function WorkspaceApp({ active = true }) {
     selectSite(target.id);
     // After selectSite, which clears whatever was left waiting.
     pendingSiteRef.current = target.id;
-    pendingDateRef.current = urlDate;
+    setPendingDate(urlDate);
     setKeepDate(Boolean(urlDate));
     showLinkedPlace(target.slug);
     // selectSite is recreated each render; the URL and site list drive this.
@@ -779,7 +757,7 @@ export default function WorkspaceApp({ active = true }) {
   const granuleProps = {
     products,
     granules,
-    onGranuleResults: showGranules,
+    onGranuleResults: setGranules,
     onBack: backToList,
     overlayOpacity,
     onOverlayOpacityChange: setOverlayOpacity,
@@ -907,7 +885,7 @@ export default function WorkspaceApp({ active = true }) {
     }
     if (!site) {
       // The record can arrive before the passes: show this date once they do.
-      if (selectedSiteId !== null && !keepDate) pendingDateRef.current = date;
+      if (selectedSiteId !== null && !keepDate) setPendingDate(date);
       return;
     }
     const index = site.scenes?.findIndex((item) => item.date === date) ?? -1;
