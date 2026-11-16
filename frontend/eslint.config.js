@@ -7,7 +7,8 @@ import jsxA11y from "eslint-plugin-jsx-a11y";
 import { defineConfig, globalIgnores } from "eslint/config";
 
 export default defineConfig([
-  globalIgnores(["dist", "coverage"]),
+  // Basis transcoder is vendored upstream code, with its license alongside it.
+  globalIgnores(["dist", "coverage", "public/decoders/**"]),
   {
     files: ["**/*.{js,jsx}"],
     extends: [

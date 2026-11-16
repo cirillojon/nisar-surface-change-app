@@ -9,3 +9,8 @@ Dockerfile         text eol=lf
 .dockerignore      text eol=lf
 .github/**/*.yml   text eol=lf
 frontend/vercel.json text eol=lf
+
+# Preserve binary model and decoder files across Windows/Linux checkouts.
+*.glb   binary
+*.blend binary
+*.wasm  binary
