@@ -219,6 +219,18 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
   const last = index === STEPS.length - 1;
   const part = PARTS.find((p) => p.id === step.part);
   const width = step.art ? INTRO_W : BUBBLE_W;
+  // On a phone the bubble can fold down to its title and buttons, to show
+  // the map behind it. It opens again on the next step.
+  const [foldedAt, setFoldedAt] = useState(-1);
+  const [phone, setPhone] = useState(() => Boolean(window.matchMedia?.("(max-width: 760px)").matches));
+  useEffect(() => {
+    const query = window.matchMedia?.("(max-width: 760px)");
+    if (!query) return undefined;
+    const update = () => setPhone(query.matches);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  const folded = phone && foldedAt === index;
 
   const go = useCallback(
     (i) => {
@@ -501,7 +513,7 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
 
       <div
         ref={bubbleRef}
-        className={`tour-bubble${nudge ? " tour-bubble-nudge" : ""}${step.art ? " tour-bubble-intro" : ""}`}
+        className={`tour-bubble${nudge ? " tour-bubble-nudge" : ""}${step.art ? " tour-bubble-intro" : ""}${folded ? " tour-bubble-folded" : ""}`}
         data-placing={placing ? "" : undefined}
         style={{
           left: bubble?.left,
@@ -513,6 +525,17 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
         aria-modal="false"
         aria-labelledby="tour-bubble-title"
       >
+        {phone && (
+          <button
+            type="button"
+            className="tour-fold"
+            aria-expanded={!folded}
+            aria-label={folded ? "Show the tour text" : "Hide the tour text to see the map"}
+            onClick={() => setFoldedAt(folded ? -1 : index)}
+          >
+            {folded ? "Show" : "Hide"}
+          </button>
+        )}
         <p className="tour-step-count">
           <span>
             {part && !step.art && !step.unlabelled ? `${part.label} · ` : ""}{index + 1} of {STEPS.length}

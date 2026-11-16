@@ -219,7 +219,7 @@ cd frontend && npm test       # frontend
 | Area                 | What you can do                                                                         |
 | -------------------- | --------------------------------------------------------------------------------------- |
 | Map (right)          | Switch basemaps (top-right): Satellite, Streets, NASA GIBS true color                   |
-| Tabs (top)           | **Stories** (a question and hypotheses per place), **Investigate** (every place, drawing, clicking the map), **Findings** (saved evidence cards) |
+| Tabs (top)           | **Stories** (a question and hypotheses per place), **Investigate** (every place, drawing, clicking the map), **My findings** (saved evidence cards) |
 | Places (Investigate) | One list: study sites **measured over time**, then **before & after** places (lava, ice, rivers, landslides) with a change map; every place is also a marker on the map |
 | Under the map        | Time, layer and opacity for whatever is on the map; a before & after place adds a **change map** since a date you pick |
 | Drawing (Investigate) | **Draw area** or **Draw line**; a bar over the map says what to do next and has **Undo**, **Finish line** and **Cancel** |

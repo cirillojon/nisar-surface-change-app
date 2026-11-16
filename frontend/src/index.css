@@ -1641,6 +1641,27 @@ code {
     padding: 10px 12px;
     max-height: min(max(32svh, 220px), calc(100svh - 24px));
   }
+  .tour-bubble .tour-fold {
+    position: absolute;
+    inset-block-start: 6px;
+    inset-inline-end: 8px;
+    min-height: 32px;
+    padding: 0 10px;
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--fg-muted);
+    font: inherit;
+    font-size: 0.78rem;
+  }
+  /* Folded: only the step, the title and the buttons, so the map shows. */
+  .tour-bubble-folded > :not(.tour-fold, .tour-step-count, h3, .tour-actions),
+  .tour-bubble-folded .tour-progress {
+    display: none;
+  }
+  .tour-bubble-folded.tour-bubble-intro {
+    max-height: min(max(32svh, 220px), calc(100svh - 24px));
+  }
   .tour-bubble .tour-step-count {
     margin-block: 0 2px;
     font-size: 0.72rem;
