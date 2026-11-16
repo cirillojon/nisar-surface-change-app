@@ -55,9 +55,11 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
   ground.position.set(3, -5, 0);
   ground.quaternion.setFromRotationMatrix(groundRotation);
   scene.add(ground);
-  // Anchor the badges to the top edge where the rounded left corner ends.
+  // Align the controls and badges to the two rounded left corners of the image.
   const imageTop = IMAGE_DEPTH / 2;
-  const imageAnchor = ground.localToWorld(new THREE.Vector3(-IMAGE_WIDTH / 2 + imageTop * IMAGE_SHEAR + .6, imageTop, 0));
+  const imageLeft = -IMAGE_WIDTH / 2 + .6;
+  const imageTopLeft = ground.localToWorld(new THREE.Vector3(imageLeft + imageTop * IMAGE_SHEAR, imageTop, 0));
+  const imageBottomLeft = ground.localToWorld(new THREE.Vector3(imageLeft - imageTop * IMAGE_SHEAR, -imageTop, 0));
   const beamColor = new THREE.Color();
   const aperture = new THREE.Vector3(0, -.35, 0);
   const beamSource = new THREE.Vector3();
@@ -157,7 +159,7 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
   const localCameraUp = new THREE.Vector3();
   const pivotHeight = cameraUp.dot(satellite.position);
   const pivotViewY = pivotHeight - cameraUp.dot(camera.position);
-  const roomBelow = pivotHeight - cameraUp.dot(imageAnchor) - .4;
+  const roomBelow = pivotHeight - cameraUp.dot(imageTopLeft) - .4;
   let modelVertices = new Float32Array();
 
   function projectToCss(name, position) {
@@ -221,7 +223,8 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     camera.left = -camera.right;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
-    projectToCss("image", imageAnchor);
+    projectToCss("image-top", imageTopLeft);
+    projectToCss("image-bottom", imageBottomLeft);
     poseChanged = true;
     requestRender();
   }

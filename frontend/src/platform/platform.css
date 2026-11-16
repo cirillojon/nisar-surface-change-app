@@ -1074,6 +1074,8 @@ h3:hover > .pf-anchor,
 .pf-hero-stage {
   position: relative;
   aspect-ratio: 1.35;
+  --hero-map-gap: 8px;
+  --hero-fallback-bottom: 9.5%;
   --dish-x: 71.84%;
   --dish-y: 9.29%;
   --bus-x: 79.42%;
@@ -1106,9 +1108,9 @@ h3:hover > .pf-anchor,
 .pf-hero-flat {
   position: absolute;
   left: 9%;
-  bottom: 2%;
+  bottom: var(--hero-fallback-bottom);
   width: 82%;
-  height: 26%;
+  height: 23%;
   transform: skewX(-20deg);
   border: 1px solid color-mix(in srgb, var(--hero-pin) 60%, transparent);
   border-radius: 12px;
@@ -1172,17 +1174,16 @@ h3:hover > .pf-anchor,
 }
 .pf-hero-hud {
   position: absolute;
-  left: calc(12.5% + 8px);
-  top: 72%;
-  transform: translateY(calc(-100% - 8px));
+  left: calc(6% + 8px);
+  top: calc(100% - var(--hero-fallback-bottom) + var(--hero-map-gap));
   display: flex;
   flex-wrap: wrap;
   gap: 6px;
   pointer-events: none;
 }
 .pf-hero-visual[data-renderer="ready"] .pf-hero-hud {
-  left: var(--image-x);
-  top: var(--image-y);
+  left: var(--image-bottom-x);
+  top: calc(var(--image-bottom-y) + var(--hero-map-gap));
 }
 .pf-hero-hud > * {
   padding: 4px 9px;
@@ -1206,8 +1207,9 @@ h3:hover > .pf-anchor,
 }
 .pf-hero-view-controls {
   position: absolute;
-  left: 8%;
-  top: 43%;
+  left: var(--image-top-x);
+  top: var(--image-top-y);
+  transform: translateY(calc(-100% - var(--hero-map-gap)));
   display: flex;
   align-items: center;
   gap: 7px;
@@ -1940,10 +1942,12 @@ h3:hover > .pf-anchor,
   .pf-hero-callout-dish strong { display: block; max-width: 85px; white-space: normal; }
   .pf-hero-callout small { font-size: 7px; letter-spacing: .06em; }
   .pf-hero-pin { width: 10px; }
-  .pf-hero-hud { gap: 4px; transform: translateY(calc(-100% - 5px)); }
+  .pf-hero-stage { --hero-map-gap: 5px; }
+  .pf-hero-hud { gap: 4px; }
   .pf-hero-hud > * { font-size: 9px; padding: 3px 6px; }
-  .pf-hero-view-controls { left: 3%; top: 40%; gap: 5px; font-size: 10px; }
-  .pf-hero-footer { flex-direction: column; align-items: stretch; gap: 12px; margin-inline: 1%; }
+  .pf-hero-view-controls { gap: 5px; font-size: 10px; }
+  .pf-hero-view-controls button { width: 28px; height: 28px; }
+  .pf-hero-footer { flex-direction: column; align-items: stretch; gap: 12px; margin: 10px 1% 0; }
   .pf-hero-visual figcaption { flex-basis: auto; border-left: 0; padding: 0; }
   .pf-hero-visual figcaption > span { display: inline; margin-left: 6px; }
 }

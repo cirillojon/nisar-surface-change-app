@@ -1,6 +1,6 @@
 # NISAR home hero
 
-The home page places the deployed satellite above the existing Sylhet radar time-lapse. Drag the spacecraft to turn it through a full rotation and tilt it with the mouse. On touch screens, swipe horizontally to turn it. The reset button restores the annotated view and accepts arrow keys for rotation. The soft beam follows the spacecraft while the radar image and pass badges stay fixed. The date and open water value sit above the image’s top-left edge.
+The home page places the deployed satellite above the existing Sylhet radar time-lapse. Drag the spacecraft to turn it through a full rotation and tilt it with the mouse. On touch screens, swipe horizontally to turn it. The reset button above the image’s top-left corner restores the annotated view and accepts arrow keys for rotation. The soft beam follows the spacecraft while the radar image and pass badges stay fixed. The date and open water value sit below the image’s bottom-left corner.
 
 ## Visual target
 
