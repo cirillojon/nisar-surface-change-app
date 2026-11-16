@@ -23,6 +23,8 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
   const target = new THREE.Vector3(3, 2.7, 0);
   camera.position.copy(target).addScaledVector(direction, 60);
   camera.lookAt(target);
+  // The overlay positions are projected before Three.js draws the first frame.
+  camera.updateMatrixWorld();
   const up = new THREE.Vector3(0, 1, 0);
   const cameraUp = up.clone().applyQuaternion(camera.quaternion);
   const groundForward = new THREE.Vector3(direction.x, 0, direction.z).normalize();
@@ -140,6 +142,8 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
   const textures = new Map();
   const motion = window.matchMedia("(prefers-reduced-motion: reduce)");
   let model = null;
+  let imageSettled = false;
+  let presented = false;
   let disposed = false;
   let inView = true;
   let frame = 0;
@@ -195,7 +199,9 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     }
   }
   function requestRender() {
-    if (!disposed && !frame && inView && !document.hidden) frame = requestAnimationFrame(render);
+    if (model && imageSettled && !disposed && !frame && inView && !document.hidden) {
+      frame = requestAnimationFrame(render);
+    }
   }
   function render(time) {
     frame = 0;
@@ -211,6 +217,10 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     }
     renderer.render(scene, camera);
     renderCount++;
+    if (!presented) {
+      presented = true;
+      onReady();
+    }
     if (transitionStart) requestRender();
   }
   function resize() {
@@ -252,8 +262,9 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
   }
   async function setImage(url) {
     const request = ++imageRequest;
-    const texture = await getTexture(url);
+    const texture = url ? await getTexture(url) : null;
     if (disposed || request !== imageRequest) return;
+    imageSettled = true;
     const uniforms = terrainMaterial.uniforms;
     if (!texture) {
       uniforms.previousMap.value = fallbackTexture;
@@ -265,10 +276,11 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     }
     onImageReady?.();
     if (uniforms.currentMap.value === texture) return;
-    uniforms.previousMap.value = uniforms.currentMap.value === fallbackTexture ? texture : uniforms.currentMap.value;
+    const hasPreviousImage = uniforms.currentMap.value !== fallbackTexture;
+    uniforms.previousMap.value = hasPreviousImage ? uniforms.currentMap.value : texture;
     uniforms.currentMap.value = texture;
-    uniforms.blend.value = 0;
-    transitionStart = performance.now();
+    uniforms.blend.value = hasPreviousImage ? 0 : 1;
+    transitionStart = hasPreviousImage ? performance.now() : 0;
     requestRender();
   }
   function rotateView(turn, tip) {
@@ -341,7 +353,6 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     satellite.add(model);
     poseChanged = true;
     requestRender();
-    onReady();
   }).catch(() => { if (!disposed) { onError(); dispose(); } });
 
   function dispose() {

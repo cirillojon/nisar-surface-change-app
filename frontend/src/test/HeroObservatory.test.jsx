@@ -31,13 +31,25 @@ beforeEach(() => {
 });
 afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); vi.clearAllMocks(); });
 
-async function mount() {
+async function mount({ loadImage = true } = {}) {
   let result;
   await act(async () => { result = render(<MemoryRouter><HeroObservatory /></MemoryRouter>); });
+  const image = result.container.querySelector(".pf-hero-flat img");
+  if (loadImage && image) fireEvent.load(image);
   return result;
 }
 
 describe("NISAR hero imagery", () => {
+  it("keeps the opening pass selected until its fallback image loads", async () => {
+    const { container } = await mount({ loadImage: false });
+    const image = container.querySelector(".pf-hero-flat img");
+    await act(async () => vi.advanceTimersByTime(5400));
+    expect(screen.queryByRole("group", { name: "Radar passes" })).toBeNull();
+    expect(image).toHaveAttribute("src", "/api/scenes/sylhet/2026-08-31.webp");
+    fireEvent.load(image);
+    expect(screen.getByRole("button", { name: "2026-08-31, 24.0% open water" })).toHaveAttribute("aria-pressed", "true");
+  });
+
   it("keeps the selected real pass, water value, and accessible image description together", async () => {
     const { container } = await mount();
     fireEvent.click(screen.getByRole("button", { name: "2026-09-12, 36.3% open water" }));

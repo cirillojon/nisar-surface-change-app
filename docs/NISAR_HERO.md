@@ -21,7 +21,7 @@ Refero's SpaceX reference informed the continuous media backdrop, and its VITURE
 - `frontend/src/platform/HeroObservatory.jsx` owns data, playback, accessible controls, and fallback UI.
 - `frontend/src/services/nisarHeroScene.js` is dynamically imported on the home page. It owns rendering, image decoding, projection, and cleanup.
 - `frontend/src/services/nisarModel.js` supplies the shared GLB loader and model disposal.
-- `frontend/public/models/nisar/nisar-hero-poster.png` is a transparent render of this same model and camera, used while loading or when WebGL fails.
+- `frontend/public/models/nisar/nisar-hero-poster.png` holds the starting pose while the model and first radar pass load. The live scene takes over after it draws the first frame. The timeline reserves its space throughout and starts playback after the first frame is shown.
 
 The main model retains seven draw calls. The image and illustrative beam add two, for nine scene draw calls. Device pixel ratio is capped at 1.75. There are no shadow-map or postprocessing passes. The scene renders on demand during rotation and image crossfades. Image textures are retained in a bounded cache of three; active crossfade textures are protected until the transition completes. In-flight image requests may briefly exceed that count.
 

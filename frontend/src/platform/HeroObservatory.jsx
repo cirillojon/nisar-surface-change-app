@@ -18,11 +18,13 @@ export default function HeroObservatory() {
   const dragArea = useRef(null);
   const figure = useRef(null);
   const renderer = useRef(null);
-  const imageUrl = useRef(null);
+  // Undefined while the pass list loads, null when it has no usable imagery.
+  const imageUrl = useRef(undefined);
   const upcomingImageUrl = useRef(null);
   const [site, setSite] = useState(null);
   const [failed, setFailed] = useState(false);
   const [imageFailed, setImageFailed] = useState(false);
+  const [fallbackImageSettled, setFallbackImageSettled] = useState(false);
   const [index, setIndex] = useState(0);
   const [playing, setPlaying] = useState(() => !reducedMotion().matches);
   const [visible, setVisible] = useState(true);
@@ -33,9 +35,12 @@ export default function HeroObservatory() {
     .filter((observation) => observation.metric === "water_pct")
     .map((observation) => [observation.observed_on, observation.value])), [site]);
   const scene = scenes[index % Math.max(1, scenes.length)];
+  const passesResolved = site !== null || failed;
+  const frameReady = canRotate || (renderState === "fallback" && fallbackImageSettled);
+  const showPlayback = frameReady && scenes.length > 1;
   const pct = scene ? water[scene.date] : null;
   const maxPct = Math.max(1, ...Object.values(water));
-  const currentUrl = scene ? assetUrl(scene.image_url) : null;
+  const currentUrl = scene ? assetUrl(scene.image_url) : passesResolved ? null : undefined;
   const nextUrl = scenes.length ? assetUrl(scenes[(index + 1) % scenes.length].image_url) : null;
 
   useEffect(() => {
@@ -70,10 +75,10 @@ export default function HeroObservatory() {
   }, []);
 
   useEffect(() => {
-    if (!playing || !visible || scenes.length < 2) return undefined;
+    if (!playing || !visible || !showPlayback) return undefined;
     const timer = setInterval(() => setIndex((value) => (value + 1) % scenes.length), 1800);
     return () => clearInterval(timer);
-  }, [playing, visible, scenes.length]);
+  }, [playing, visible, showPlayback, scenes.length]);
 
   useEffect(() => {
     let cancelled = false;
@@ -88,7 +93,7 @@ export default function HeroObservatory() {
         onImageReady: () => { if (!cancelled) setImageFailed(false); },
       });
       renderer.current = instance;
-      if (imageUrl.current) instance.setImage(imageUrl.current);
+      if (imageUrl.current !== undefined) instance.setImage(imageUrl.current);
       if (upcomingImageUrl.current) instance.preloadImage(upcomingImageUrl.current);
     }).catch(() => { if (!cancelled) setRenderState("fallback"); });
     return () => { cancelled = true; renderer.current?.dispose(); renderer.current = null; };
@@ -97,9 +102,14 @@ export default function HeroObservatory() {
   useEffect(() => {
     imageUrl.current = currentUrl;
     upcomingImageUrl.current = nextUrl;
-    if (currentUrl) renderer.current?.setImage(currentUrl);
+    if (currentUrl !== undefined) renderer.current?.setImage(currentUrl);
     if (nextUrl) renderer.current?.preloadImage(nextUrl);
   }, [currentUrl, nextUrl]);
+
+  function finishFallbackImage(failedToLoad) {
+    setImageFailed(failedToLoad);
+    setFallbackImageSettled(true);
+  }
 
   function rotateWithKeys(event) {
     if (event.altKey || event.ctrlKey || event.metaKey) return;
@@ -112,12 +122,15 @@ export default function HeroObservatory() {
   return (
     <figure ref={figure} className="pf-hero-visual" data-renderer={renderState}>
       <div ref={stage} className="pf-hero-stage">
-        <div className="pf-hero-art" role="img" aria-label={`NISAR satellite above a radar image plane. ${scene ? `Sylhet, ${scene.date}${pct != null ? `, ${pct.toFixed(1)} percent open water` : ""}.` : "Loading radar imagery."} Illustration, not to scale.`}>
+        <div className="pf-hero-art" role="img" aria-label={`NISAR satellite above a radar image plane. ${frameReady && scene ? `Sylhet, ${scene.date}${pct != null ? `, ${pct.toFixed(1)} percent open water` : ""}.` : passesResolved && !scene ? "Radar imagery unavailable." : "Loading radar imagery."} Illustration, not to scale.`}>
           <div className="pf-hero-fallback" aria-hidden="true">
             <img className="pf-hero-poster" src={`${import.meta.env.BASE_URL}models/nisar/nisar-hero-poster.png`} alt="" />
-            <div className="pf-hero-flat">
-              {currentUrl && <img key={currentUrl} src={currentUrl} alt="" onLoad={() => setImageFailed(false)} onError={() => setImageFailed(true)} />}
-            </div>
+            {renderState === "fallback" && currentUrl && (
+              <div className="pf-hero-flat" hidden={!fallbackImageSettled || imageFailed}>
+                <img key={currentUrl} src={currentUrl} alt=""
+                  onLoad={() => finishFallbackImage(false)} onError={() => finishFallbackImage(true)} />
+              </div>
+            )}
           </div>
           <div className="pf-hero-callout pf-hero-callout-dish" aria-hidden="true">
             <span className="pf-hero-pin" /><span><strong>12 m deployable reflector</strong><small>L- &amp; S-band SAR</small></span>
@@ -126,8 +139,8 @@ export default function HeroObservatory() {
             <span className="pf-hero-pin" /><span><strong>NISAR</strong><small>NASA–ISRO</small></span>
           </div>
           <div className="pf-hero-hud" aria-hidden="true">
-            {scene ? <><time dateTime={scene.date}>{scene.date}</time>{imageFailed ? <span>Radar image unavailable</span> : pct != null && <span>{pct.toFixed(1)}% open water</span>}</> :
-              <span>{failed ? "Radar images unavailable" : "Loading radar passes…"}</span>}
+            {frameReady && scene ? <><time dateTime={scene.date}>{scene.date}</time>{imageFailed ? <span>Radar image unavailable</span> : pct != null && <span>{pct.toFixed(1)}% open water</span>}</> :
+              <span>{passesResolved && !scene ? "Radar images unavailable" : "Loading radar passes…"}</span>}
           </div>
         </div>
         <div ref={dragArea} className="pf-hero-drag" hidden={!canRotate} aria-hidden="true" />
@@ -143,8 +156,8 @@ export default function HeroObservatory() {
         )}
       </div>
       <div className="pf-hero-footer">
-        {scenes.length > 1 && (
-          <div className="pf-hero-strip" role="group" aria-label="Radar passes">
+        <div className="pf-hero-strip" role={showPlayback ? "group" : undefined} aria-label={showPlayback ? "Radar passes" : undefined}>
+          {showPlayback && <>
             <button type="button" className="pf-hero-play" onClick={() => setPlaying((value) => !value)} aria-label={playing ? "Pause radar time-lapse" : "Play radar time-lapse"}>
               <svg viewBox="0 0 20 20" aria-hidden="true">{playing ? <path d="M7 5v10M13 5v10" /> : <path d="m7 4 8 6-8 6Z" />}</svg>
             </button>
@@ -158,8 +171,8 @@ export default function HeroObservatory() {
                 </button>
               ))}
             </div>
-          </div>
-        )}
+          </>}
+        </div>
         <figcaption>
           <Link to={workspaceHref({ site: HERO_SITE })}>{site?.name ?? "Sylhet haor basin, Bangladesh"} <span aria-hidden="true">↗</span></Link>
           <span>{scenes.length > 0 ? `${scenes.length} real radar passes` : "NISAR L-band imagery"} · Illustration not to scale</span>

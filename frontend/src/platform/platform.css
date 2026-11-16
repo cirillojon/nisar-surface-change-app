@@ -1062,7 +1062,6 @@ h3:hover > .pf-anchor,
 }
 .pf-hero-stage > canvas {
   opacity: 0;
-  transition: opacity 240ms var(--ease-out);
 }
 .pf-hero-stage > canvas,
 .pf-hero-art {
@@ -1112,6 +1111,7 @@ h3:hover > .pf-anchor,
   left: var(--bus-x);
   top: var(--bus-y);
 }
+.pf-hero-visual[data-renderer="loading"] .pf-hero-callout,
 .pf-hero-visual[data-renderer="ready"] .pf-hero-stage[data-rotated] .pf-hero-callout {
   visibility: hidden;
 }
@@ -1215,6 +1215,7 @@ h3:hover > .pf-anchor,
   gap: 8px;
   flex: 1;
   min-width: 0;
+  min-height: 44px;
 }
 .pf-hero-play {
   flex: none;
@@ -1921,7 +1922,7 @@ h3:hover > .pf-anchor,
   .pf-hero-visual figcaption > span { display: inline; margin-left: 6px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .pf-hero-stage > canvas, .pf-hero-bars button span { transition: none; }
+  .pf-hero-bars button span { transition: none; }
 }
 @media (max-width: 900px) {
   .pf-trust {
