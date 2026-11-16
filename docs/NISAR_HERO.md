@@ -12,7 +12,7 @@ Refero's SpaceX reference informed the continuous media backdrop, and its VITURE
 | --- | --- | --- |
 | Satellite above a flattened image plane | User mockup | Fixed orthographic camera; image plane with a small shear |
 | Warm overhead light and violet edges | User mockup; VITURE object lighting | Environment, key/fill/rim lights, overhead spotlight; no bloom pass |
-| Continuous backdrop | User mockup; SpaceX media treatment | Transparent canvas and a restrained CSS light pool |
+| Continuous backdrop | User-supplied light and dark artwork | Theme-specific WebP layers with edge fades behind the transparent canvas. The CSS glow fades out within the hero. |
 | Real images, dates, and water values | Existing home page and API | Same Sylhet site, scene URLs, and observations; no synthesized radar imagery |
 | Playback and fallback | App behavior and motion/accessibility requirements | Pause/select controls, reduced-motion default, static rendered poster |
 
