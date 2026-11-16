@@ -1,7 +1,6 @@
 /* Workspace modes (Stories · Investigate · My findings): the story panel,
  * hypotheses, the coverage list, evidence cards, the viewer's own findings
- * and the printable brief. Uses the tokens in index.css, so light and dark
- * themes follow. */
+ * and the printable brief. Uses the shared palette in index.css. */
 
 .map-draw-tools {
   position: absolute;

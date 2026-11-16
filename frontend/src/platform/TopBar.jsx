@@ -1,7 +1,6 @@
 import { useRef, useState } from "react";
 import { Link, NavLink, useLocation } from "react-router-dom";
 
-import ThemeSwitch from "../components/ThemeSwitch.jsx";
 import { useAssistant } from "./assistant/assistantStore.jsx";
 import { loadPage } from "./docs/content.js";
 import { TABS, firstPageHref } from "./docs/nav.js";
@@ -107,7 +106,6 @@ export default function TopBar({ inWorkspace, onSearch }) {
               <span aria-hidden="true">✦</span> <span className="pf-ask-label">Ask AI</span>
             </button>
           )}
-          <ThemeSwitch />
           <Link
             to="/workspace"
             className="btn pf-workspace-btn"

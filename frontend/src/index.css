@@ -13,49 +13,6 @@
 }
 
 :root {
-  --bg: #fff;
-  --paper: #fff;
-  --bg-elevated: #f5f5f6;
-  --fg: #141414;
-  --fg-muted: #555;
-  --accent: #456b09;
-  --accent-soft: #e6ecd9;
-  --accent-fg: #fff;
-  --action-bg: var(--accent);
-  --action-fg: var(--accent-fg);
-  --border: #dbdbdb;
-  --frame-width: 3px;
-  --frame-stroke: var(--border);
-  --frame-border: var(--frame-width) solid var(--frame-stroke);
-  --row-divider: 2px dashed var(--border);
-  --scrollbar-thumb: #b1b1b1;
-  --control-border: #898989;
-  --selected-control-bg: #ededed;
-  --selected-control-border: #d3d3d3;
-  --error: #a92136;
-  --positive: #456b09;
-  --warning: #855600;
-  --warning-soft: #f5ead1;
-  --map-background: #dde2e2;
-  --media-matte: #141414;
-  --map-control-shadow: #14141426;
-  --map-widget-shadow: #14141424;
-  --chart-hh_db: #b53654;
-  --chart-hv_db: #456b09;
-  --chart-water_pct: #196c89;
-  --chart-soil_moisture: #23756c;
-  --focus: var(--accent);
-  --card-radius: 12px;
-  --radius: 8px;
-  --control-height: 36px;
-  --text-ui: 14px;
-  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
-  font-family: "BDO Grotesk", system-ui, sans-serif;
-  font-synthesis: none;
-  color-scheme: light;
-}
-
-:root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #101012;
   --paper: #19191c;
@@ -64,9 +21,14 @@
   --fg-muted: #a7a8b2;
   --accent: #b6b9ff;
   --accent-soft: #292a40;
+  --accent-fg: #fff;
   --action-bg: #575cc9;
+  --action-fg: var(--accent-fg);
   --border: #303034;
+  --frame-width: 3px;
   --frame-stroke: #3d3d44;
+  --frame-border: var(--frame-width) solid var(--frame-stroke);
+  --row-divider: 2px dashed var(--border);
   --scrollbar-thumb: #515157;
   --control-border: #62646d;
   --selected-control-bg: #414146;
@@ -83,6 +45,14 @@
   --chart-hv_db: #b6b9ff;
   --chart-water_pct: #84c8ec;
   --chart-soil_moisture: #78c9bd;
+  --focus: var(--accent);
+  --card-radius: 12px;
+  --radius: 8px;
+  --control-height: 36px;
+  --text-ui: 14px;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  font-family: "BDO Grotesk", system-ui, sans-serif;
+  font-synthesis: none;
 }
 
 * {
@@ -481,37 +451,12 @@ code {
 .map-actions {
   justify-self: end;
 }
-.map-action,
-.theme-switch {
+.map-action {
   min-height: var(--control-height);
 }
 
-.theme-switch {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 2px 3px;
-}
-.theme-switch-icon {
-  display: grid;
-  place-items: center;
-  width: 25px;
-  height: 25px;
-  border-radius: calc(var(--radius) - 3px);
-  color: var(--fg-muted);
-}
-.theme-switch-icon svg {
-  width: 14px;
-  height: 14px;
-}
-.theme-switch[aria-checked="false"] .theme-sun,
-.theme-switch[aria-checked="true"] .theme-moon {
-  background: var(--selected-control-bg);
-  color: var(--fg);
-}
 @media (hover: hover) and (pointer: fine) {
-  .map-action.btn-secondary:hover,
-  .theme-switch:hover {
+  .map-action.btn-secondary:hover {
     border-color: var(--selected-control-border);
   }
 }

@@ -12,7 +12,6 @@ const ALL_TABS = [
   {
     id: "get-started",
     label: "Get Started",
-    icon: "map",
     blurb: "NISAR in brief, how to use the map, and the limits.",
     sections: [
       {
@@ -35,7 +34,6 @@ const ALL_TABS = [
   {
     id: "science",
     label: "Radar Science",
-    icon: "book",
     blurb: "How radar sees the ground, what HH and HV show, and how to reason about drivers.",
     sections: [
       {
@@ -59,7 +57,6 @@ const ALL_TABS = [
   {
     id: "data",
     label: "Data & Methods",
-    icon: "flood",
     blurb: "The study sites, the NISAR products, the supporting data, and how every number is computed.",
     sections: [
       {
@@ -82,7 +79,6 @@ const ALL_TABS = [
   {
     id: "developers",
     label: "Developers",
-    icon: "code",
     blurb: "Run it locally, how the data pipeline works, and how to deploy it.",
     sections: [
       {

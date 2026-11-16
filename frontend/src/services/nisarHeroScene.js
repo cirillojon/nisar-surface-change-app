@@ -55,10 +55,12 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
   ground.position.set(3, -5, 0);
   ground.quaternion.setFromRotationMatrix(groundRotation);
   scene.add(ground);
-  // Anchor the badges to the top edge where the rounded left corner ends.
+  // Align the controls and badges to the two rounded left corners of the image.
   const imageTop = IMAGE_DEPTH / 2;
-  const imageAnchor = ground.localToWorld(new THREE.Vector3(-IMAGE_WIDTH / 2 + imageTop * IMAGE_SHEAR + .6, imageTop, 0));
-  const beamColor = new THREE.Color();
+  const imageLeft = -IMAGE_WIDTH / 2 + .6;
+  const imageTopLeft = ground.localToWorld(new THREE.Vector3(imageLeft + imageTop * IMAGE_SHEAR, imageTop, 0));
+  const imageBottomLeft = ground.localToWorld(new THREE.Vector3(imageLeft - imageTop * IMAGE_SHEAR, -imageTop, 0));
+  const beamColor = new THREE.Color(0xa794ff);
   const aperture = new THREE.Vector3(0, -.35, 0);
   const beamSource = new THREE.Vector3();
   const beamLanding = ground.position.clone().addScaledVector(up, .03);
@@ -157,7 +159,7 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
   const localCameraUp = new THREE.Vector3();
   const pivotHeight = cameraUp.dot(satellite.position);
   const pivotViewY = pivotHeight - cameraUp.dot(camera.position);
-  const roomBelow = pivotHeight - cameraUp.dot(imageAnchor) - .4;
+  const roomBelow = pivotHeight - cameraUp.dot(imageTopLeft) - .4;
   let modelVertices = new Float32Array();
 
   function projectToCss(name, position) {
@@ -221,7 +223,8 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     camera.left = -camera.right;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
-    projectToCss("image", imageAnchor);
+    projectToCss("image-top", imageTopLeft);
+    projectToCss("image-bottom", imageBottomLeft);
     poseChanged = true;
     requestRender();
   }
@@ -299,19 +302,11 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     drag = null;
     dragArea.removeAttribute("data-dragging");
   }
-  function themeChanged() {
-    const dark = document.documentElement.dataset.theme === "dark";
-    scene.environmentIntensity = dark ? .75 : .95;
-    beamColor.set(dark ? 0xa794ff : 0x8271ce);
-    requestRender();
-  }
   function contextLost(event) { event.preventDefault(); onError(); dispose(); }
   const resizeObserver = new ResizeObserver(resize);
   resizeObserver.observe(host);
   const visibilityObserver = new IntersectionObserver(([entry]) => { inView = entry.isIntersecting; requestRender(); });
   visibilityObserver.observe(host);
-  const themeObserver = new MutationObserver(themeChanged);
-  themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
   dragArea.addEventListener("pointerdown", startDrag);
   dragArea.addEventListener("pointermove", moveDrag);
   dragArea.addEventListener("lostpointercapture", endDrag);
@@ -353,7 +348,7 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
     if (disposed) return;
     disposed = true;
     cancelAnimationFrame(frame);
-    resizeObserver.disconnect(); visibilityObserver.disconnect(); themeObserver.disconnect();
+    resizeObserver.disconnect(); visibilityObserver.disconnect();
     dragArea.removeEventListener("pointerdown", startDrag);
     dragArea.removeEventListener("pointermove", moveDrag);
     dragArea.removeEventListener("lostpointercapture", endDrag);
@@ -382,6 +377,6 @@ export function createNisarHeroScene(host, dragArea, { onReady, onError, onImage
       },
     };
   }
-  themeChanged(); resize();
+  resize();
   return { setImage, preloadImage: (url) => getTexture(url).then(trimTextures), rotateView, resetView, dispose };
 }
