@@ -1,10 +1,9 @@
 {
   "version": 1,
-  "credit": "NASA/JPL-Caltech",
-  "source": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.gltf",
-  "coordinateSystem": "glTF right-handed Y-up, source meter-scale units; NASA model origin retained",
+  "credit": "SI-generated illustration; not a NASA or ISRO asset",
+  "coordinateSystem": "glTF right-handed Y-up, meter-scale units",
   "nominalReflectorMeters": 12,
-  "accuracy": "Public visualization; exact flight geometry is unverified",
+  "accuracy": "Illustrative; exact flight geometry is unverified",
   "extensionsRequired": [
     "EXT_meshopt_compression",
     "KHR_mesh_quantization",

@@ -42,18 +42,18 @@ For React, create the loader inside an effect. If a load finishes after the effe
 
 ## Coordinates and accuracy
 
-The exports use glTF's right-handed Y-up coordinates, source meter-scale units, and the original NASA model origin. Blender uses Z-up. The origin is not a measured center of mass; position/orient a parent group and apply the globe engine's unit conversion there.
+The exports use glTF's right-handed Y-up coordinates, meter-scale units, and the model's own origin. Blender uses Z-up. The origin is not a measured center of mass; position/orient a parent group and apply the globe engine's unit conversion there.
 
-The source is NASA/JPL-Caltech's public NISAR visualization. Its proportions are preserved, with the helper cube and a verified coincident reverse reflector surface removed. The reflector frame material was changed from bright aluminum to dark composite using NASA's flight description as a visual reference. The compact version reduces only three bus/instrument meshes, preserving the reflector, boom, and solar geometry.
+The model was **generated with AI tools** and is not derived from NASA's or JPL's 3D model. NASA's public descriptions of the spacecraft were used only as a visual reference. The compact version reduces only three bus/instrument meshes, preserving the reflector, boom, and solar geometry.
 
-This is an illustrative model. NASA specifies a nominal 12 m reflector; this source's reflector is approximately 12.5 m across. Exact flight geometry has not been independently verified. The files contain no real-time orbital location, attitude telemetry, or deployment animation.
+This is an illustrative model. NASA specifies a nominal 12 m reflector; this model's reflector is approximately 12.5 m across. Exact flight geometry has not been verified. The files contain no real-time orbital location, attitude telemetry, or deployment animation.
 
 The supplied GLBs were checked in the browser and with geometry and KTX validators. Both use full texture mip chains. The original asset pipeline reported zero geometry errors; its older glTF Validator emitted KTX2-format warnings, covered by separate Khronos KTX validation and actual GPU decoding.
 
 ## Source and attribution
 
-Credit: **NASA/JPL-Caltech**. The source was downloaded from [NASA Eyes](https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.gltf) on 2026-11-16 UTC. [`nasa-source-manifest.json`](nasa-source-manifest.json) records all six original URLs and hashes. Original download files are not duplicated in this repo; the Blender master has the editable geometry and textures packed into it.
+This model is **SI-generated** (Space Apps "Super Intelligence" disclosure). It is an unofficial illustration, not a NASA or ISRO asset, and it carries no NASA logos, flags or mission identifiers. Do not imply NASA/ISRO endorsement.
 
-References: [NISAR quick facts](https://www.jpl.nasa.gov/press-kits/nisar/quick-facts/), [deployed reflector description](https://www.jpl.nasa.gov/news/giant-radar-antenna-reflector-on-nasa-isro-satellite-in-full-bloom/), [NASA media guidance](https://www.nasa.gov/nasa-brand-center/images-and-media/), and [JPL image-use policy](https://www.jpl.nasa.gov/jpl-image-use-policy/). The source glTF does not carry a model-specific license statement. The repository's software license does not replace the media's source terms; retain credit and do not imply NASA/ISRO endorsement.
+References used for appearance: [NISAR quick facts](https://www.jpl.nasa.gov/press-kits/nisar/quick-facts/) and the [deployed reflector description](https://www.jpl.nasa.gov/news/giant-radar-antenna-reflector-on-nasa-isro-satellite-in-full-bloom/).
 
 The vendored Basis transcoder files are unmodified copies from Three.js 0.187.0 (Apache 2.0, Binomial LLC). Three.js and Meshoptimizer use MIT licenses. Their notices are retained in `frontend/public/decoders/basis/` and must accompany redistribution.

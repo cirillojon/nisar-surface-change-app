@@ -236,14 +236,35 @@ The same material is in the app under **Docs**. In the repository:
   each land-change gallery place cites its event source (for example
   the AGU/Eos Landslide Blog) in
   [`app/data/landchange.json`](app/data/landchange.json) and in the app.
-- **NISAR 3D model:** NASA/JPL-Caltech, from NASA Eyes; see
-  [`assets/nisar/README.md`](assets/nisar/README.md).
+- **NISAR 3D model:** an SI-generated illustration, not a NASA or ISRO
+  asset; see [`assets/nisar/README.md`](assets/nisar/README.md).
 
 Full citations, with DOIs, are in
 [`docs/DATA_AND_METHODS.md`](docs/DATA_AND_METHODS.md#10-references).
 
 This is not a NASA or ISRO product, and it does not imply their
 endorsement.
+
+## Use of Super Intelligence (SI)
+
+Per the NASA Space Apps Challenge guidelines, this project discloses
+where and how SI tools were used:
+
+- **Code:** Most of the code was generated with SI tools (AI coding
+  assistants such as GitHub Copilot), then reviewed and tested by the
+  team.
+- **Text and docs:** Much of the project text, including the in-app
+  copy and the documentation, was SI-generated.
+- **3D model:** The NISAR spacecraft 3D model was generated with SI
+  tools. It is an unofficial illustration and is not derived from a
+  NASA or ISRO model; see
+  [`assets/nisar/README.md`](assets/nisar/README.md).
+- **Data:** Every value and image shown comes from public NASA datasets
+  (NISAR granules) or other public datasets, listed under
+  [Data, sources & credits](#data-sources--credits) and in
+  [Data and methods](docs/DATA_AND_METHODS.md). No data is SI-generated.
+- **NASA branding:** No SI-generated content uses or modifies NASA
+  logos, flags or mission identifiers.
 
 ## License
 
@@ -257,5 +278,4 @@ Bundled third-party material keeps its own license:
 | Basis Universal transcoder (from Three.js 0.187.0) | Apache-2.0 | `frontend/public/decoders/basis/` |
 | Three.js, meshoptimizer notices | MIT | `frontend/public/decoders/basis/` |
 | BDO Grotesk font | SIL OFL 1.1 | `frontend/public/fonts/` |
-| NISAR 3D model | NASA/JPL-Caltech media; credit required, no endorsement implied | `frontend/public/models/nisar/`, `assets/nisar/` |
 | npm and PyPI dependencies | Their own open-source licenses | `frontend/package.json`, `requirements*.txt` |
