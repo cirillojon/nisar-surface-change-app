@@ -304,7 +304,7 @@ export const STEPS = [
     id: "close",
     part: "close",
     target: [],
-    title: "Remember this",
+    title: "Now try it yourself",
     body: "Pick a place or draw an area to see what changed between radar passes.",
     enter: (a) => a.showList(),
     next: true,

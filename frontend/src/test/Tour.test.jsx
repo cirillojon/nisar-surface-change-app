@@ -276,7 +276,7 @@ describe("<Tour />", () => {
     expect(screen.getByRole("heading", { name: "Explore 12 NISAR stories" })).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).queryByText(/Flood agencies/)).toBeNull();
     next();
-    expect(screen.getByRole("heading", { name: "Remember this" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Now try it yourself" })).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).getByText(/Close ·/)).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Skip tour" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Close" })).toBeNull();
