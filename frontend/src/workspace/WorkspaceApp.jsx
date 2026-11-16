@@ -267,6 +267,7 @@ export default function WorkspaceApp({ active = true }) {
     setLandLayer(null);
     setLandOverlay(null);
     setLandDates(null);
+    setLandFocus(null);
     setShareOpen(false);
     setKeepDate(false);
     setError(null);
@@ -1053,12 +1054,20 @@ export default function WorkspaceApp({ active = true }) {
         summary={activeStory}
         selectedDate={site?.scenes?.[sceneIndex]?.date}
         onSelectDate={(date, layer) => {
-          const i = site?.scenes?.findIndex((x) => x.date === date) ?? -1;
-          if (i >= 0) setSceneIndex(i);
+          if (!site?.scenes?.some((pass) => pass.date === date)) return;
+          if (catalogOpen) returnToStudy();
+          setKeepDate(true);
+          selectAnalysisDate(date);
           if (layer) setSiteLayer(layer);
           if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
         }}
-        onShowChange={landSite?.passes?.some((p) => p.hh_url) ? () => setLandLayer("change") : null}
+        onCompareImages={landSite ? (from, date) => {
+          const before = landSite.passes.find((p) => p.date === from);
+          if (!before || !landSite.passes.some((p) => p.date === date)) return;
+          setLandFocus((previous) => ({ from, date, n: (previous?.n ?? 0) + 1 }));
+          setLandLayer(before.hh_url ? "change" : "hh");
+          if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
+        } : null}
         onOpenFinding={openFindingCard}
         onSave={(ctx) => openSaveFor(storyDraft(ctx))}
         shareOpen={shareOpen}

@@ -449,7 +449,10 @@ def _moment(cfg: dict, series: list[dict], unit: str, related: Optional[dict]) -
         if len(inside) == 2:
             days = (date.fromisoformat(end) - date.fromisoformat(start)).days
             detail += f" · {days} days apart"
-        out.update(display=_difference(value, unit), detail=detail)
+        out.update(
+            display=_difference(value, unit), detail=detail,
+            readings=[{"date": d, "display": _amount(v, unit)} for d, v in ((start, first), (end, last))],
+        )
     elif stat == "rate":
         slope, error, intercept = _fit(inside)
         value = slope * DAYS_PER_MONTH

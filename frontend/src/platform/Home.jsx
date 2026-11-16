@@ -35,9 +35,7 @@ export default function Home() {
           </p>
           <div className="pf-hero-ctas">
             <Link to="/workspace" className="pf-btn pf-btn-primary">Open the Workspace →</Link>
-            <Link to="/docs/get-started/what-is-nisar" className="pf-btn pf-btn-accent">
-              <Icon name="satellite" size={18} /> What is NISAR?
-            </Link>
+            <Link to="/docs/get-started/what-is-nisar" className="pf-btn pf-btn-accent">What is NISAR?</Link>
             {AI_ENABLED && (
               <button type="button" className="pf-btn pf-btn-ghost" onClick={() => ask()}>
                 <span aria-hidden="true">✦</span> Ask AI

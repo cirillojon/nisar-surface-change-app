@@ -96,6 +96,10 @@ def test_site_story_has_moments_that_hypotheses_point_to(client, loaded, slug):
     moments = story["saw"]["moments"]
     assert moments, slug
     assert 0 <= story["hero_moment"] < len(moments)
+    lead = moments[story["hero_moment"]]
+    if lead["stat"] == "change":
+        assert [reading["date"] for reading in lead["readings"]] == [lead["start"], lead["end"]]
+        assert all(reading["display"] for reading in lead["readings"])
     for h in story["hypotheses"]:
         assert h.get("moments"), (slug, h["id"])
         assert all(0 <= i < len(moments) for i in h["moments"]), (slug, h["id"])
@@ -105,6 +109,11 @@ def test_site_story_has_moments_that_hypotheses_point_to(client, loaded, slug):
 def test_land_story_and_finding(client, slug):
     story = client.get(f"/api/stories/{slug}").get_json()
     assert story["saw"]["look_for"]
+    gallery_site = next(site for site in stories.landchange()["sites"] if site["slug"] == slug)
+    passes = {p["date"] for p in gallery_site["passes"]}
+    for hypothesis in story["hypotheses"]:
+        before, after = hypothesis.get("imagery_pair", story["saw"]["suggested"])
+        assert before < after and {before, after} <= passes, (slug, hypothesis["id"])
     f = client.get(f"/api/findings/{slug}").get_json()
     assert f["claim"]["measured"] is False
     assert f["evidence"]["passes"]
