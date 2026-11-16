@@ -2,3 +2,10 @@
 # checkouts otherwise produce CRLF, which breaks shebangs).
 *.sh        text eol=lf
 bin/*       text eol=lf
+
+# Deploy config is parsed by Linux tools (sed in CI, flyctl, Docker); keep LF.
+fly.toml           text eol=lf
+Dockerfile         text eol=lf
+.dockerignore      text eol=lf
+.github/**/*.yml   text eol=lf
+frontend/vercel.json text eol=lf
