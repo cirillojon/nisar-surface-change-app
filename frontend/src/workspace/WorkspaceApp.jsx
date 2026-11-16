@@ -43,12 +43,16 @@ import {
   fetchStories,
   fetchStory,
 } from "../services/api.js";
-import { footprintText } from "../services/chain.js";
 import { loadImage } from "../services/imageCache.js";
-import { STATUS_LABEL } from "../services/landchange.js";
-import { LAYERS, imageLayerOptions, layerLegend, useLayerMapper } from "../services/layers.js";
-import { formatAmount, siteSeries } from "../services/measurements.js";
+import { imageLayerOptions, layerLegend, useLayerMapper } from "../services/layers.js";
+import { siteSeries } from "../services/measurements.js";
 import { useNotebook } from "../services/notebook.js";
+import {
+  momentDraft as buildMomentDraft,
+  placeDraft as buildPlaceDraft,
+  viewDraft as buildViewDraft,
+} from "./drafts.js";
+import { aoiAround, footprintOverlay as buildFootprintOverlay, profileLayers } from "./mapLayers.js";
 import {
   DEFAULT_MODE,
   MODES,
@@ -61,32 +65,7 @@ import {
   workspaceParams,
 } from "./navigation.js";
 
-// Half-width in degrees of the search box drawn around a map click.
-const AOI_HALF_DEG = 0.25;
 const NARROW_LAYOUT = "(max-width: 760px)";
-
-const LAYER_LABEL = { ...Object.fromEntries(Object.entries(LAYERS).map(([id, l]) => [id, l.label])), change: "Change map" };
-const dayFmt = new Intl.DateTimeFormat("en", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-const fmtDay = (iso) => (iso ? dayFmt.format(new Date(`${iso}T00:00:00Z`)) : "");
-const nisarSource = (product, frame) =>
-  `NASA/ISRO NISAR L2 ${product}${frame ? `, track/frame ${frame}` : ""}, via ASF DAAC`;
-
-function aoiAround(latitude, longitude) {
-  // Leaflet's worldCopyJump can report longitudes outside ±180.
-  const lon = ((((longitude + 180) % 360) + 360) % 360) - 180;
-  const lat = Math.max(-89.5, Math.min(89.5, latitude));
-  const r = (v) => Math.round(v * 1000) / 1000;
-  return {
-    latitude: lat,
-    longitude: lon,
-    bbox: [
-      r(Math.max(lon - AOI_HALF_DEG, -180)),
-      r(Math.max(lat - AOI_HALF_DEG, -90)),
-      r(Math.min(lon + AOI_HALF_DEG, 180)),
-      r(Math.min(lat + AOI_HALF_DEG, 90)),
-    ],
-  };
-}
 
 // The map workspace. The platform keeps it mounted while docs pages are
 // shown (platform/WorkspaceHost.jsx) so the map and selection survive a
@@ -498,112 +477,29 @@ export default function WorkspaceApp({ active = true }) {
   };
 
   // ── Saving: what the viewer saves, and what the app showed at the time ──
-  const metricOf = (s, id) => changeTypeOf(s?.change_type)?.metrics.find((m) => m.id === id);
-  const passesIn = (start, end) => (site?.scenes ?? []).filter((p) => p.date >= start && p.date <= end);
-  const modesOf = (passes) => [...new Set(passes.map((p) => p.mode).filter(Boolean))].join(", ") || null;
-  const footprintFor = (metric) => (metric === "water_pct" ? footprintText(site?.footprint) : null);
-
+  // The drafts themselves are built in drafts.js from what is shown here.
   // A curated story's moment (from its panel, its chart or the tour).
-  const momentDraft = (storyTitle, moment, index) => {
-    if (!site) return null;
-    const metric = site.story_metric;
-    const passes = passesIn(moment.start, moment.end);
-    const layer = moment.layer ?? siteLayer;
-    return {
-      kind: "moment",
-      title: `${site.name}: ${moment.title}`,
-      notes: "",
-      source: { slug: site.slug, moment: index, story: storyTitle },
-      view: { mode: "stories", site: site.slug, name: site.name, date: moment.focus ?? moment.end, layer, layerLabel: LAYER_LABEL[layer] },
-      evidence: {
-        label: metricOf(site, metric)?.label,
-        display: moment.display,
-        detail: moment.detail,
-        caption: moment.caption,
-        start: moment.start,
-        end: moment.end,
-        passes: `${passes.length} ${passes.length === 1 ? "pass" : "passes"}`,
-        mode: modesOf(passes),
-        footprint: footprintFor(metric),
-        source: nisarSource(site.product, site.frame),
-      },
-    };
-  };
+  const momentDraft = (storyTitle, moment, index) =>
+    buildMomentDraft({ site, changeType: changeTypeOf(site?.change_type), siteLayer, storyTitle, moment, index });
   // A gallery place's story or view: the two dates its change map compares.
-  const placeDraft = (kind) => {
-    if (!landSite) return null;
-    const layer = landLayer ?? "colour";
-    const from = landDates?.from ?? landSite.suggested?.[0];
-    const to = landDates?.to ?? landSite.suggested?.[1];
-    return {
-      kind,
-      title: landSite.name,
-      notes: "",
-      source: kind === "moment" ? { slug: landSite.slug, moment: null, story: storyIndex.get(landSite.slug)?.title } : null,
-      view: { mode: storyIndex.has(landSite.slug) ? "stories" : "investigate", place: landSite.slug, name: landSite.name, layer, layerLabel: LAYER_LABEL[layer] },
-      evidence: {
-        label: landSite.headline,
-        display: STATUS_LABEL[landSite.status] ?? landSite.status,
-        caption: landSite.look_for,
-        start: from,
-        end: to,
-        source: nisarSource("GCOV", landSite.frame),
-        limits: landSite.event ? [`Reported event (not a NISAR measurement): ${landSite.event.label}, ${landSite.event.date}`] : [],
-      },
-    };
-  };
+  const placeDraft = (kind) =>
+    buildPlaceDraft({ place: landSite, kind, layer: landLayer, dates: landDates, story: landSite && storyIndex.get(landSite.slug) });
   // Whatever is on the map now ("Save view").
-  const viewDraft = () => {
-    if (landSite) return placeDraft("view");
-    if (site && scene) {
-      const metric = site.story_metric ?? changeTypeOf(site.change_type)?.metrics[0]?.id;
-      const value = (site.observations ?? []).find((o) => o.metric === metric && o.observed_on === scene.date)?.value;
-      const unit = metricOf(site, metric)?.unit;
-      return {
-        kind: "view",
-        title: `${site.name}, ${fmtDay(scene.date)}`,
-        notes: "",
-        view: { mode: storyIndex.has(site.slug) ? "stories" : "investigate", site: site.slug, name: site.name, date: scene.date, layer: siteLayer, layerLabel: LAYER_LABEL[siteLayer] },
-        evidence: {
-          label: metricOf(site, metric)?.label,
-          display: value == null ? null : formatAmount(value, unit),
-          date: scene.date,
-          coverage: scene.valid_pct,
-          mode: scene.mode,
-          quality: scene.quality,
-          granule: scene.granule_id,
-          footprint: footprintFor(metric),
-          source: nisarSource(site.product, site.frame),
-        },
-      };
-    }
-    if (profileLine) {
-      return {
-        kind: "view",
-        title: "Height profile along my line",
-        notes: "",
-        view: { mode: "investigate", line: profileLine, name: "A line you drew" },
-        evidence: {
-          caption: "Height change along the line from NISAR interferogram pairs, computed when the line was drawn.",
-          source: "NASA/ISRO NISAR L2 GUNW, via ASF DAAC",
-        },
-      };
-    }
-    if (aoi) {
-      return {
-        kind: "view",
-        title: aoi.drawn ? "My drawn area" : "Area around a map click",
-        notes: "",
-        view: { mode: "investigate", bbox: aoi.bbox, name: aoi.drawn ? "An area you drew" : "An area around a map click" },
-        evidence: {
-          caption: "NISAR passes over this area, as listed by NASA's catalog (CMR) when it was opened; values come from the passes you viewed.",
-          date: areaSeries?.date ?? null,
-          source: areaSeries?.product ? `NASA CMR search, NISAR ${areaSeries.product}` : "NASA CMR search",
-        },
-      };
-    }
-    return null;
-  };
+  const viewDraft = () =>
+    buildViewDraft({
+      place: landSite,
+      placeLayer: landLayer,
+      placeDates: landDates,
+      placeStory: landSite && storyIndex.get(landSite.slug),
+      site,
+      scene,
+      changeType: changeTypeOf(site?.change_type),
+      siteLayer,
+      siteHasStory: Boolean(site && storyIndex.has(site.slug)),
+      profileLine,
+      aoi,
+      areaSeries,
+    });
   // A story's own moment (its "Save / share"), from the moment on the map.
   const storyDraft = ({ story, moment, momentIndex }) =>
     story.source === "site" ? moment && momentDraft(story.title, moment, momentIndex) : placeDraft("moment");
@@ -1138,34 +1034,7 @@ export default function WorkspaceApp({ active = true }) {
   }
 
   // The profile line, its ends, and a box to zoom to.
-  let profileBbox = null;
-  let studyLayers = null;
-  if (profileLine) {
-    const lons = profileLine.map((p) => p[0]);
-    const lats = profileLine.map((p) => p[1]);
-    const pad = 0.05;
-    profileBbox = [
-      Math.min(...lons) - pad,
-      Math.min(...lats) - pad,
-      Math.max(...lons) + pad,
-      Math.max(...lats) + pad,
-    ];
-    const [a, b] = [profileLine[0], profileLine[profileLine.length - 1]];
-    studyLayers = {
-      lines: [
-        {
-          key: "profile",
-          positions: profileLine.map(([lon, lat]) => [lat, lon]),
-          color: "#facc15",
-          label: "Height profile line",
-        },
-      ],
-      points: [
-        { key: "A", lat: a[1], lon: a[0], color: "#facc15", label: "A: start of the profile" },
-        { key: "B", lat: b[1], lon: b[0], color: "#f472b6", label: "B: end of the profile" },
-      ],
-    };
-  }
+  const { bbox: profileBbox, layers: studyLayers } = profileLayers(profileLine);
 
   // The site's other series, charted beside its story.
   const moreSeries = site?.story_metric
@@ -1284,14 +1153,12 @@ export default function WorkspaceApp({ active = true }) {
 
   // The part of a site's box some pass didn't image, hatched over the map,
   // while open water (compared over the rest) is what the site charts.
-  const footprintOverlay = site?.footprint?.image_url && !catalogOnMap && !landSite
-    && (site.story_metric === "water_pct" || siteLayer === "water")
-    ? {
-      url: assetUrl(site.footprint.image_url),
-      bbox: site.bbox,
-      label: `Left out of open-water values: not imaged by every pass. Values are compared over the other ${site.footprint.pct_of_box}% of the box.`,
-    }
-    : null;
+  const footprintOverlay = buildFootprintOverlay({
+    site,
+    siteLayer,
+    hidden: catalogOnMap || Boolean(landSite),
+    toUrl: assetUrl,
+  });
 
   // One toggle for the side panel; the tabs and each panel's own back link do the rest.
   const togglePanel = () => {
