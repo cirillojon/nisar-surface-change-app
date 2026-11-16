@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="preload" href="/fonts/BDOGrotesk-Regular.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/BDOGrotesk-Medium.woff2" as="font" type="font/woff2" crossorigin />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#fafafa" />
+    <script>
+      (() => {
+        let theme;
+        try {
+          theme = localStorage.getItem("nisar-theme");
+        } catch {
+          // The system preference still works when storage is unavailable.
+        }
+        if (theme !== "light" && theme !== "dark") {
+          theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+        }
+        document.documentElement.dataset.theme = theme;
+        document.querySelector('meta[name="theme-color"]').content =
+          theme === "dark" ? "#19191c" : "#fafafa";
+      })();
+    </script>
+    <meta
+      name="description"
+      content="Track and visualize Earth surface change with NISAR radar data."
+    />
+    <meta property="og:title" content="NISAR Surface Change Explorer" />
+    <meta
+      property="og:description"
+      content="Track and visualize Earth surface change with NISAR radar data."
+    />
+    <title>NISAR Surface Change Explorer</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

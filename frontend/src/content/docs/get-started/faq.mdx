@@ -1,0 +1,27 @@
+export const meta = {
+  title: "Limits & FAQ",
+  description: "Read before quoting a number.",
+};
+
+## Limits
+
+- **Short, provisional record.** 10–29 passes per site from 2025–26, mostly provisional granules. Values may shift when NASA reprocesses them.
+- **One number per box.** Site values are medians or shares over the whole box, which mixes fields, towns and water.
+- **Open water is one threshold** (HH below −18 dB). It misses wind-roughened water and water under vegetation, which looks bright. At farm sites the same measure is called "very dark pixels", since smooth bare ground can be as dark.
+- **Displacement is relative and slanted.** Measured toward or away from the satellite, against a reference point, with no tropospheric correction. Trust trends over months, not single steps.
+- **Coverage varies.** Dates with under 60% of the box valid are skipped; under 95% are drawn hollow.
+- **No causes.** Rain and river flow are shown on the same dates. Nothing is tested.
+- **Related series are models**, for one grid cell. Two rain models differ by 10–30%.
+- **Sites were selected** because their series showed a clear change.
+
+## FAQ
+
+**Do I need an account?** No. Downloading raw NISAR files needs a free Earthdata Login.
+
+**Why does my area have few passes?** Processing is still catching up. Widen the dates or try another product.
+
+**Why are images grainy?** Speckle, normal in radar images.
+
+**Is this a NASA product?** No. It's an open-source Space Apps 2026 project. NISAR data: NASA/JPL-Caltech and ISRO, via the ASF DAAC.
+
+**Found a mistake?** Open an issue on [GitHub](https://github.com/cirillojon/nisar-surface-change).

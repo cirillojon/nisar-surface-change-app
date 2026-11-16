@@ -1,0 +1,20 @@
+export const meta = {
+  title: "Interferometry (InSAR)",
+  description: "Measuring ground motion from the phase difference between two passes.",
+};
+
+NISAR records where in its wave cycle each echo returns (the phase). If the ground moves between passes, the phase shifts. At L-band, one full cycle is about 12 cm of motion. A map of these shifts is an interferogram (GUNW).
+
+- **Line of sight**: motion is measured along the radar's slanted view. + is toward the satellite, − away.
+- **Relative**: values are against a reference point assumed stable. In [Mexico City](/workspace?site=mexico-city-subsidence) it's Ciudad Universitaria.
+
+## Errors
+
+| Source | Effect |
+| --- | --- |
+| Troposphere (water vapour) | Delays that vary by date |
+| Ionosphere | Large smooth delays, strong at L-band; corrected with GUNW's phase screen |
+| Decorrelation | Noise where the surface changed (lava, ploughing) |
+| Unwrapping | Jumps of ~12 cm |
+
+Site series correct the ionosphere, not the troposphere, so single 12-day steps are noisy. **Draw line** picks among four correction sets per line.

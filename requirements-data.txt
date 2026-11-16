@@ -1,0 +1,2 @@
+﻿# Everything the offline scripts need is now in requirements.txt.
+-r requirements.txt

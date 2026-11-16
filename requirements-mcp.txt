@@ -1,0 +1,4 @@
+# MCP server (mcp_server/): lets AI agents call this platform's tools.
+# Install alongside nothing else: it talks to a running backend over HTTP.
+mcp==2.3.0
+requests==2.32.5

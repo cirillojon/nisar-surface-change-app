@@ -1,0 +1,92 @@
+export const meta = {
+  title: "Assistant API",
+  description: "The AI assistant behind “Ask AI”: how it works, how to enable it, and how to stream it into your own app.",
+};
+
+## How it works
+
+The assistant is Claude with this platform's own tools. Each question runs a short tool-use loop on the backend:
+
+1. The model reads your question plus **context**: the page you're on and, in the workspace, the selected site, pass and area.
+2. It calls the [shared tools](/docs/developers/mcp-tools) as needed: `search_docs` for concepts, data tools for numbers, `open_in_workspace` for map links.
+3. The backend runs the tools in-process and returns results to the model until it answers.
+4. The answer **streams** to the browser as Server-Sent Events, with tool activity shown as it happens.
+
+Guardrails in its instructions: cite doc pages, quote only numbers from tools, flag provisional data, describe related series as context and never as causes, and give no investment, farming or groundwater advice.
+
+## Enable it
+
+Add an Anthropic API key to the backend's `.env` and restart:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-...
+ASSISTANT_MODEL=claude-sonnet-5-5   # optional
+ASSISTANT_EFFORT=medium             # optional: low | medium | high
+ASSISTANT_DAILY_LIMIT=500           # optional: requests per day, all users
+```
+
+Without a key, `/api/assistant/status` reports `enabled: false`, the panel explains how to enable it, and the rest of the platform is unaffected.
+
+<ApiTry op="getAssistantStatus" />
+
+## Stream it into your app
+
+`POST /api/assistant/chat` takes the conversation and optional context, and streams events:
+
+| Event | Data |
+| --- | --- |
+| `text` | `{"text": "…"}`: the next piece of the Markdown answer |
+| `tool` | `{"phase": "start", "name", "input"}` then `{"phase": "end", "ok", "summary"}` |
+| `action` | `{"action": "open_workspace", "url", "label"}`: a suggested map link |
+| `error` | `{"message": "…"}`, safe to show |
+| `done` | The reply is complete |
+
+```javascript
+const resp = await fetch("/api/assistant/chat", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({
+    messages: [{ role: "user", content: "What does HV backscatter measure?" }],
+    context: { page: { path: "/docs/science/polarization" } },
+  }),
+});
+
+const reader = resp.body.getReader();
+const decoder = new TextDecoder();
+let buffer = "";
+for (;;) {
+  const { value, done } = await reader.read();
+  if (done) break;
+  buffer += decoder.decode(value, { stream: true });
+  let i;
+  while ((i = buffer.indexOf("\n\n")) >= 0) {
+    const chunk = buffer.slice(0, i);
+    buffer = buffer.slice(i + 2);
+    const data = chunk.split("\n").find((l) => l.startsWith("data:"));
+    if (!data) continue;
+    const event = JSON.parse(data.slice(5));
+    if (event.type === "text") output.textContent += event.text; // output: any element
+  }
+}
+```
+
+```python
+import json, requests
+
+with requests.post(
+    "http://localhost:8880/api/assistant/chat",
+    json={"messages": [{"role": "user", "content": "Summarise Sylhet's flood season"}]},
+    stream=True, timeout=120,
+) as r:
+    for line in r.iter_lines(decode_unicode=True):
+        if line and line.startswith("data:"):
+            event = json.loads(line[5:])
+            if event["type"] == "text":
+                print(event["text"], end="", flush=True)
+```
+
+## Limits and costs
+
+- 10 requests per minute per IP, plus a daily cap across all users (`ASSISTANT_DAILY_LIMIT`).
+- At most 8 tool rounds per answer; long tool results are truncated.
+- Conversations aren't stored on the server. The browser sends the history with each request.

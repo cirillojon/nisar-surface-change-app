@@ -1,0 +1,30 @@
+export const meta = {
+  title: "How radar sees Earth",
+  description: "Pulse and echo, and the two things radar responds to most: roughness and moisture.",
+};
+
+NISAR sends microwave pulses sideways at the ground and records the echoes. Combining echoes along its orbit gives the sharpness of a much larger antenna, the "synthetic aperture" in SAR. Because it supplies its own signal, it works at night and through cloud.
+
+Each echo has a **strength** (backscatter, the images and dB values here) and a **phase** (used to measure motion: [Interferometry](/docs/science/interferometry)).
+
+## Roughness and moisture
+
+Smooth surfaces reflect the pulse away and look dark. Rough surfaces scatter some back and look bright. Water raises the signal from soil, but calm open water is smooth, so it looks dark. Water with stems or trunks standing in it bounces the pulse straight back (double bounce) and looks very bright.
+
+| Surface | Looks |
+| --- | --- |
+| Calm water | Very dark |
+| Wind-roughened water | Medium to bright |
+| Flooded vegetation | Very bright in HH |
+| Smooth dry ground | Dark |
+| Vegetation | Bright, especially in HV |
+| City | Very bright |
+
+## Why L-band
+
+NISAR's ~24 cm waves pass between leaves and reach branches, trunks and ground. That makes flooding under vegetation visible and keeps interferometry working over farmland. Sentinel-1 uses ~5.6 cm (C-band), which mostly sees the top of the canopy.
+
+## Artefacts
+
+- **Speckle**: grain from interference within a pixel.
+- **Layover and shadow**: slopes facing the radar compress; slopes behind go black.

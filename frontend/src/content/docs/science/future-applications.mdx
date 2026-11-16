@@ -1,0 +1,26 @@
+export const meta = {
+  title: "What NISAR could do next",
+  description: "Applications NISAR's measurements point to, what each relies on, and what it would take.",
+};
+
+**This app does none of these today.** It shows about a year of mostly provisional data at a few places. Each row below is something that record points toward, and what would have to be added first.
+
+NISAR's L-band radar (24 cm) images nearly all of Earth's land and ice every 12 days, on both ascending and descending passes, day and night and through cloud. Its data are free. Its S-band radar (9.4 cm) is used mainly over India.
+
+| Application | Relies on | What it would take |
+| --- | --- | --- |
+| **Flood mapping under cloud** | Calm open water reads dark in HH | Faster delivery; a classifier for wind-roughened water and water under vegetation |
+| **Forest-clearing alerts in the cloudy tropics** | HV drops where trees are removed | HV on every pass and a stable baseline |
+| **Harvest timing and sown area** | HV follows canopy growth and removal | Field boundaries, crop maps, several seasons |
+| **Soil moisture** | Wetter soil reflects more (the SME2 product, at 200 m) | Validation where vegetation is dense |
+| **Subsidence and aquifer management** | Millimetre-scale motion from interferometry | Both viewing directions, GNSS ties, an atmospheric correction |
+| **Roads, levees and rail lines** | Motion along a line at every pass | A reference that is known to be stable; validation on the ground |
+| **Landslides** | Brightness change after a failure; slow creep in phase | Both viewing directions, to see into shadowed slopes |
+| **Volcanoes** | New lava in brightness; swelling in phase | Interferometry on every pass, fast delivery |
+| **Glaciers and ice sheets** | Fronts in brightness; speed from pixel offsets | Offsets on every pair of passes; a longer record |
+| **Permafrost** | Seasonal heave and settling of thawing ground | Several years of interferometry |
+| **Rivers and coasts** | Water and land edges in HH | Passes at the same water level, compared year to year |
+
+Each story in the workspace ends with the one its place points to.
+
+<OpenInWorkspace mode="stories">Read the stories</OpenInWorkspace>

@@ -1,0 +1,41 @@
+import Architecture from "@repo/docs/ARCHITECTURE.md";
+
+export const meta = {
+  title: "Architecture & data pipeline",
+  description: "How granules become the values and images the app serves.",
+};
+
+The app never reads HDF5. `scripts/extract_nisar.py` reads only the bytes over each site through HTTP range requests (needs an Earthdata Login) and commits the results:
+
+- `app/data/nisar_observations.json`: values per pass, each with its granule
+- `app/data/scenes/<site>/<date>.webp`: one image per pass
+
+`flask nisar load --force` mirrors them into the database.
+
+## Add a site
+
+1. Add it to `app/data/sites.json` (slug, change type, point, bbox; for GUNW a `reference` point).
+2. `python scripts/extract_nisar.py --site <slug>`
+3. Check the series and images, then write the description from what they show.
+4. `flask nisar load --force` and commit `app/data/`.
+5. To give it a story, add an entry to `app/data/stories.json`: question, place, channel, `hero_moment`, hypotheses (each with driver, mechanism, channel, consistent_with, alternative, test and the `moments` it explains), `cant_see` and `next`. `pytest tests/test_stories.py` checks every field and rejects causal wording.
+
+## Stories, findings and coverage
+
+`app/stories.py` backs the workspace's three modes, and the same functions are exposed three ways:
+
+| Function | REST | MCP tool |
+| --- | --- | --- |
+| `list_stories` | `GET /api/stories` | `list_stories` |
+| `get_story` | `GET /api/stories/{slug}` | `get_story` |
+| `build_finding` | `GET /api/findings/{slug}?moment=N` | `build_finding` |
+| `series_csv` | `GET /api/stories/{slug}/series.csv` | `export_site_series` |
+| `coverage_check` | `GET /api/coverage-check?bbox=` | `coverage_check` |
+
+A finding is rebuilt from the data on every request, so a saved link, a printed brief (`/brief/{slug}`) and an MCP call all return the same card.
+
+## Module map
+
+<div className="pf-embedded">
+  <Architecture />
+</div>

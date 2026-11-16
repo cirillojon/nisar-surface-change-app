@@ -1,0 +1,95 @@
+{
+  "_note": "Curated study sites. Edit by hand, then run scripts/extract_nisar.py (needs an Earthdata Login) and flask nisar load --force. Optional per site: 'product' (GCOV or GUNW, default from the change type), 'frame' (pin a track/frame, e.g. 034_D_073), 'reference' ([lon, lat] of a stable point, required for GUNW), 'event_date'.",
+  "sites": [
+    {
+      "slug": "punjab-crop-cycles",
+      "name": "Punjab rice–wheat belt, India",
+      "change_type": "agriculture",
+      "latitude": 30.9,
+      "longitude": 75.85,
+      "bbox": [
+        75.6,
+        30.65,
+        76.1,
+        31.15
+      ],
+      "description": "HV climbs from November to March, drops 3.8 dB between 21 March and 26 April, and peaks in September. FAO's crop calendar for India: wheat harvested March to May, rice sown June to August. The bright spot in the middle is Ludhiana."
+    },
+    {
+      "slug": "mekong-delta-rice",
+      "name": "Mekong Delta (An Giang), Vietnam",
+      "change_type": "agriculture",
+      "latitude": 10.5,
+      "longitude": 105.2,
+      "bbox": [
+        104.95,
+        10.25,
+        105.45,
+        10.75
+      ],
+      "description": "Open water stays under 0.5% from June to late July, reaches 9.6% on 11 September and is 8.1% on 29 October."
+    },
+    {
+      "slug": "sylhet-haor-floods",
+      "name": "Sylhet haor basin, Bangladesh",
+      "change_type": "flood_wetland",
+      "latitude": 24.9,
+      "longitude": 91.3,
+      "bbox": [
+        91.0,
+        24.6,
+        91.6,
+        25.2
+      ],
+      "description": "Over the 83% of the box that all twelve passes imaged, open water was 35% on 20 June, 53% on 14 July and 14% on 11 November. Passes alternate between two acquisition modes, and from mid-August to early October the readings alternate with them.",
+      "frame": "091_D_076"
+    },
+    {
+      "slug": "okavango-flood-pulse",
+      "name": "Okavango Delta, Botswana",
+      "change_type": "flood_wetland",
+      "latitude": -19.3,
+      "longitude": 22.9,
+      "bbox": [
+        22.4,
+        -19.8,
+        23.4,
+        -18.8
+      ],
+      "description": "Open water peaks at 11.0% on 8 July and falls or holds at every pass to 1.7% on 24 October. Water under papyrus and grass looks bright, not dark, so this may understate the flood."
+    },
+    {
+      "slug": "mexico-city-subsidence",
+      "name": "Mexico City",
+      "change_type": "subsidence",
+      "latitude": 19.42,
+      "longitude": -99.03,
+      "bbox": [
+        -99.3,
+        19.23,
+        -98.9,
+        19.63
+      ],
+      "reference": [
+        -99.185,
+        19.32
+      ],
+      "description": "Nezahualcóyotl moved 204 mm away from the satellite between 30 October 2025 and 13 October 2026, relative to Ciudad Universitaria (white dot). Fitted pace: about 20 mm a month November to April, 14 mm May to October. Published studies attribute the sinking to groundwater extraction (Chaussard et al., 2021)."
+    },
+    {
+      "slug": "columbia-basin-crops",
+      "name": "Columbia Basin (Quincy–Moses Lake), Washington",
+      "change_type": "agriculture",
+      "latitude": 47.1,
+      "longitude": -119.55,
+      "bbox": [
+        -119.75,
+        46.9,
+        -119.35,
+        47.3
+      ],
+      "description": "HV peaks on 18 August, then falls at every pass to 29 October, 2.6 dB lower, as the circular fields darken. Very dark pixels reach nearly 12% of the area every pass imaged by late October.",
+      "frame": "071_D_065"
+    }
+  ]
+}

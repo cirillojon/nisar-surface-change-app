@@ -1,0 +1,219 @@
+#!/usr/bin/env bash
+# Canonical entrypoint for the NISAR Surface Change Explorer backend.
+#
+# Modes:
+#   bin/start              # auto: prod if FLASK_ENV=production else dev
+#   bin/start dev          # flask run with debug
+#   bin/start prod         # gunicorn (+ optional in-process loader loop)
+#   bin/start migrate      # flask db upgrade only (under flock)
+#   bin/start loader       # one-shot loader run (TTL-aware)
+#                          # add --loop to run forever, sleeping between cycles
+#                          # add --force to ignore the TTL
+#   bin/start worker       # alias of `loader --loop` (prod normally runs
+#                          # the loop in-process — see RUN_INPROC_WORKER)
+#
+# Env knobs:
+#   FLASK_PORT              port to bind (default 8880)
+#   WEB_CONCURRENCY         gunicorn worker count (default 4)
+#   GUNICORN_TIMEOUT        per-request timeout seconds (default 30)
+#   LOG_LEVEL               default INFO
+#   SKIP_DB_UPGRADE=1       skip the migrate step (escape hatch only)
+#   SKIP_LOADER=1           skip loading app/data/*.json at boot
+#   LOADER_TTL_HOURS        hours between loader cycles in --loop mode
+#   RUN_INPROC_WORKER=1     in prod mode, also spawn a backgrounded
+#                            `flask nisar load --loop` next to gunicorn
+#                            (default 1; set 0 to disable, e.g. when
+#                            running a separate `bin/start worker`).
+set -euo pipefail
+
+cd "$(dirname "$0")/.."
+
+export FLASK_APP="${FLASK_APP:-app.py}"
+DATA_DIR="${DATA_DIR:-$(pwd)/app-data}"
+mkdir -p "$DATA_DIR"
+LOCK_FILE="${LOCK_FILE:-$DATA_DIR/.boot.lock}"
+
+log() { printf '[start] %s\n' "$*" >&2; }
+
+# ─── SQLite tuning ────────────────────────────────────────
+# WAL mode is sticky: once set, every subsequent connection inherits it.
+# We do it once at boot (idempotent, cheap) so writers don't block
+# readers under concurrent gunicorn workers + the in-process loader.
+# No-op on Postgres because we only run this when the default sqlite
+# path is in use.
+tune_sqlite() {
+  local db_uri="${SQLALCHEMY_DATABASE_URI:-}"
+  local db_path="$DATA_DIR/data.db"
+  if [ -n "$db_uri" ] && [[ "$db_uri" != sqlite* ]]; then
+    log "non-sqlite DB configured — skipping WAL/PRAGMA tuning"
+    return
+  fi
+  if ! command -v sqlite3 >/dev/null 2>&1; then
+    log "sqlite3 CLI not available — skipping WAL tuning"
+    return
+  fi
+  if [ ! -f "$db_path" ]; then
+    log "sqlite db not yet created at $db_path — skipping WAL tuning"
+    return
+  fi
+  log "applying SQLite PRAGMAs (WAL, NORMAL synchronous, busy_timeout=5s)"
+  sqlite3 "$db_path" <<'SQL' >/dev/null || log "PRAGMA tuning failed (non-fatal)"
+PRAGMA journal_mode=WAL;
+PRAGMA synchronous=NORMAL;
+PRAGMA busy_timeout=5000;
+PRAGMA temp_store=MEMORY;
+SQL
+}
+
+# ─── flock helper (no-op on systems without flock, e.g. macOS) ──
+with_lock() {
+  if command -v flock >/dev/null 2>&1; then
+    exec 9>"$LOCK_FILE"
+    if ! flock -w 120 9; then
+      log "ERROR: failed to acquire boot lock at $LOCK_FILE within 120s"
+      exit 1
+    fi
+    "$@"
+    flock -u 9
+    exec 9>&-
+  else
+    log "flock unavailable — running without boot lock"
+    "$@"
+  fi
+}
+
+# ─── Run alembic upgrade then drift check ──
+do_migrate() {
+  if [ "${SKIP_DB_UPGRADE:-0}" = "1" ]; then
+    log "SKIP_DB_UPGRADE=1 — skipping migrations"
+    return
+  fi
+  log "running flask db upgrade"
+  flask db upgrade
+  log "running schema-drift check"
+  flask nisar check-schema
+}
+
+# ─── Load app/data/*.json into the DB (dev + prod) ──
+# Cheap and idempotent, so it runs on every boot: a pull or deploy that
+# changes the data files shows up without a manual `flask nisar load`.
+# A bad data file must not stop the server from starting.
+load_site_data() {
+  if [ "${SKIP_LOADER:-0}" = "1" ]; then return; fi
+  log "loading site data (flask nisar load --force)"
+  flask nisar load --force >/tmp/app-loader.log 2>&1 \
+    || log "WARNING: site data failed to load — see /tmp/app-loader.log"
+}
+
+# ─── In-process background loader loop (prod) ──
+# Spawned as a child of bin/start, alongside gunicorn, so it shares the
+# same SQLite file and process tree without a separate worker. Output
+# goes to /tmp/app-loader.log so it doesn't interleave with gunicorn
+# access logs.
+start_inproc_worker() {
+  if [ "${RUN_INPROC_WORKER:-1}" != "1" ]; then
+    log "RUN_INPROC_WORKER=0 — skipping in-process loader loop"
+    return
+  fi
+  log "starting in-process loader loop (logs: /tmp/app-loader.log)"
+  ( exec "$0" loader --loop >/tmp/app-loader.log 2>&1 ) &
+}
+
+# ─── Mode dispatchers ──
+mode_migrate() {
+  with_lock do_migrate
+}
+
+mode_loader() {
+  local args=()
+  local loop=0
+  for arg in "$@"; do
+    case "$arg" in
+      --loop)  loop=1 ;;
+      --force) args+=(--force) ;;
+      *)       args+=("$arg") ;;
+    esac
+  done
+
+  if [ "$loop" -eq 1 ]; then
+    local ttl="${LOADER_TTL_HOURS:-24}"
+    while true; do
+      # NOTE: do NOT use "${args[@]:-}" — that expands to a single
+      # empty-string arg when args is empty, and click rejects it as
+      # "Got unexpected extra argument ()". Use the unquoted +-form.
+      log "worker: running flask nisar load ${args[*]+${args[*]}}"
+      flask nisar load ${args[@]+"${args[@]}"} || log "loader failed, will retry"
+      log "worker: sleeping ${ttl}h until next refresh"
+      sleep "$(python3 -c "print(int(float('${ttl}') * 3600))")"
+    done
+  else
+    flask nisar load ${args[@]+"${args[@]}"}
+  fi
+}
+
+mode_dev() {
+  with_lock do_migrate
+  tune_sqlite
+  load_site_data
+  export FLASK_DEBUG="${FLASK_DEBUG:-1}"
+  exec flask run --host 0.0.0.0 --port "${FLASK_PORT:-8880}"
+}
+
+mode_prod() {
+  with_lock do_migrate
+  tune_sqlite
+  load_site_data
+  start_inproc_worker
+
+  local port="${FLASK_PORT:-8880}"
+  local workers="${WEB_CONCURRENCY:-4}"
+  local timeout="${GUNICORN_TIMEOUT:-30}"
+  local keep_alive="${KEEP_ALIVE:-5}"
+  local max_requests="${MAX_REQUESTS:-1000}"
+  local max_requests_jitter="${MAX_REQUESTS_JITTER:-50}"
+  local log_level="${LOG_LEVEL:-info}"
+
+  cat <<EOF
+[start] Starting Gunicorn:
+  bind                 : 0.0.0.0:${port}
+  workers              : ${workers}
+  timeout              : ${timeout}s
+  keep-alive           : ${keep_alive}s
+  max-requests         : ${max_requests} (+/- ${max_requests_jitter})
+  log-level            : ${log_level}
+  preload              : on
+EOF
+
+  exec gunicorn \
+      --bind "0.0.0.0:${port}" \
+      --workers "${workers}" \
+      --timeout "${timeout}" \
+      --keep-alive "${keep_alive}" \
+      --max-requests "${max_requests}" \
+      --max-requests-jitter "${max_requests_jitter}" \
+      --log-level "${log_level}" \
+      --access-logfile - \
+      --error-logfile - \
+      --forwarded-allow-ips="*" \
+      --preload \
+      "app:create_app()"
+}
+
+# ─── Entrypoint ──
+mode="${1:-auto}"
+shift || true
+
+case "$mode" in
+  auto)
+    if [ "${FLASK_ENV:-}" = "production" ]; then mode_prod; else mode_dev; fi
+    ;;
+  dev)      mode_dev ;;
+  prod)     mode_prod ;;
+  migrate)  mode_migrate ;;
+  loader)   mode_loader "$@" ;;
+  worker)   mode_loader --loop "$@" ;;
+  *)
+    echo "usage: bin/start [dev|prod|migrate|loader|worker]" >&2
+    exit 2
+    ;;
+esac

@@ -1,0 +1,867 @@
+.chain {
+  --chain-water: var(--chart-water_pct);
+  --chain-quakes: var(--chart-hh_db);
+  --chain-radar: var(--accent);
+  --chain-radar-height: clamp(110px, 18svh, 156px);
+  --chain-context-height: clamp(52px, 8.5svh, 76px);
+  --lane-series-inset: 8px;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.panel.chain {
+  padding: 12px;
+  box-shadow: 0 5px 22px var(--map-widget-shadow);
+}
+.panel.chain[data-open="false"] {
+  display: none;
+  pointer-events: none;
+}
+.chain-head {
+  flex: none;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 3px 8px;
+}
+.chain-head > :is(h3, time) {
+  grid-column: 1;
+}
+.chain-close {
+  grid-area: 1 / 2 / span 2;
+  display: grid;
+  place-items: center;
+  inline-size: 32px;
+  block-size: 32px;
+  margin: -3px -3px 0 0;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+@media (hover: hover) and (pointer: fine) {
+  .chain-close:hover {
+    background: var(--bg-elevated);
+    color: var(--fg);
+  }
+}
+
+.map-evidence {
+  --evidence-anchor: right;
+  position: absolute;
+  inset-block: 12px 24px;
+  inset-inline-end: 12px;
+  inline-size: clamp(290px, 34cqw, 344px);
+  z-index: 550;
+  pointer-events: none;
+  align-items: flex-end;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.map-evidence:not([hidden]) {
+  display: flex;
+}
+.map-evidence > .panel.chain {
+  inline-size: 100%;
+  max-block-size: 100%;
+  overflow: hidden;
+  transform-origin: top right;
+}
+.map-evidence > .panel.chain[data-open="true"] {
+  pointer-events: auto;
+}
+.map-evidence > .chain-reopen {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  z-index: 1;
+  pointer-events: auto;
+  box-shadow: 0 2px 8px var(--map-control-shadow);
+}
+@container map-canvas (width <= 620px) {
+  .map-evidence {
+    --evidence-anchor: bottom;
+    /* Leave room for two lines of map attribution on a phone. */
+    inset-block: auto 40px;
+    inset-inline: 12px;
+    inline-size: auto;
+    block-size: 55%;
+    justify-content: flex-end;
+  }
+  .map-evidence > .panel.chain {
+    inline-size: min(100%, 344px);
+    --chain-radar-height: clamp(76px, 16cqh, 110px);
+    transform-origin: bottom right;
+  }
+  .map-evidence > .chain-reopen {
+    inset-block: auto 0;
+  }
+  .map-canvas:has(> .moment-host:not(:empty)) > .map-evidence {
+    inset-block: 12px auto;
+    justify-content: flex-start;
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .map-evidence > .panel.chain {
+    transition: opacity 160ms ease, transform 190ms var(--ease-out), display 190ms allow-discrete;
+  }
+  @starting-style {
+    .map-evidence > .panel.chain[data-open="true"] {
+      opacity: 0;
+      transform: translateY(4px) scale(0.98);
+    }
+  }
+  .map-evidence > .panel.chain[data-open="false"] {
+    opacity: 0;
+    transform: translateY(4px) scale(0.98);
+  }
+  @supports (interpolate-size: allow-keywords) {
+    .chain-disclosure::details-content {
+      block-size: 0;
+      overflow: clip;
+      interpolate-size: allow-keywords;
+      transition: block-size 190ms var(--ease-out), content-visibility 190ms allow-discrete;
+    }
+    .chain-disclosure[open]::details-content {
+      block-size: auto;
+    }
+  }
+}
+.panel.chain .chain-title {
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.025em;
+}
+.chain-question {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+.chain-question.warning {
+  color: var(--warning);
+}
+.chain-pass-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--fg-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.chain-retry {
+  align-self: flex-start;
+}
+
+.chain-body {
+  display: grid;
+  min-block-size: 0;
+  margin: 0 -6px;
+  padding: 2px 6px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-anchor: none;
+  scrollbar-gutter: stable;
+  scroll-padding-block: 6px;
+  align-content: start;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+}
+.chain-body:focus-visible {
+  outline-offset: -2px;
+}
+
+.chain-map-notice {
+  display: grid;
+  gap: 4px;
+  justify-items: start;
+  padding-inline-start: 10px;
+  border-inline-start: 2px solid var(--border);
+}
+.chain-map-notice p,
+.chain-note {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.chain-observation {
+  flex: none;
+}
+.observation-record {
+  display: grid;
+  gap: 4px;
+}
+.chain-observation h4 {
+  margin: 1px 0 0;
+  font-size: 15px;
+  font-weight: 550;
+  line-height: 1.3;
+}
+.observation-reading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.chain-observation .lane-readout strong {
+  font-size: clamp(24px, 2.25vw, 29px);
+  line-height: 1;
+  font-weight: 550;
+  letter-spacing: -0.045em;
+}
+.observation-note,
+.observation-dates {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+.observation-dates {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.observation-quality {
+  margin-inline-start: auto;
+}
+.observation-record .lane-plot {
+  min-height: var(--chain-radar-height);
+  margin-top: 2px;
+  background: color-mix(in srgb, var(--chain-radar) 6%, var(--bg-elevated));
+}
+.observation-record .lane-stroke-wide {
+  stroke-width: 2.3;
+}
+.observation-record .chain-axis {
+  margin: -2px var(--lane-series-inset) 0;
+}
+.chain-disclosure {
+  border-top: 1px solid var(--border);
+  min-width: 0;
+  padding-top: 6px;
+}
+.chain .btn-link,
+.chain a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.chain-disclosure > summary {
+  width: fit-content;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.5;
+}
+.chain-about-body {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+  color: var(--fg-muted);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.chain-about-body p {
+  margin: 0;
+}
+
+.chain-lanes {
+  display: grid;
+  gap: 10px;
+}
+.chain-lane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 4px 12px;
+}
+.chain-lane > .lane-place {
+  margin: 0;
+  font-size: 12px;
+}
+.lane-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.lane-option {
+  font: inherit;
+  font-size: 12px;
+  padding: 2px 7px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.lane-option[aria-pressed="true"] {
+  border-color: var(--border-strong, var(--border));
+  background: var(--bg-elevated);
+  color: var(--fg);
+}
+
+.lane-plot {
+  position: relative;
+  min-width: 0;
+  min-height: var(--chain-context-height);
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  cursor: pointer;
+  touch-action: pan-y;
+  user-select: none;
+}
+.lane-plot-empty {
+  grid-row: 2;
+  display: grid;
+  align-items: center;
+  min-height: var(--chain-context-height);
+  margin: 0;
+  padding-inline: 8px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+}
+.chain-lane > .lane-plot {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+.lane-series {
+  position: absolute;
+  inset: 7px var(--lane-series-inset);
+}
+.lane-series[data-scale="true"] {
+  inset-block-start: 17px;
+}
+.lane-series svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.lane-grid line {
+  stroke: var(--border);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  opacity: 0.65;
+}
+.lane-stroke {
+  fill: none;
+  stroke: var(--lane);
+  stroke-width: 1;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+.lane-stroke-wide {
+  stroke-width: 1.8;
+}
+.lane-fill {
+  fill: var(--lane);
+  opacity: 0.14;
+}
+.lane-window,
+.lane-highlight,
+.lane-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  pointer-events: none;
+}
+.lane-window {
+  background: color-mix(in srgb, var(--lane) 16%, transparent);
+}
+.lane-cursor {
+  border-left: 1.5px solid var(--fg);
+  margin-left: -0.75px;
+}
+.lane-dot {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  margin: -3px 0 0 -3px;
+  border-radius: 50%;
+  background: var(--lane);
+}
+.lane-dot[data-active="true"] {
+  width: 10px;
+  height: 10px;
+  margin: -5px 0 0 -5px;
+  background: var(--fg);
+  box-shadow: 0 0 0 2px var(--paper);
+}
+.lane-scale {
+  position: absolute;
+  top: 3px;
+  inset-inline-start: var(--lane-series-inset);
+  font-size: 10px;
+  line-height: 13px;
+  color: var(--fg-muted);
+  pointer-events: none;
+}
+.chain-axis {
+  min-height: 14px;
+  position: relative;
+  color: var(--fg-muted);
+  font-size: 10.5px;
+  line-height: 14px;
+}
+.chain-axis span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.chain-axis:not(:has(span)) {
+  display: none;
+}
+
+.lane-readout {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  justify-items: end;
+  align-content: start;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+.chain-lane > .lane-readout {
+  grid-column: 2;
+  grid-row: 1;
+}
+.lane-readout strong {
+  font-size: 17px;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+.lane-readout .muted {
+  font-size: 12px;
+  line-height: 1.35;
+}
+.lane-empty {
+  grid-column: 1 / -1;
+}
+.lane-empty > p {
+  margin: 0;
+}
+.lane-empty > .btn-link {
+  margin-top: 6px;
+}
+
+@media (min-width: 1200px) and (max-height: 660px) {
+  .chain,
+  .chain-body,
+  .chain-lanes {
+    gap: 8px;
+  }
+  .chain-lane {
+    grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    row-gap: 4px;
+    padding-top: 6px;
+  }
+}
+
+/* The NISAR series: the largest chart, with the selected moment shaded. */
+.observation-title {
+  min-width: 0;
+}
+.chain-observation h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.metric-info-toggle {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg-muted);
+  font: italic 600 11px/1 Georgia, serif;
+  cursor: pointer;
+}
+.metric-info-toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.metric-info {
+  display: grid;
+  gap: 4px;
+  margin: 2px 0 4px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.metric-info > div {
+  display: grid;
+  grid-template-columns: 84px minmax(0, 1fr);
+  gap: 8px;
+}
+.metric-info dt {
+  color: var(--fg-muted);
+}
+.metric-info dd {
+  margin: 0;
+}
+.lane-scale-low {
+  top: auto;
+  bottom: 3px;
+}
+.lane-hero .lane-series[data-scale="true"] {
+  inset-block: 17px 17px;
+}
+.lane-highlight {
+  background: color-mix(in srgb, var(--accent) 13%, transparent);
+  border-inline: 1px solid color-mix(in srgb, var(--accent) 35%, transparent);
+}
+.lane-fit {
+  fill: none;
+  stroke: var(--fg-muted);
+  stroke-width: 1.3;
+  stroke-dasharray: 4 3;
+  vector-effect: non-scaling-stroke;
+}
+.lane-dot[data-partial="true"]:not([data-active="true"]) {
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1.5px var(--lane);
+}
+.lane-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 12px;
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+.lane-key span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.key-fit::before {
+  content: "";
+  width: 16px;
+  border-top: 1.5px dashed var(--fg-muted);
+}
+/* Passes in a second acquisition mode: hollow squares. */
+.lane-dot[data-mode="1"]:not([data-active="true"]) {
+  border-radius: 1px;
+  background: var(--paper);
+  box-shadow: inset 0 0 0 1.5px var(--lane);
+}
+.key-mode::before,
+.key-mode-alt::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--chain-radar);
+}
+.key-mode-alt::before {
+  border-radius: 1px;
+  background: transparent;
+  box-shadow: inset 0 0 0 1.5px var(--chain-radar);
+}
+.key-partial::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--chain-radar);
+}
+
+/* Moments: a few numbers that sum up stretches of the record. */
+.chain-more,
+.chain-related {
+  display: grid;
+  gap: 8px;
+  margin-top: 8px;
+}
+.chain-related {
+  gap: 6px;
+  margin-top: 6px;
+}
+.moments-disclosure > summary {
+  inline-size: 100%;
+}
+.moments-heading {
+  display: inline-flex;
+  inline-size: calc(100% - 1.25em);
+  justify-content: space-between;
+  gap: 8px;
+  vertical-align: top;
+}
+.moments-current {
+  color: var(--fg-muted);
+  text-align: end;
+  font-weight: 400;
+}
+.moments-disclosure[open] .moments-current {
+  visibility: hidden;
+}
+.moment-summary {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 8px;
+  margin-block-start: 5px;
+}
+.moment-summary .btn-link {
+  flex: none;
+  font-size: 12px;
+}
+.related-moment {
+  display: grid;
+  gap: 2px;
+}
+.related-moment strong {
+  color: var(--fg);
+}
+
+/* The site's other NISAR series: small charts on the same time axis. */
+.more-lane {
+  display: grid;
+  gap: 3px;
+}
+.more-lane-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+.more-lane-head > span {
+  color: var(--fg-muted);
+}
+.more-lane-head > strong {
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.lane-compact {
+  min-height: 58px;
+  background: color-mix(in srgb, var(--chain-radar) 4%, var(--bg-elevated));
+}
+.lane-compact .lane-series[data-scale="true"] {
+  inset-block: 15px 15px;
+}
+.moment-list {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0;
+}
+.moment-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+  inline-size: 100%;
+  min-block-size: 32px;
+  min-width: 0;
+  padding: 4px 7px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 12px;
+  text-align: start;
+  cursor: pointer;
+}
+.moment-row[aria-pressed="true"] {
+  border-color: var(--selected-control-border);
+  background: var(--selected-control-bg);
+}
+.moment-row-label {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 7px;
+}
+.moment-date {
+  color: var(--fg-muted);
+  font-size: 11.5px;
+  white-space: nowrap;
+}
+.moment-row .moment-detail {
+  font-weight: 500;
+  white-space: nowrap;
+}
+.moment-when {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 6px;
+  color: var(--fg-muted);
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+.moment-season {
+  color: var(--fg-muted);
+  opacity: 0.85;
+  font-size: 10.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.moment-value {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+.moment-unit {
+  margin-inline-start: 3px;
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--fg-muted);
+}
+.moment-unit[data-tight="true"] {
+  margin-inline-start: 0;
+}
+.moment-popup .moment-unit {
+  font-size: 13px;
+}
+.moment-detail {
+  color: var(--fg-muted);
+  font-size: 11px;
+  line-height: 1.35;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Related data: secondary, smaller, and labelled as comparison only. */
+.related-note,
+.area-note {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+.area-note {
+  padding: 6px 9px;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+}
+.chain-about-body ul {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding-inline-start: 16px;
+}
+
+/* The pop-up over the map shows the selected moment's number and caption.
+ * The moment tiles under the chart are just names, so the number appears once. */
+.moment-host {
+  position: absolute;
+  z-index: 510;
+  inset-inline-start: calc(var(--map-control-size, 30px) + 22px);
+  inset-block-end: 33px;
+  width: min(300px, calc(100% - var(--map-control-size, 30px) - 34px));
+  pointer-events: none;
+}
+.moment-host:empty {
+  display: none;
+}
+.moment-popup {
+  display: grid;
+  gap: 3px;
+  padding: 10px 12px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--paper) 94%, transparent);
+  box-shadow: 0 6px 22px var(--map-control-shadow, rgb(0 0 0 / 0.25));
+  color: var(--fg);
+  pointer-events: auto;
+  backdrop-filter: blur(6px);
+  animation: moment-in 160ms ease-out;
+}
+.moment-popup-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.moment-count {
+  color: var(--accent);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.moment-close {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--fg-muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+.moment-popup .moment-value {
+  font-size: 21px;
+}
+.moment-caption {
+  margin: 3px 0 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+.moment-popup-nav {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 5px;
+}
+@keyframes moment-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .moment-popup {
+    animation: none;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .lane-option:hover,
+  .moment-close:hover {
+    color: var(--fg);
+  }
+  .moment-row:hover:not([aria-pressed="true"]) {
+    background: var(--bg-elevated);
+  }
+}
+@media (max-width: 760px) {
+  .moment-host {
+    inset-block-end: 42px;
+  }
+  .moment-host {
+    width: auto;
+    inset-inline-end: 10px;
+  }
+  /* Keep the map visible: the number, the caption and the buttons. */
+  .moment-popup .moment-detail {
+    display: none;
+  }
+  .moment-popup .moment-caption {
+    font-size: 12px;
+  }
+}

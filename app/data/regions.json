@@ -1,0 +1,22 @@
+{
+  "_note": "Named regions for `flask nisar sme2-prewarm --region <id>`. Polygons are [lon, lat], counter-clockwise and closed (NASA CMR requires that). Outlines are simplified; prewarming renders whole SME2 frames that touch them.",
+  "regions": {
+    "washington": {
+      "name": "Washington State",
+      "polygon": [
+        [-124.73, 48.38], [-124.6, 47.9], [-124.1, 46.9], [-124.05, 46.26],
+        [-123.55, 46.26], [-123.1, 46.18], [-122.9, 45.95], [-122.7, 45.6],
+        [-122.25, 45.55], [-121.2, 45.65], [-120.6, 45.75], [-119.6, 45.92],
+        [-119.0, 46.0], [-116.92, 46.0], [-117.04, 46.43], [-117.04, 49.0],
+        [-123.32, 49.0], [-123.04, 48.83], [-123.25, 48.2], [-124.73, 48.38]
+      ]
+    },
+    "washington-box": {
+      "name": "Washington State (bounding box)",
+      "_note": "The rectangle around the state, so a box drawn around Washington (which takes in edges of OR, ID and BC) is fully prepared.",
+      "polygon": [
+        [-124.85, 45.54], [-116.9, 45.54], [-116.9, 49.0], [-124.85, 49.0], [-124.85, 45.54]
+      ]
+    }
+  }
+}

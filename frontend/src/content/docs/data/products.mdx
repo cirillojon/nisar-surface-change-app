@@ -1,0 +1,40 @@
+export const meta = {
+  title: "NISAR products",
+  description: "What each product holds, how values are computed, and how to get the files.",
+};
+
+| Product | Holds | Here |
+| --- | --- | --- |
+| GCOV | Backscatter per polarization | Site values and images; gallery |
+| GUNW | Unwrapped interferogram between two passes | Mexico City; Draw line |
+| SME2 | Soil moisture (m³/m³), ~200 m | Drawn areas |
+| GOFF | Pixel offsets, metres of motion | Search only |
+| GSLC | Full-resolution amplitude and phase | Search only |
+
+## Values
+
+| Value | Computation |
+| --- | --- |
+| `hh_db`, `hv_db` | Median of valid pixels in the box, GCOV frequency B (80 m) |
+| `water_pct` | Share of valid pixels with HH below −18 dB |
+| `los_mm` | Longest unbroken chain of 12-day GUNW pairs, minus the ionosphere screen, relative to a reference point, summed |
+
+One track and frame per site. Every pass shows its quality: **provisional** (before calibration is final) or **validated**. Full method: [Data, methods & evidence](/docs/data/methods).
+
+## Getting the files
+
+Search with the workspace or [ASF Vertex](https://search.asf.alaska.edu). Downloading needs a free [Earthdata Login](https://urs.earthdata.nasa.gov).
+
+```python
+import earthaccess
+
+earthaccess.login()
+granules = earthaccess.search_data(
+    short_name="NISAR_L2_GCOV_PROVISIONAL_V1",
+    bounding_box=(91.0, 24.6, 91.6, 25.2),
+    temporal=("2026-06-01", "2026-11-30"),
+)
+files = earthaccess.open(granules[:1])
+```
+
+Files are HDF5, hundreds of MB to ~20 GB. In a granule name like `NISAR_L2_PR_GCOV_023_091_D_076_…`, `023` is the cycle, `091` the track, `D` descending and `076` the frame.

@@ -1,0 +1,512 @@
+{
+  "_note": "Story content, keyed by slug. 'source' is 'site' (app/data/sites.json) or 'landchange' (app/data/landchange.json). Keep it short. 'place' is background, not data. Every hypothesis is an explanation the data raises but does not test: 'consistent_with' holds only what the record shows (tests/test_stories.py checks the numbers against the committed data), and there is always an 'alternative' and a 'test'. Name only polarizations the place actually has. Site hypotheses list the moments (app/chains.py) they address; 'hero_moment' is the moment a finding opens on. Never state a cause as fact or give advice (docs/DATA_AND_METHODS.md, section 1).",
+  "themes": [
+    { "id": "water", "label": "Water" },
+    { "id": "food", "label": "Food" },
+    { "id": "ground", "label": "Ground" },
+    { "id": "ice", "label": "Ice" },
+    { "id": "forest", "label": "Forest & rivers" }
+  ],
+  "stories": [
+    {
+      "slug": "okavango-flood-pulse",
+      "source": "site",
+      "theme": "water",
+      "title": "Open water shrinks through a rainless season",
+      "question": "Open water was highest in early July, then shrank to October while almost no rain fell. Where does the water come from, and where does it go?",
+      "place": "An inland delta in the Kalahari, fed by a river that rises in the highlands of Angola.",
+      "channel": "HH. Calm open water reflects the radar away, so it reads dark (below −18 dB).",
+      "hero_moment": 1,
+      "hypotheses": [
+        {
+          "id": "upstream-pulse",
+          "driver": "A flood pulse from Angola",
+          "mechanism": "Rain in Angola's highlands reaches the delta months later as a slow flood, during Botswana's dry winter.",
+          "channel": "HH: flooded lagoons and channels read dark.",
+          "consistent_with": "Modelled inflow at Mohembo peaked in February, months before the highest open-water reading on 8 July, and almost no rain fell locally.",
+          "alternative": "The record starts on 26 June, so it never sees the water arrive. 8 July may not be the season's peak, and the box covers only part of the delta.",
+          "test": "Compare with gauge levels at Mohembo and Maun, and with passes from before June once they exist.",
+          "moments": [0]
+        },
+        {
+          "id": "dry-season-loss",
+          "driver": "Evaporation and seepage",
+          "mechanism": "Through the hot, dry months water evaporates, plants take it up and it seeps into the sand while inflow falls.",
+          "channel": "HH: dark pixels shrink as water retreats.",
+          "consistent_with": "Open water fell or held at every pass, from 11.0% on 8 July to 1.7% on 24 October.",
+          "alternative": "Some water may be hidden rather than gone. Over the same passes the box's median HH and HV both rose by more than 1 dB, as they would if grass and papyrus grew up through shallow water.",
+          "test": "Check whether pixels that stop reading as water turn bright in HH; compare with optical flood maps.",
+          "moments": [1]
+        }
+      ],
+      "cant_see": [
+        "Water under papyrus and grass: it reads bright in HH, so the dark-pixel share understates flooding.",
+        "Depth or volume: only where water lies open at the surface.",
+        "The flood arriving: the record starts on 26 June."
+      ],
+      "next": {
+        "application": "A 12-day, all-weather record of how far the flood spreads each year.",
+        "who": "River-basin commissions and delta managers.",
+        "needs": "Several years of passes, a classifier that counts water under vegetation, and gauge data."
+      }
+    },
+    {
+      "slug": "sylhet-haor-floods",
+      "source": "site",
+      "theme": "water",
+      "title": "Monsoon water in the Sylhet haors",
+      "question": "Open water covered about half of the area every pass imaged in mid-July, and 14% by November. How much of the zigzag in between is water, and how much is the radar's mode?",
+      "place": "Bowl-shaped wetlands (haors) in north-east Bangladesh, below the Meghalaya hills.",
+      "channel": "HH. Open water reads dark; wind-roughened water and flooded vegetation do not. Every value is over the 83% of the box that all twelve passes imaged.",
+      "hero_moment": 1,
+      "hypotheses": [
+        {
+          "id": "monsoon-filling",
+          "driver": "Monsoon rain and rivers fill the haors",
+          "mechanism": "Rain over the basin and the hills upstream raises the rivers, which spill into the haors.",
+          "channel": "HH: open water spreads and the box darkens.",
+          "consistent_with": "Over the same ground, open water grew from 34.9% on 20 June to 53.3% on 14 July, and modelled Surma flow peaked in mid-July.",
+          "alternative": "Both passes are in the quad-pol mode, and the 2 July pass in the other mode already reads 50.6%, so how big the rise was is uncertain.",
+          "test": "Compare passes of one mode only, and with river gauge levels.",
+          "moments": [0]
+        },
+        {
+          "id": "post-monsoon-drainage",
+          "driver": "The haors drain after the monsoon",
+          "mechanism": "As rain eases and the rivers fall, water drains back to the channels and the wetland beds emerge.",
+          "channel": "HH: dark water gives way to brighter soil and plants.",
+          "consistent_with": "Each mode falls on its own: from 50.6% on 2 July to 15.0% on 30 October in one, from 53.3% on 14 July to 13.7% on 11 November in the other. Median HH over the full-box passes rose by more than 4 dB.",
+          "alternative": "Wind roughens water and makes it brighter, so a windy pass reads drier than it is.",
+          "test": "Check wind on the pass dates; follow the same pixels with optical imagery.",
+          "moments": [1]
+        },
+        {
+          "id": "acquisition-mode",
+          "driver": "The radar's mode, not water",
+          "mechanism": "Passes alternate between two acquisition modes. If one mode reads the darkest water slightly brighter, for example through a higher noise floor, fewer pixels fall below −18 dB and less water is counted on the same ground.",
+          "channel": "Not a surface signal: HH near the −18 dB threshold, in two radar modes.",
+          "consistent_with": "Over the same ground, the passes from 19 August to 6 October read 34.0%, 24.0%, 37.7%, 23.1% and 37.6%: both quad-pol passes in that run read lower than the passes either side. Comparing every pass over the area all of them imaged did not remove the zigzag.",
+          "alternative": "Real change: water can rise and fall within 12 days here, and wind on a pass date brightens water. In July the pattern does not hold: the quad-pol pass on 14 July reads the highest of the record.",
+          "test": "Compare the two modes' noise levels in the granule metadata, check wind on the pass dates, and chart each mode on its own.",
+          "moments": [2]
+        }
+      ],
+      "cant_see": [
+        "Wind-roughened water: it brightens and escapes the dark-pixel threshold.",
+        "Water under rice and floating plants.",
+        "Flash floods that rise and fall between 12-day passes.",
+        "The 17% of the box that six passes did not image: it is left out of every value."
+      ],
+      "next": {
+        "application": "Flood-extent maps through monsoon cloud, every 12 days.",
+        "who": "Flood-forecasting and agriculture agencies.",
+        "needs": "One acquisition mode on every pass, or a calibration between modes, faster delivery, and a classifier that handles wind and flooded vegetation."
+      }
+    },
+    {
+      "slug": "mekong-delta-rice",
+      "source": "site",
+      "theme": "water",
+      "title": "Open water appears across An Giang in August",
+      "question": "Almost no open water until late July, then nearly a tenth of the box by mid-September. Is that the Mekong's flood season?",
+      "place": "An Giang province, at the head of Vietnam's Mekong Delta, where some rice fields are diked and others flood each year.",
+      "channel": "HH. Open water reads dark; water under a rice canopy reads bright.",
+      "hero_moment": 1,
+      "hypotheses": [
+        {
+          "id": "river-flood-pulse",
+          "driver": "The Mekong's flood season",
+          "mechanism": "Monsoon rain across the basin raises the river, which spreads over fields that are not behind high dikes.",
+          "channel": "HH: flooded fields turn dark.",
+          "consistent_with": "Open water rose from 0.1% on 25 July to 9.6% on 11 September, and modelled river flow near Tan Chau peaked in mid-September.",
+          "alternative": "Farmers also flood fields on purpose between crops, and local rain was heavy. Either adds water without the river.",
+          "test": "Compare with river gauge levels at Tan Chau and Chau Doc, and with maps of diked areas.",
+          "moments": [1, 2]
+        },
+        {
+          "id": "canopy-hides-water",
+          "driver": "Rice canopy hides the water",
+          "mechanism": "Paddies are flooded under growing rice in June and July. The radar bounces off the water and then the stems, so they read bright.",
+          "channel": "HH bright (double bounce); HV rising with the canopy.",
+          "consistent_with": "Open water stayed under 0.5% through 25 July, while median HH was at its brightest of the record and HV rose by more than 1 dB.",
+          "alternative": "The same signal fits a dense crop on drained fields.",
+          "test": "Look for field-shaped pixels that are bright in HH; compare with the local crop calendar.",
+          "moments": [0]
+        }
+      ],
+      "cant_see": [
+        "Water under rice: it reads bright, so early flooding goes uncounted.",
+        "Whether a field is flooded by the river or on purpose.",
+        "The river's level: modelled flow is shown for its timing only."
+      ],
+      "next": {
+        "application": "Mapping which fields flood each year, and when.",
+        "who": "Provincial water and agriculture planners.",
+        "needs": "Several years of passes and a classifier that separates open water, flooded rice and dry fields."
+      }
+    },
+    {
+      "slug": "punjab-crop-cycles",
+      "source": "site",
+      "theme": "food",
+      "title": "A year of HV over Punjab's fields",
+      "question": "HV rises through winter, drops in April, rises again through the monsoon and falls in autumn. Is that the wheat and rice calendar?",
+      "place": "Punjab grows wheat in winter and rice in the monsoon, mostly under irrigation. The bright patch in the middle of the image is the city of Ludhiana.",
+      "channel": "HV follows crop canopy. HH below −18 dB picks out smooth, wet or flooded fields.",
+      "hero_moment": 1,
+      "hypotheses": [
+        {
+          "id": "wheat-growth-harvest",
+          "driver": "Wheat grows, then is harvested",
+          "mechanism": "Wheat builds leaves and stems through winter and is cut in April, leaving stubble.",
+          "channel": "HV: rises with canopy, falls when it is removed.",
+          "consistent_with": "HV climbed 3.1 dB from November to 21 March, then fell 3.8 dB by 26 April. FAO's crop calendar puts the wheat harvest between March and May.",
+          "alternative": "Rain and soil moisture on a pass date also move HV, and no pass falls between 21 March and 26 April to show when the drop happened.",
+          "test": "Compare with an optical vegetation index on the same dates and with district harvest reports.",
+          "moments": [0, 1]
+        },
+        {
+          "id": "paddy-flooding",
+          "driver": "Paddies flooded for transplanting",
+          "mechanism": "Rice is transplanted into standing water. Until the canopy closes, calm water reflects the radar away.",
+          "channel": "HH: field-shaped patches go very dark.",
+          "consistent_with": "Very dark pixels reached 12.1% on 7 July and stayed under 1% on every other pass. HV was at its lowest of the record on the same pass.",
+          "alternative": "That pass saw only 90% of the box, the one partial pass in the record. Standing rainwater would read the same.",
+          "test": "Check whether the dark pixels form field shapes; look at a neighbouring track in the same weeks.",
+          "moments": [2]
+        },
+        {
+          "id": "rice-growth-harvest",
+          "driver": "Rice grows, then is harvested",
+          "mechanism": "Irrigated rice builds canopy from July to September and is cut from October.",
+          "channel": "HV: climbs to the record's highest values, then falls.",
+          "consistent_with": "HV rose 4.0 dB from 19 July to 29 September and fell 1.7 dB by 4 November. June to August rain at Ludhiana was about half of normal in ERA5, yet HV still reached its highest values.",
+          "alternative": "Other crops and trees in the box also grow in the monsoon; a box median cannot separate them.",
+          "test": "Repeat over rice-only fields from a crop map.",
+          "moments": [3, 4]
+        }
+      ],
+      "cant_see": [
+        "Which crop is in which field: every value is a median over a box about 50 km across that includes Ludhiana.",
+        "Yield: radar responds to canopy structure, not grain.",
+        "Stubble burning: smoke is invisible at this wavelength; only the bare field afterwards shows."
+      ],
+      "next": {
+        "application": "Harvest timing and sown area under monsoon cloud, every 12 days.",
+        "who": "Agriculture ministries and food-security analysts.",
+        "needs": "Field boundaries, a crop map and several seasons of passes."
+      }
+    },
+    {
+      "slug": "columbia-basin-crops",
+      "source": "site",
+      "theme": "food",
+      "title": "Circular fields darken in the Columbia Basin",
+      "question": "HV peaks in mid-August and falls at every pass to late October, while field-shaped patches go very dark. Harvest, bare soil, or both?",
+      "place": "Centre-pivot irrigated farmland around Quincy and Moses Lake, Washington.",
+      "channel": "HV follows crop canopy. HH below −18 dB picks out smooth bare fields and water.",
+      "hero_moment": 1,
+      "hypotheses": [
+        {
+          "id": "growth-harvest",
+          "driver": "Crops grow, then are harvested",
+          "mechanism": "Irrigated crops build canopy through summer; harvest then removes it field by field.",
+          "channel": "HV: rises with canopy, falls as it is removed.",
+          "consistent_with": "HV rose 1.1 dB from 19 June to its peak on 18 August, then fell at every pass from 30 August to 29 October, ending 2.6 dB below the peak as the bright circles in the images darken.",
+          "alternative": "Crops drying out before harvest also lower HV.",
+          "test": "Compare with a crop map and crop-progress reports for these fields.",
+          "moments": [0, 1]
+        },
+        {
+          "id": "bare-smooth-soil",
+          "driver": "Bare, smooth fields",
+          "mechanism": "A field with no canopy and a smooth surface reflects the radar away, much as calm water does.",
+          "channel": "HH: field-shaped patches fall below −18 dB.",
+          "consistent_with": "Very dark pixels mirror HV all season: 6.5% on 19 June, 0.6% on 30 August near the HV peak, 11.6% on 29 October.",
+          "alternative": "A flooded or freshly watered field also reads dark; HH alone cannot tell the two apart.",
+          "test": "Check the dark fields in late-October optical imagery and a crop map.",
+          "moments": [2]
+        }
+      ],
+      "cant_see": [
+        "Spring: the record starts on 19 June.",
+        "What each field grows.",
+        "Whether a dark field is dry and smooth, or wet."
+      ],
+      "next": {
+        "application": "Field-by-field records of when land is cropped and when it lies bare.",
+        "who": "Irrigation districts and soil-conservation agencies.",
+        "needs": "A full year of passes, field boundaries and a crop map."
+      }
+    },
+    {
+      "slug": "mexico-city-subsidence",
+      "source": "site",
+      "theme": "ground",
+      "title": "Ground in eastern Mexico City moves 20 cm in a year",
+      "question": "One point in Nezahualcóyotl moved 204 mm away from the satellite in a year, faster in the first half than the second. Is the ground sinking, and is the change of pace real?",
+      "place": "The city stands on the clay bed of a drained lake, above the aquifer that supplies much of its water.",
+      "channel": "Interferometry (GUNW). The change in radar phase between passes gives motion along the line of sight, relative to a reference point.",
+      "hero_moment": 0,
+      "hypotheses": [
+        {
+          "id": "aquifer-compaction",
+          "driver": "Clay compacting above a pumped aquifer",
+          "mechanism": "Decades of groundwater pumping have lowered the water table, and the lake clays above it compact. Published work finds this almost fully irreversible (Chaussard et al., 2021).",
+          "channel": "Phase: steady motion away from the satellite.",
+          "consistent_with": "204 mm away from the satellite between 30 October 2025 and 13 October 2026, with a fitted pace away from the satellite in both halves of the record.",
+          "alternative": "Line-of-sight motion mixes vertical and horizontal movement, and it is measured against one reference point that may itself move.",
+          "test": "Compare with GNSS stations in the city; add the opposite viewing direction.",
+          "moments": [0, 2]
+        },
+        {
+          "id": "seasonal-pace",
+          "driver": "The change of pace may be the atmosphere",
+          "mechanism": "This series has no correction for water vapour, which differs between dry and rainy months and shifts the measured distance. Chaussard et al. (2021) found steady rates here for decades and no link between subsidence rates and pumping or water levels.",
+          "channel": "Phase: the fitted slope differs between the two periods.",
+          "consistent_with": "A fitted −20.0 ± 1.2 mm a month from November to April and −14.1 ± 0.8 from May to October. The second period had about six times the rain.",
+          "alternative": "A real seasonal change in compaction, which one year of passes cannot rule out.",
+          "test": "Apply a tropospheric correction, compare with GNSS at the same place, and repeat with a second year.",
+          "moments": [0, 2]
+        },
+        {
+          "id": "april-step",
+          "driver": "The mid-April jump may be noise",
+          "mechanism": "A 32 mm step that partly reverses on the next pass is unlike slow clay compaction. A passing difference in atmospheric delay between the point and its reference fits better.",
+          "channel": "Phase in a single 12-day pair.",
+          "consistent_with": "The largest single step, −32 mm to 16 April, was followed by +14 mm on the next pass. Steps between passes scatter by about 10 mm around their mean.",
+          "alternative": "A real, short-lived movement.",
+          "test": "Check that pair's coherence, and whether neighbouring points show the same step.",
+          "moments": [1]
+        }
+      ],
+      "cant_see": [
+        "Vertical versus horizontal motion: one viewing direction.",
+        "The reference point's own motion: everything is relative to Ciudad Universitaria.",
+        "The rest of the city from this chart: it follows one point. The map shows the pattern."
+      ],
+      "next": {
+        "application": "Subsidence maps every 12 days for zoning infrastructure risk.",
+        "who": "Water utilities, civil protection and transport engineers.",
+        "needs": "Both viewing directions, GNSS ties and an atmospheric correction."
+      }
+    },
+    {
+      "slug": "rio-branco",
+      "source": "landchange",
+      "theme": "forest",
+      "title": "An Amazon forest and river dim through the dry season",
+      "question": "From June to October the whole scene gets darker in HH, forest included, and bright streaks appear along the river. What is the radar responding to?",
+      "place": "The Rio Branco at Caracaraí, Roraima, where Amazon forest meets open savanna.",
+      "channel": "HH: open water reads dark, sand and forest brighter. It is the one channel collected on every pass; HV is on only some passes.",
+      "hypotheses": [
+        {
+          "id": "forest-floor-dries",
+          "driver": "The ground under the forest dries out",
+          "mechanism": "L-band reaches through the canopy to trunks and ground. Wet or flooded ground sends a strong HH echo back off the trunks; as it drains and dries after the rains, that echo weakens.",
+          "channel": "HH more than HV: HH carries the ground and trunk echo, HV comes mostly from the canopy.",
+          "consistent_with": "Scene-median HH fell from −5.5 dB on 18 June to −7.3 dB on 28 October, over the brightest (forested) pixels as well as the savanna. On the passes that have HV, it fell less than HH over forest; HV is only read from the colour images here, so by how much is uncertain.",
+          "alternative": "Less water in the leaves and wood would also lower both channels, and so would a drift in the calibration of these provisional products, though Etna and the Jamuna show no such decline over the same months.",
+          "test": "Compare with rainfall and river level; repeat over forest on higher ground that never floods.",
+          "moments": []
+        },
+        {
+          "id": "river-recession",
+          "driver": "The river falls and sandbars emerge",
+          "mechanism": "As rain eases the river drops. Open water reads dark; exposed sand and banks read brighter.",
+          "channel": "HH: bright streaks along the channel in the change map.",
+          "consistent_with": "Half the pixels that read as water on 18 June no longer do on 28 October, and the change map shows brighter streaks along the channel.",
+          "alternative": "Wind roughens water and brightens it, so a breezy pass can look like emerging sand.",
+          "test": "Compare with the river gauge at Caracaraí.",
+          "moments": []
+        }
+      ],
+      "cant_see": [
+        "Forest loss: there is none in this box. Where trees are cleared, backscatter drops sharply.",
+        "HV through the whole season: it was collected on only some passes.",
+        "Why the scene dims: brightness cannot separate drying ground from a drying canopy."
+      ],
+      "next": {
+        "application": "Low-water monitoring for river transport, and forest-clearing alerts through cloud.",
+        "who": "River authorities and forest-monitoring agencies.",
+        "needs": "HV on every pass and a baseline of several years."
+      }
+    },
+    {
+      "slug": "jakobshavn",
+      "source": "landchange",
+      "theme": "ice",
+      "title": "A Greenland fjord brightens from June to October",
+      "question": "The ice-choked fjord in front of Greenland's fastest glacier is far brighter in late October than in June. What does a single radar channel show on ice?",
+      "place": "Sermeq Kujalleq (Jakobshavn Isbræ), on Greenland's west coast, flows tens of metres a day into an ice-packed fjord.",
+      "channel": "HH only: rough ice reads bright, calm water dark. NISAR collected a single polarization here, so there is no HV to compare.",
+      "hypotheses": [
+        {
+          "id": "fjord-ice-packs",
+          "driver": "The fjord's ice packs together and refreezes",
+          "mechanism": "In summer the glacier calves and the fjord's mix of icebergs and sea ice loosens, with open water between. In autumn it freezes into a rough, bright pack.",
+          "channel": "HH: rough ice is bright, calm water dark.",
+          "consistent_with": "Between 18 June and 28 October the change map shows the fjord brighter over a large area with a sharp edge.",
+          "alternative": "Wind roughens open water until it is as bright as ice, so a dark-to-bright change need not be ice.",
+          "test": "Trace the ice edge on every pass; compare with optical images and with NISAR's offset product (GOFF).",
+          "moments": []
+        },
+        {
+          "id": "melt-refreeze",
+          "driver": "Surface melt and refreezing: expected, not clearly seen",
+          "mechanism": "Wet snow absorbs radar energy and should read darker in high summer, then brighten once it refreezes. L-band reaches deeper than shorter wavelengths, so thin melt layers dim it less.",
+          "channel": "HH. HV, which would show scattering inside the snow, was not collected.",
+          "consistent_with": "Only weakly. The scene's median HH stays within about 1.5 dB all season, with no clear summer dip.",
+          "alternative": "The median mixes glacier, fjord and rock, which could hide a melt signal on the ice alone.",
+          "test": "Measure HH over the glacier surface only, and compare with air temperatures from nearby weather stations.",
+          "moments": []
+        }
+      ],
+      "cant_see": [
+        "HV: not collected here, so surface and in-snow scattering cannot be told apart.",
+        "Ice speed: that needs offset tracking between passes (the GOFF product), not brightness.",
+        "Ice thickness."
+      ],
+      "next": {
+        "application": "Glacier fronts and fjord ice through the polar night, every 12 days.",
+        "who": "Ice-sheet scientists and sea-level modellers.",
+        "needs": "Offset tracking on every pair of passes and a longer record."
+      }
+    },
+    {
+      "slug": "etna",
+      "source": "landchange",
+      "theme": "ground",
+      "title": "A ribbon of change on Etna",
+      "question": "A ribbon of change runs east from Etna's summit area after a fissure eruption reported on 26 June 2026. Is it the new lava?",
+      "place": "Mount Etna, Sicily. The eruption was reported to feed a lava flow toward the Valle del Leone.",
+      "channel": "The change map (in the Layer menu) compares HH on two dates. Colour frames add HV, except the first pass (17 June), which is HH only and drawn grey.",
+      "hypotheses": [
+        {
+          "id": "new-surface",
+          "driver": "Fresh lava replaced the old surface",
+          "mechanism": "New lava has a different roughness at the radar's 24 cm wavelength from the ground it buried, so brightness changes along the flow.",
+          "channel": "HH: a narrow ribbon in the change map.",
+          "consistent_with": "Between 17 June and 27 October the change map shows a narrow brighter ribbon running east from the summit area, and little change elsewhere.",
+          "alternative": "Snow, ash fall and steep-slope distortion also change brightness near the summit.",
+          "test": "Overlay the volcano observatory's mapped flow outline.",
+          "moments": []
+        }
+      ],
+      "cant_see": [
+        "Ground swelling before an eruption: that needs interferometry (GUNW).",
+        "Heat: radar does not sense temperature.",
+        "Slopes facing away from the satellite, which fall in radar shadow."
+      ],
+      "next": {
+        "application": "Mapping new lava through ash and cloud.",
+        "who": "Volcano observatories and civil protection.",
+        "needs": "Fast delivery and interferometry on every pass."
+      }
+    },
+    {
+      "slug": "budhi-gandaki",
+      "source": "landchange",
+      "theme": "ground",
+      "title": "A reported landslide in the Himalaya",
+      "question": "A landslide was reported in the Budhi Gandaki valley on 11 October 2026. Does the patch of change at that spot show it?",
+      "place": "A steep Himalayan valley in Gorkha, Nepal.",
+      "channel": "The change map (in the Layer menu) compares HH on 6 and 18 October. Part of the box has no data on any pass.",
+      "hypotheses": [
+        {
+          "id": "slope-stripped",
+          "driver": "A slope stripped and buried in debris",
+          "mechanism": "A slide removes vegetation and leaves rough rock and soil, which changes brightness over a compact area.",
+          "channel": "HH: a compact patch in the change map.",
+          "consistent_with": "A compact patch of brighter and darker pixels at the reported position between 6 and 18 October. The gallery grades it likely, not confirmed.",
+          "alternative": "Steep slopes distort radar images, and moisture and vegetation shift at the end of the monsoon. Either could produce a patch like this.",
+          "test": "Compare with optical imagery once it is cloud-free, and with the mapped outline of the scar.",
+          "moments": []
+        }
+      ],
+      "cant_see": [
+        "Slopes facing away from the satellite: radar shadow hides them.",
+        "Slow movement before a failure: that needs interferometry over many passes.",
+        "Slides smaller than a few 20 m pixels."
+      ],
+      "next": {
+        "application": "Locating new landslides through cloud after storms and earthquakes.",
+        "who": "Disaster agencies and road and hydropower operators.",
+        "needs": "Both viewing directions and confirmation from optical or field data."
+      }
+    },
+    {
+      "slug": "langtang",
+      "source": "landchange",
+      "theme": "ground",
+      "title": "A slope collapse high on Langtang Lirung",
+      "question": "A very large rock slope on Langtang Lirung failed on 26 August 2026 and started a debris flow and flood. NISAR passed over on 19 and 31 August. Does its change map show the flow's track?",
+      "place": "Langtang Lirung, a massif in Langtang National Park, Nepal, near the border with Tibet. The failure was reported at 28.29°N, 85.53°E.",
+      "channel": "The change map (in the Layer menu) compares HH on 19 and 31 August, the passes either side of the event. HH and HV on every pass, about 27 m pixels.",
+      "hypotheses": [
+        {
+          "id": "debris-flow-track",
+          "driver": "The debris flow scoured and buried the valley",
+          "mechanism": "A debris flow strips plants and soil and leaves rough, wet deposits, which change how much radar energy comes back along its path.",
+          "channel": "HH: a streak of brighter and darker pixels in the change map.",
+          "consistent_with": "A streak of strong change appears between 19 and 31 August and in neither the pair before nor the pair after. It starts about half a kilometre from the reported source and runs northwest down the valley. The gallery grades it likely, not confirmed.",
+          "alternative": "Steep slopes distort radar images, and monsoon moisture and snow change brightness in the high Himalaya. The streak is not a mapped outline of the flow, and brightness cannot tell rock debris from ice.",
+          "test": "Compare with mapped outlines of the flow and with optical images from after 26 August.",
+          "moments": []
+        },
+        {
+          "id": "precursor",
+          "driver": "Movement before the failure: not seen here",
+          "mechanism": "A slope can creep or shed rock for weeks before it fails, which could change its brightness pass by pass.",
+          "channel": "HH change between the passes before 19 August.",
+          "consistent_with": "Not seen: the pair from 26 July to 19 August shows no cluster of strong change near the reported source. Optical images also showed few signs before the failure (Eos Landslide Blog).",
+          "alternative": "Brightness is a blunt test for slow creep: millimetres of motion need interferometry, and slopes facing away from the satellite fall in radar shadow.",
+          "test": "Measure motion on the slope with interferometry or offset tracking over the months before 26 August.",
+          "moments": []
+        }
+      ],
+      "cant_see": [
+        "The flow itself: passes 12 days apart see before and after, not the event.",
+        "Whether the debris was rock, ice or both.",
+        "How deep the deposits are, or their volume.",
+        "Slopes facing away from the satellite, which fall in radar shadow."
+      ],
+      "next": {
+        "application": "Finding debris-flow paths through monsoon cloud within days, across remote mountain valleys.",
+        "who": "Disaster agencies, and road and hydropower operators in mountain valleys.",
+        "needs": "Faster delivery, both viewing directions, and confirmation from optical or field data."
+      }
+    },
+    {
+      "slug": "jamuna",
+      "source": "landchange",
+      "theme": "water",
+      "title": "A braided river after the monsoon",
+      "question": "The Jamuna's pattern of water and sand looks different in November than in June. Did the channels move, or did the water just fall?",
+      "place": "The Jamuna (Brahmaputra) in Bangladesh, a braided river several kilometres wide.",
+      "channel": "HH. Calm water reads dark and bare sand brighter, but rough floodwater does not read dark.",
+      "hypotheses": [
+        {
+          "id": "monsoon-reshaping",
+          "driver": "Monsoon flows move the sand",
+          "mechanism": "High flows erode banks, cut new channels and build new bars.",
+          "channel": "HH: dark channels and brighter bars change places.",
+          "consistent_with": "About two-thirds of the pixels that read as water on 18 June no longer do on 9 November, and new dark pixels appear elsewhere.",
+          "alternative": "A lower river uncovers bars that were there all along, and rough water does not read dark: the dark share was lowest on 17 August, at the height of the monsoon.",
+          "test": "Compare two low-water passes a year apart; check against river discharge.",
+          "moments": []
+        }
+      ],
+      "cant_see": [
+        "Channel depth.",
+        "Rough or wind-blown water, which reads like sand.",
+        "Whether a bar moved or was only uncovered: that needs passes at the same water level."
+      ],
+      "next": {
+        "application": "Maps of bank erosion and new land after each monsoon.",
+        "who": "Water boards and humanitarian agencies.",
+        "needs": "Low-water passes compared year to year."
+      }
+    }
+  ]
+}

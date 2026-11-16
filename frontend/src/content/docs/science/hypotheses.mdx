@@ -1,0 +1,91 @@
+export const meta = {
+  title: "Physical drivers & hypotheses",
+  description: "Why the surface might be changing, which polarization shows it on land and ice, why some changes don't show, and how every hypothesis here is written.",
+};
+
+The workspace measures change. It does not test why it happened: with about a year of passes, anything seasonal lines up with anything else seasonal. So every explanation is a **hypothesis**, written in the same parts.
+
+| Part | What it says | Example (Rio Branco, in the Amazon) |
+| --- | --- | --- |
+| **Driver** | The physical process | The ground under the forest dries out |
+| **Mechanism** | How that changes what the radar receives | A wet forest floor sends a strong echo back off the trunks; it weakens as the ground dries |
+| **Channel** | Which polarization responds | HH more than HV |
+| **Fits** | Only what the record shows | Scene-median HH fell from −5.5 dB in June to −7.3 dB in late October |
+| **But** | Another explanation for the same signal | Drying leaves and wood, or a calibration drift |
+| **Test** | Data that would tell them apart | Rainfall and river level; forest on ground that never floods |
+
+<StoryTable />
+
+## Which polarization shows what
+
+This app has **HH and HV** at most places. Jakobshavn was collected in HH only, and Rio Branco and Etna have HV on only some passes. The gallery's change map is always HH.
+
+| Channel | Responds to | Brighter when | Darker when |
+| --- | --- | --- | --- |
+| **HH** | Surface roughness, moisture, stems and trunks | Rough or wet ground; water under vegetation (double bounce); buildings | Calm water; smooth, dry soil |
+| **HV** | Scattering inside a canopy | More leaves, stems and branches | Canopy removed; bare ground; open water |
+| **Phase (InSAR)** | Distance to the ground | It measures motion, not brightness | |
+
+NISAR's L-band wavelength is 24 cm. It passes through leaves and small branches and responds to trunks, stems and the ground beneath.
+
+## On land
+
+What the records in this app show, and where:
+
+| Change | Channel | Where |
+| --- | --- | --- |
+| Open water spreading and shrinking | HH: calm water reads dark | [Sylhet](/workspace?mode=stories&site=sylhet-haor-floods), [Mekong](/workspace?mode=stories&site=mekong-delta-rice), [Okavango](/workspace?mode=stories&site=okavango-flood-pulse) |
+| Crop canopy building, then removed | HV rises, then falls | [Punjab](/workspace?mode=stories&site=punjab-crop-cycles), [Columbia Basin](/workspace?mode=stories&site=columbia-basin-crops) |
+| Bare, smooth fields | HH very dark, as for water | [Columbia Basin](/workspace?mode=stories&site=columbia-basin-crops) |
+| Forest and savanna dimming through the dry season | HH, more than HV on the passes that have both | [Rio Branco](/workspace?mode=stories&place=rio-branco) |
+| Ground moving | Phase | [Mexico City](/workspace?mode=stories&site=mexico-city-subsidence) |
+
+### The Amazon
+
+At Rio Branco the whole scene dims in HH from June to October, forest as well as savanna, and bright streaks appear along the river. The story's hypothesis is that the ground under the forest dries after the rains; it is not tested.
+
+The box holds no forest clearing. What L-band is generally reported to show elsewhere in the Amazon, none of it measured here:
+
+| Driver | Expected radar response |
+| --- | --- |
+| Clearing | HV drops sharply where trees are removed |
+| Seasonal flooding under the canopy | HH brightens (double bounce off water and trunks) |
+| Fire | HV drops where the canopy burns |
+| Selective logging | Often too small for these pixels |
+| Seasonal leaf change | Small: dense forest returns about as much L-band energy as it can |
+
+## On ice
+
+One place and one channel: [Jakobshavn](/workspace?mode=stories&place=jakobshavn), HH only.
+
+| | |
+| --- | --- |
+| **Seen** | The fjord in front of the glacier is far brighter in late October than in June |
+| **Expected, not clearly seen** | Surface melt darkening the ice in summer: the scene's median HH stays within about 1.5 dB all season |
+| **Not possible here** | HV, which was not collected; ice speed, which needs pixel offsets (GOFF) |
+
+## Why some changes don't show
+
+Not seeing a change is a result too. These are the reasons met while building this app, with the places:
+
+| Reason | Why | Example |
+| --- | --- | --- |
+| **Wind on water** | Roughened water is bright, so it isn't counted as water | The Mississippi Delta was dropped; at Palm Jebel Ali only the sea surface changed |
+| **Rough floodwater** | Fast, turbulent water is not dark either | The Jamuna's dark share is lowest at the height of the monsoon |
+| **Water under vegetation** | Double bounce brightens it | The Okavango's open-water share understates the flood |
+| **Acquisition changes** | A pass in a different mode, or covering less of the box, looks different without the ground changing | Grey HH-only frames at Rio Branco; half of Sylhet's passes saw 83% of the box |
+| **Radar shadow and layover** | Steep slopes are hidden or squeezed | Part of the Budhi Gandaki box has no data on any pass |
+| **Lost phase coherence** | Lava, vents, vegetation or snow scramble the phase | Kīlauea's summit |
+| **Noise larger than the signal** | Small motion over a short record | Campi Flegrei: step-to-step noise (14 mm) exceeded the mean step (3 mm) |
+| **Atmosphere** | Water vapour delays the signal | Svartsengi's stripes; possibly Mexico City's change of pace |
+| **Outside coverage** | NISAR looks to one side only, which leaves an area around the North Pole unimaged | Petermann Glacier, at 81° N |
+| **Before the record** | Regular coverage began in mid-2026 at many places | Mayon's and Piton de la Fournaise's 2026 lava |
+| **No distinct edge** | A change too diffuse to outline | Wildfire scars at Thunder Bay and Mempawah |
+| **Medians mix things** | A box median blends fields, towns, forest and water | The Pantanal, Rondônia and Central Kalimantan had flat box medians |
+
+The land-change gallery lists every place checked with nothing visible, and why: [Study sites & gallery](/docs/data/study-sites#land-change-gallery).
+
+## Next
+
+- [What NISAR could do next](/docs/science/future-applications)
+- [Polarization & backscatter](/docs/science/polarization)

@@ -1,0 +1,71 @@
+export const meta = {
+  title: "Install the MCP server",
+  description: "Connect Claude Code, Claude Desktop, Cursor or any MCP client to NISAR in a couple of minutes.",
+};
+
+## Requirements
+
+- Python 3.11+
+- A running backend: your local one (`bin/start dev`, port 8880) or a deployed one, with `ENABLE_MCP=1` (the default)
+- The server's dependencies, from the repository root:
+
+```bash
+pip install -r requirements-mcp.txt
+```
+
+The server talks to the backend over HTTP, set with `NISAR_API_URL` (default `http://localhost:8880`).
+
+## Claude Code
+
+```bash
+claude mcp add nisar --env NISAR_API_URL=http://localhost:8880 -- python -m mcp_server
+```
+
+Run it from the repository root so Python can find the `mcp_server` package (or add the repository to `PYTHONPATH`). Then ask, for example: *"Use the nisar tools to compare open water at Sylhet in July and November."*
+
+## Claude Desktop
+
+Add to `claude_desktop_config.json` (Settings → Developer → Edit Config):
+
+```json
+{
+  "mcpServers": {
+    "nisar": {
+      "command": "python",
+      "args": ["-m", "mcp_server"],
+      "cwd": "/path/to/nisar-surface-change",
+      "env": { "NISAR_API_URL": "http://localhost:8880" }
+    }
+  }
+}
+```
+
+Restart Claude Desktop; the NISAR tools appear under the tools menu.
+
+## Cursor and other clients
+
+Most clients accept the same `command` / `args` / `env` shape. For clients that connect over HTTP, run the server in HTTP mode:
+
+```bash
+python -m mcp_server --http --port 8765
+# MCP endpoint: http://127.0.0.1:8765/mcp
+```
+
+## Check it works
+
+The [MCP Inspector](https://github.com/modelcontextprotocol/inspector) lists tools and lets you call them:
+
+```bash
+npx @modelcontextprotocol/inspector python -m mcp_server
+```
+
+You should see 18 tools, 4 resources and 5 prompts.
+
+## Troubleshooting
+
+| Symptom | Fix |
+| --- | --- |
+| `Could not reach the NISAR backend` | Start the backend, or set `NISAR_API_URL` to the right origin |
+| No tools listed | Check the backend: `curl $NISAR_API_URL/api/tools`. A 404 means it runs with `ENABLE_MCP=0` |
+| `ModuleNotFoundError: mcp` | `pip install -r requirements-mcp.txt` in the Python your client launches |
+| Soil-moisture tool errors | The backend needs `EARTHDATA_TOKEN` to read SME2 |

@@ -1,0 +1,31 @@
+export const meta = {
+  title: "What is MCP?",
+  description: "An MCP server that gives AI assistants this app's NISAR tools.",
+};
+
+MCP (Model Context Protocol) lets AI assistants call external tools. This server exposes the backend's tool registry (`GET /api/tools`, `POST /api/tools/{name}`), the same tools the workspace and the REST API use, so an assistant gets exactly what a person sees: the same stories, the same hypotheses with their alternatives, the same findings.
+
+The registry is read-only, needs no API key, and is on by default (`ENABLE_MCP=1`). It doesn't need the in-app AI assistant, which stays off unless `ENABLE_AI=1`.
+
+| Tool | Does |
+| --- | --- |
+| `list_stories`, `get_story` | The workspace's stories: question, moments, labelled hypotheses, limits, future uses |
+| `build_finding` | One moment as a citable finding: claim, evidence, confidence, hypotheses, links |
+| `export_site_series` | A study site's values as CSV |
+| `coverage_check` | Passes per product over any box, each frame's revisit, and what they could support |
+| `list_sites`, `get_site_timeseries` | Study sites and their values per pass |
+| `explain_site_change` | A site's story with related series on the same dates |
+| `search_granules` | NASA catalog search anywhere |
+| `area_rain` | Daily rain at the centre of a box |
+| `soil_moisture_scene` | SME2 soil moisture over an area |
+| `height_profile` | Ground motion along a line |
+| `list_land_change` | The land-change gallery |
+| `search_docs` | These docs |
+| `open_in_workspace` | A map link for a site and date |
+
+It also offers **resources** (`nisar://primer` on reading radar data, including ice and forest; `nisar://hypotheses`, the six-part shape every hypothesis takes; `nisar://stories`; `nisar://openapi`) and **prompts** (`tell_story`, `draft_finding`, `scout_area`, `investigate_site`, `check_my_area`).
+
+<Cards cols={2}>
+  <Card to="/docs/developers/mcp-install" icon="plug" title="Install the server">Claude Code, Claude Desktop, Cursor.</Card>
+  <Card to="/docs/developers/mcp-tools" icon="code" title="Tool reference">Every tool's schema.</Card>
+</Cards>

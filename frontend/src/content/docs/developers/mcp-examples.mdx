@@ -1,0 +1,61 @@
+export const meta = {
+  title: "Example conversations",
+  description: "What it looks like when an AI agent uses the NISAR tools, and prompts that work well.",
+};
+
+## Telling a story
+
+> **You:** Why did the Okavango flood peak in July when it barely rained there?
+
+The agent calls `get_story` with `{"story": "Okavango"}` and answers from its chapters: open water peaked at 11.0% on 8 July and fell to 1.7% by 24 October; modelled inflow at Mohembo peaked on 19 February; 10 mm of rain fell locally. **Hypothesis (not tested here):** a flood pulse from rain in the Angolan highlands, travelling slowly through the delta. **Could also be:** the box catches only part of the delta. **Test:** gauge levels at Maun, and a box upstream that should peak earlier. **NISAR can't see:** water under papyrus, which brightens instead of darkening.
+
+## Writing a brief
+
+> **You:** Use the `draft_finding` prompt for Mexico City.
+
+The agent calls `build_finding` with `{"story": "mexico-city-subsidence"}` and writes a one-page brief: the measured pace (−20.0 ± 1.2 mm/month, November–April, 16 passes), how sure the record is (all passes provisional, under a year), the hypotheses with alternatives, the limits, and the citation. The same card is at `GET /api/findings/mexico-city-subsidence` and in the workspace's Findings mode.
+
+## Can NISAR answer my question?
+
+> **You:** I study wetlands in the Pantanal. Can NISAR give me a seasonal series there?
+
+The agent uses the `scout_area` prompt: `coverage_check` over the box returns backscatter passes per frame, each frame's revisit (usually 12 days) and the quality mix, with a verdict such as "Enough passes to chart a seasonal series". It then suggests `search_granules` for the granule list.
+
+## Investigating a site
+
+> **You:** Is Mexico City still sinking, and how fast?
+
+The agent calls:
+
+1. `get_site_timeseries` with `{"site": "Mexico City", "metric": "los_mm"}` → cumulative line-of-sight displacement per pass, with granule IDs.
+2. `search_docs` with `{"query": "line of sight displacement reference point"}` → the interferometry page, to explain what the number means.
+3. `open_in_workspace` with `{"site": "Mexico City"}` → a link to the map.
+
+And answers along the lines of: *NISAR measured about 204 mm of motion away from the satellite at Nezahualcóyotl between October 2025 and October 2026, relative to Ciudad Universitaria, about 20 mm/month in the dry season and 14 mm/month in the wet season. That's line-of-sight, not purely vertical… [Interferometry](/docs/science/interferometry) · [Open in the workspace](/workspace?site=mexico-city-subsidence)*
+
+## Checking a new area
+
+> **You:** Has NISAR imaged the Rio Branco near Caracaraí this year? Was it flooding?
+
+1. `list_land_change` with `{"kind": "flood"}` → finds the gallery entry.
+2. `search_granules` with the box, `product: "GCOV"` → passes and dates.
+3. `area_rain` over the same dates → rain totals for context.
+
+## Writing code
+
+> **You:** Write a Python script that downloads every Sylhet observation and plots HH against open water.
+
+The agent reads `nisar://openapi`, then writes code against `GET /api/sites/{id}`, often running `get_site_timeseries` first to check the field names.
+
+## Prompts that work well
+
+- *"Use the nisar `tell_story` prompt for Jakobshavn."*
+- *"Build a finding for Punjab's April drop and give me the CSV."*
+- *"Use the nisar `investigate_site` prompt for Okavango."*
+- *"Find SME2 passes over 93.5,41.5,94.0,42.0 from the last 60 days and summarise soil moisture."*
+- *"Which land-change gallery places are glaciers, and what happened at each?"*
+- *"Explain HH vs HV using the docs, then show me a site where the difference matters."*
+
+<Callout type="caveat">
+The tools return context like rain and river flow with a note that lining up in time doesn't show cause, and every hypothesis carries a label, an alternative and a test. Good agents keep all three. If yours states a cause as fact, point it at `nisar://hypotheses`.
+</Callout>

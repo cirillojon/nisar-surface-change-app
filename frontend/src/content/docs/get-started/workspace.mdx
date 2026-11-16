@@ -1,0 +1,92 @@
+export const meta = {
+  title: "Using the workspace",
+  description: "The three tabs (Stories, Investigate, Findings), what each panel holds, and the tools on the map.",
+};
+
+The workspace is a map with a side panel. Three tabs decide what the panel holds and which tools you get.
+
+| Tab | What it is for | What its panel holds |
+| --- | --- | --- |
+| **Stories** | A guided look at one place | A question, what might explain what NISAR shows there, and what it can't show |
+| **Investigate** | Your own area or line, and every place with data | The list of places, or the data for the one you opened or drew |
+| **Findings** | Keeping and sharing a result | The findings you saved, or one finding's evidence |
+
+What you open stays on the map when you switch tabs, and each tab shows its own view of it. A panel's **← All …** link goes back to its list and the whole-world map. **Hide panel** only gives the map the room back. The **Workspace** link in the top bar starts over: the Stories list, with nothing selected. **Tour** walks through drawing an area and a line at Kīlauea, then the three tabs.
+
+<OpenInWorkspace mode="stories">Open the workspace</OpenInWorkspace>
+
+## Stories
+
+Eleven places, grouped by theme, each pictured by one of its own NISAR passes. Opening one shows:
+
+- **The question**, the place, and how radar sees it: which polarization, and what was actually collected there.
+- **The evidence.** For a study site this is the chart beside the map: the measured series, the moments that sum it up, and rain or river flow on the same dates. For a gallery place it is the images on the map: what to look for sits under the question, with a button for the change map.
+- **Why might this be happening?** Hypotheses, each tagged as one, with what in the record fits it and what else would. *Radar channel & how to test it* opens underneath. A hypothesis's buttons move the map to the passes it is about.
+- **What this can't show**, and **why it matters**.
+- **Evidence, citation & sharing** opens the same moment as a finding.
+
+<OpenInWorkspace mode="stories" place="rio-branco">The Amazon story</OpenInWorkspace>
+<OpenInWorkspace mode="stories" place="jakobshavn">The Greenland ice story</OpenInWorkspace>
+
+See [Physical drivers & hypotheses](/docs/science/hypotheses) for how the hypotheses are written.
+
+## Investigate
+
+The drawing tools are on this tab, and so is clicking the map.
+
+- **Click the map** for a box around that point, or **Draw area** for your own.
+- **Draw line** for ground motion along a road, a levee or a fault.
+- Or open a place, from the list or from its marker on the map: six study sites **measured over time**, and ten **before & after** places with a change map. Places that were checked and showed nothing are listed under them.
+
+### Passes over a drawn area
+
+A drawn box first lists, per product, how many passes the last year holds on the frame with the most of them and how often that frame repeats, with a line on what that is enough for.
+
+Compare passes from one track and frame only. The viewing angle is then the same, which removes one reason for brightness to differ; moisture, wind and the acquisition mode can still differ.
+
+### Draw area
+
+Drag a rectangle (**Cancel** or Escape stops), then pick a product in the panel. Products with no granules there are greyed out.
+
+| Product | Shows |
+| --- | --- |
+| GCOV | Backscatter browse images |
+| GUNW | Interferogram browse images |
+| GOFF, GSLC | Listed for download |
+| SME2 | Soil moisture, with values per day (needs a server Earthdata token) |
+
+**Time slider** steps by day; **Mosaic** shows the newest data everywhere. Historical prices for matched crops and oil fields are under **Market context**, for timing only.
+
+### Draw line
+
+Click to add points. A bar over the map counts them and has **Undo**, **Finish line** and **Cancel**; double-click or Enter also finishes, and Escape cancels. A line needs two points and can be up to 100 km long. It shows terrain and ground motion every ~200 m at every date, plus a space–time chart (red sank, blue rose). A new line takes 1–4 minutes and needs a server Earthdata token. Values are relative to the line's median and assume vertical motion. A largest drop or rise that stands alone between gaps is flagged: treat it with caution.
+
+## Findings
+
+A finding is one moment of a story as a card. Opening one moves the map to its place and pass.
+
+- **Measured**: the value, dates and units.
+- **What this rests on**: passes in the period, gaps between them, provisional passes, passes that saw only part of the box, and the record's length.
+- **Evidence**: every pass with its value, quality and coverage, and granule IDs.
+- **Possible explanations**: only the hypotheses written for this moment.
+- **Share**: a link, a printable brief and a citation. Under **Data & code**: the site's series as CSV, and the REST and MCP calls that rebuild the same card.
+
+Saved findings live in this browser.
+
+<OpenInWorkspace mode="findings" finding="okavango-flood-pulse:1">Open a finding</OpenInWorkspace>
+
+## On the map
+
+Time, layer and opacity for whatever is on the map are in the dock under it, on every tab.
+
+- **Play**, drag the slider, or click a chart point to step through passes. **Compare** sets two dates side by side.
+- **Layer** switches between colour (red = HH, green = HV), HH, HV and very dark pixels (HH below −18 dB). Where HV wasn't collected on every pass, a place opens in HH.
+- For a before & after place, **Change map** colours what got brighter or darker since a date you pick, and says what share of the land changed by more than 4 dB.
+- Hollow chart points are passes that saw under 95% of the box.
+- The URL keeps where you are: `/workspace?mode=stories&site=sylhet-haor-floods&date=2026-07-14`, `?mode=stories&place=jakobshavn`, `?mode=findings&finding=okavango-flood-pulse:1`.
+
+## What it is not
+
+- **Not a warning system.** Products are provisional and arrive days after a pass.
+- **Not a cause-finder.** Hypotheses are labelled, and none is tested here. Rain, river flow and prices are drawn for comparison only: see [Drivers, not verdicts](/docs/science/change-types#drivers-not-verdicts).
+- **Not advice.** Nothing here recommends action on water, farming, markets or infrastructure.

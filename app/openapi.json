@@ -1,0 +1,1836 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "NISAR Surface Change Explorer API",
+    "version": "1.1.0",
+    "summary": "Read-only access to NISAR radar measurements, study sites, stories with labelled hypotheses, shareable findings, the NASA catalog, soil moisture and height profiles.",
+    "description": "All endpoints are public, need no key and return JSON. They are rate-limited per IP (limits are listed on each operation). Dates are ISO `YYYY-MM-DD`; bounding boxes are `min_lon,min_lat,max_lon,max_lat` in WGS84 degrees. NISAR products are PROVISIONAL until NASA finishes reprocessing.",
+    "license": {
+      "name": "MIT",
+      "url": "https://opensource.org/licenses/MIT"
+    }
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "This deployment"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Sites",
+      "description": "Curated study sites, each with a year of NISAR measurements and one map image per pass."
+    },
+    {
+      "name": "Stories & findings",
+      "description": "Curated stories with labelled physical hypotheses, the evidence card behind each story (with its limits, a printable brief and CSV export), and a coverage check that says whether NISAR can answer a question over any area."
+    },
+    {
+      "name": "Change types",
+      "description": "The kinds of surface change the platform tracks, and the metric each one is measured by."
+    },
+    {
+      "name": "Evidence",
+      "description": "A study site's NISAR story: its series, the moments that sum it up, and related physical series (rain, river flow) on the same dates, for comparison only."
+    },
+    {
+      "name": "Areas",
+      "description": "Rain for any rectangle you draw, over a date range."
+    },
+    {
+      "name": "Catalog",
+      "description": "Live search of NASA's Common Metadata Repository (CMR) for NISAR granules."
+    },
+    {
+      "name": "Soil moisture",
+      "description": "Render a NISAR Level-3 soil-moisture (SME2) pass over an area."
+    },
+    {
+      "name": "Profiles",
+      "description": "Ground motion along a line, over NISAR's full interferogram record. Runs as a background job."
+    },
+    {
+      "name": "Land change",
+      "description": "A gallery of places where NISAR saw change, with every pass on one track."
+    },
+    {
+      "name": "System",
+      "description": "Health, scene images and the shared tool registry used by the MCP server (on by default) and the AI assistant (off by default)."
+    },
+    {
+      "name": "Assistant",
+      "description": "The AI assistant that answers questions with the platform's own tools and docs."
+    }
+  ],
+  "paths": {
+    "/api/sites": {
+      "get": {
+        "tags": [
+          "Sites"
+        ],
+        "operationId": "listSites",
+        "summary": "List study sites",
+        "description": "Every curated study site, alphabetically, with its change type, product, pass count and date range.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "change_type",
+            "in": "query",
+            "description": "Only sites of this change type (see `/api/change-types`).",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "agriculture",
+                "flood_wetland",
+                "subsidence",
+                "deformation"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Page size, 1–500.",
+            "schema": {
+              "type": "integer",
+              "default": 200,
+              "minimum": 1,
+              "maximum": 500
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "description": "Rows to skip.",
+            "schema": {
+              "type": "integer",
+              "default": 0,
+              "minimum": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of sites.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sites": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/SiteSummary"
+                      }
+                    },
+                    "limit": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/sites/{site_id}": {
+      "get": {
+        "tags": [
+          "Sites"
+        ],
+        "operationId": "getSite",
+        "summary": "Get one site with its time series",
+        "description": "A site with every measured value (`observations`) and one map image per pass (`scenes`). Each scene names the NISAR granule it came from.",
+        "x-rate-limit": "120 per minute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SiteId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The site.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SiteDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/change-types": {
+      "get": {
+        "tags": [
+          "Change types"
+        ],
+        "operationId": "listChangeTypes",
+        "summary": "List change types",
+        "description": "Each change type with its colour, NISAR product, image legend and the metrics it is measured by (id, label, unit, description).",
+        "x-rate-limit": "120 per minute",
+        "responses": {
+          "200": {
+            "description": "Change types.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "change_types": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ChangeType"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/sites/{site_id}/chain": {
+      "get": {
+        "tags": [
+          "Evidence"
+        ],
+        "operationId": "getSiteChain",
+        "summary": "Impact chain for a site",
+        "description": "The NISAR series for a site, the moments that sum it up, and related physical series (rain, river flow, earthquakes) summarised over the window before each pass. Open water is compared over the area every pass imaged (`footprint`). Shown for comparison only: lining up in time doesn't show that one affects the other.",
+        "x-rate-limit": "120 per minute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/SiteId"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The chain.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "available": {
+                      "type": "boolean"
+                    },
+                    "site_slug": {
+                      "type": "string"
+                    },
+                    "window_days": {
+                      "type": "integer",
+                      "description": "Days before each pass that a driver is summed or averaged over."
+                    },
+                    "radar": {
+                      "type": "object",
+                      "description": "The NISAR series the drivers are compared with."
+                    },
+                    "drivers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "One driver: id, label, note, series (daily), per_pass values (summarised over the window before each pass)."
+                      }
+                    },
+                    "moments": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      },
+                      "description": "Notable passes with a short explanation."
+                    },
+                    "footprint": {
+                      "type": [
+                        "object",
+                        "null"
+                      ],
+                      "description": "For open-water series: the share of the box every pass imaged (`pct_of_box`), `status` (`ok` or `insufficient`), `method` (`exact` from HDF5 masks, or `image` calibrated from the scene images, with `uncertainty_pp` on the `estimated` passes) and `image_url`, an overlay hatching the area left out."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/area-context": {
+      "get": {
+        "tags": [
+          "Areas"
+        ],
+        "operationId": "getAreaContext",
+        "summary": "Rain over a drawn area",
+        "description": "Daily rain (a weather model's estimate at the area's centre) between two dates, for comparing with NISAR passes over the area.",
+        "x-rate-limit": "30 per minute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BboxRequired"
+          },
+          {
+            "$ref": "#/components/parameters/StartRequired"
+          },
+          {
+            "$ref": "#/components/parameters/EndRequired"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Drivers over the area.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "drivers": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "$ref": "#/components/responses/Upstream"
+          }
+        }
+      }
+    },
+    "/api/nisar/products": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "listProducts",
+        "summary": "List searchable NISAR products",
+        "description": "The NISAR products the catalog search understands, with their CMR collections and what each is for.",
+        "x-rate-limit": "120 per minute",
+        "responses": {
+          "200": {
+            "description": "Products.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Product"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/nisar/granules": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "searchGranules",
+        "summary": "Search NISAR granules",
+        "description": "Granules of one product that intersect a box between two dates, newest first, with footprints, browse images and HDF5 download links. Proxied and cached from NASA CMR.",
+        "x-rate-limit": "30 per minute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BboxRequired"
+          },
+          {
+            "name": "product",
+            "in": "query",
+            "description": "NISAR product.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "GCOV",
+                "GUNW",
+                "GOFF",
+                "GSLC",
+                "SME2"
+              ],
+              "default": "GCOV"
+            }
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "First date (default: 90 days before `end`).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "description": "Last date (default: today).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "description": "Results, 1–50.",
+            "schema": {
+              "type": "integer",
+              "default": 20,
+              "minimum": 1,
+              "maximum": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Granules.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "granules": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Granule"
+                      }
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "end": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "$ref": "#/components/responses/Upstream"
+          }
+        }
+      }
+    },
+    "/api/nisar/coverage": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "getCoverage",
+        "summary": "Products with data over a box",
+        "description": "How many granules of each NISAR product cover a box between two dates, so a client can offer only the products that have data there. A product whose search failed is `null`.",
+        "x-rate-limit": "30 per minute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BboxRequired"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "description": "First date (default: 90 days before `end`).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "description": "Last date (default: today).",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Granule counts by product.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "products": {
+                      "type": "object",
+                      "additionalProperties": {
+                        "type": [
+                          "integer",
+                          "null"
+                        ]
+                      },
+                      "example": {
+                        "GCOV": 15,
+                        "GUNW": 0,
+                        "GOFF": 0,
+                        "GSLC": 0,
+                        "SME2": 8
+                      }
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "end": {
+                      "type": "string",
+                      "format": "date"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/nisar/browse-bounds": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "getBrowseBounds",
+        "summary": "Exact bounds of a browse image",
+        "description": "Reads a granule's browse KML (from `browse_kml_url` in a granule search) and returns the box the browse image covers, for drawing it on a map.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "kml",
+            "in": "query",
+            "required": true,
+            "description": "A granule's `browse_kml_url` (must be a NASA Earthdata URL).",
+            "schema": {
+              "type": "string",
+              "format": "uri"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Bounds.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "bbox": {
+                      "$ref": "#/components/schemas/Bbox"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "$ref": "#/components/responses/Upstream"
+          }
+        }
+      }
+    },
+    "/api/nisar/sme2/scene": {
+      "get": {
+        "tags": [
+          "Soil moisture"
+        ],
+        "operationId": "getSme2Scene",
+        "summary": "Render a soil-moisture pass",
+        "description": "Reads one SME2 granule over an area (up to 30° per side) and returns its date, quality, median values (`hh_db`, `hv_db`, `water_pct`, `soil_moisture` in m³/m³) and image URLs per layer. The first request for a granule and area takes ~5–15 s; later ones are cached. Needs the server to have an Earthdata token.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "granule",
+            "in": "query",
+            "required": true,
+            "description": "SME2 granule name, from a catalog search with `product=SME2`.",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/BboxRequired"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The pass.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "granule_id": {
+                      "type": "string"
+                    },
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "quality": {
+                      "type": "string"
+                    },
+                    "frequency": {
+                      "type": "string"
+                    },
+                    "image_bbox": {
+                      "$ref": "#/components/schemas/Bbox"
+                    },
+                    "images": {
+                      "type": "object",
+                      "description": "Image URL per layer: backscatter, soil_moisture (cover the whole frame)."
+                    },
+                    "values": {
+                      "type": "object",
+                      "description": "Median hh_db, hv_db, water_pct and soil_moisture (m³/m³) inside the area."
+                    },
+                    "valid_pct": {
+                      "type": "number"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "description": "The server has no Earthdata token, so it cannot read SME2."
+          }
+        }
+      }
+    },
+    "/api/nisar/profiles": {
+      "post": {
+        "tags": [
+          "Profiles"
+        ],
+        "operationId": "startProfile",
+        "summary": "Start a height profile",
+        "description": "Starts (or finds the cached result of) a background job that measures ground motion along a line, up to 100 km, over the full GUNW record of the track that covers it best. Poll `GET /api/nisar/profiles/{id}`. A new line takes minutes; the same line again is instant.",
+        "x-rate-limit": "20 per minute",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "line"
+                ],
+                "properties": {
+                  "line": {
+                    "type": "array",
+                    "description": "Points as [lon, lat], 2 or more.",
+                    "items": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "minItems": 2,
+                      "maxItems": 2
+                    }
+                  }
+                }
+              },
+              "example": {
+                "line": [
+                  [
+                    -155.32,
+                    19.41
+                  ],
+                  [
+                    -155.25,
+                    19.4
+                  ]
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Already done (cached).",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileJob"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Job queued or running.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileJob"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/landchange": {
+      "get": {
+        "tags": [
+          "Land change"
+        ],
+        "operationId": "getLandChange",
+        "summary": "Land-change gallery",
+        "description": "Places where NISAR saw change (volcanoes, glaciers, floods, landslides, fires, construction), each with every GCOV pass on one track and frame so images line up. Each pass has a false-colour `image_url` and an 8-bit HH layer (`hh_url`) for computing change maps in the browser.",
+        "x-rate-limit": "120 per minute",
+        "responses": {
+          "200": {
+            "description": "The gallery.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generated_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "method": {
+                      "type": "string"
+                    },
+                    "db_range": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      },
+                      "description": "The dB range the 8-bit HH layers map to."
+                    },
+                    "sites": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "description": "slug, name, kind, region, headline, story, look_for, bbox, frame, pixel_m, passes, sources."
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "operationId": "getHealth",
+        "summary": "Health",
+        "description": "Liveness, database connectivity, site count and when the data loader last ran.",
+        "x-rate-limit": "none",
+        "responses": {
+          "200": {
+            "description": "Healthy.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string"
+                    },
+                    "site_count": {
+                      "type": "integer"
+                    },
+                    "last_load_at": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    },
+                    "time": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Degraded."
+          }
+        }
+      }
+    },
+    "/api/tools": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "operationId": "listTools",
+        "summary": "List agent tools",
+        "description": "The shared tool registry: every tool the MCP server and the AI assistant can call, with its JSON Schema. The MCP server lists exactly these.",
+        "x-rate-limit": "120 per minute",
+        "responses": {
+          "200": {
+            "description": "Tools.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tools": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Tool"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/tools/{name}": {
+      "post": {
+        "tags": [
+          "System"
+        ],
+        "operationId": "callTool",
+        "summary": "Call an agent tool",
+        "description": "Runs one tool with JSON arguments and returns its result, exactly as an MCP client or the assistant would see it.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "description": "Tool name from `GET /api/tools`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "list_sites"
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "The tool's arguments."
+              },
+              "example": {}
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Tool result.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "tool": {
+                      "type": "string"
+                    },
+                    "result": {}
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/assistant/status": {
+      "get": {
+        "tags": [
+          "Assistant"
+        ],
+        "operationId": "getAssistantStatus",
+        "summary": "Assistant status",
+        "description": "Whether the assistant is configured on this server, and which model it uses.",
+        "x-rate-limit": "120 per minute",
+        "responses": {
+          "200": {
+            "description": "Status.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "enabled": {
+                      "type": "boolean"
+                    },
+                    "model": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/assistant/chat": {
+      "post": {
+        "tags": [
+          "Assistant"
+        ],
+        "operationId": "chat",
+        "summary": "Chat with the assistant (streaming)",
+        "description": "Sends the conversation and the page context; the reply streams back as Server-Sent Events: `text` (a piece of the answer), `tool` (a tool call and its result summary), `action` (a suggested UI action such as opening the workspace), `error`, and `done`.",
+        "x-rate-limit": "10 per minute, plus a daily cap",
+        "x-try-it": false,
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "messages"
+                ],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": [
+                            "user",
+                            "assistant"
+                          ]
+                        },
+                        "content": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  },
+                  "context": {
+                    "type": "object",
+                    "description": "Where the user is: `page` (path and title) and `workspace` (selected site, date, area)."
+                  }
+                }
+              },
+              "example": {
+                "messages": [
+                  {
+                    "role": "user",
+                    "content": "Why is HV backscatter higher over rice in August?"
+                  }
+                ],
+                "context": {
+                  "page": {
+                    "path": "/docs/science/polarization"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "An SSE stream (`text/event-stream`)."
+          },
+          "429": {
+            "description": "Rate limit or daily cap reached."
+          },
+          "503": {
+            "description": "The assistant is not configured on this server."
+          }
+        }
+      }
+    },
+    "/api/scenes/{image}": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "operationId": "getSceneImage",
+        "summary": "Scene image",
+        "description": "A map image (WebP) for one pass, as linked from `scenes[].image_url` or the land-change gallery.",
+        "x-rate-limit": "none",
+        "x-try-it": false,
+        "parameters": [
+          {
+            "name": "image",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "example": "sylhet-haor-floods/2026-06-20.webp"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The image (`image/webp`)."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/nisar/profiles/{pid}": {
+      "get": {
+        "tags": [
+          "Profiles"
+        ],
+        "operationId": "getProfile",
+        "summary": "Get a height profile",
+        "description": "A profile job's state (`queued`, `running`, `done`, `error`) and, when done, its `result`: terrain height and line-of-sight displacement (mm, + toward the satellite) at every point and date, with the corrections applied.",
+        "x-rate-limit": "240 per minute",
+        "parameters": [
+          {
+            "name": "pid",
+            "in": "path",
+            "required": true,
+            "description": "The `id` from `POST /api/nisar/profiles`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "1ae9401f4eca7b3e5258"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The job.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileJob"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/stories": {
+      "get": {
+        "tags": [
+          "Stories & findings"
+        ],
+        "operationId": "listStories",
+        "summary": "List stories",
+        "description": "The themes and every story with its question. Each story also names its place (`name`) and one of that place's own NISAR passes to picture it (`thumb_url`, a path under `/api/scenes`, and `thumb_date`).",
+        "x-rate-limit": "120 per minute",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "water",
+                "food",
+                "ground",
+                "ice",
+                "forest"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Stories.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "themes": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "stories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stories/{slug}": {
+      "get": {
+        "tags": [
+          "Stories & findings"
+        ],
+        "operationId": "getStory",
+        "summary": "Get a story",
+        "description": "One story in five chapters: the question and place; what NISAR saw (a study site's moments, or a gallery place's passes); labelled hypotheses; what NISAR can't see there; and what a longer record could make possible.",
+        "x-rate-limit": "120 per minute",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Story slug, e.g. `okavango-flood-pulse` or `jakobshavn` (from `/api/stories`).",
+            "example": "okavango-flood-pulse"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The story.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "title": {
+                      "type": "string"
+                    },
+                    "question": {
+                      "type": "string"
+                    },
+                    "place": {
+                      "type": "string"
+                    },
+                    "channel": {
+                      "type": "string"
+                    },
+                    "saw": {
+                      "type": "object"
+                    },
+                    "hypotheses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Hypothesis"
+                      }
+                    },
+                    "cant_see": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "next": {
+                      "type": "object"
+                    },
+                    "compare_with": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such story."
+          }
+        }
+      }
+    },
+    "/api/stories/{slug}/series.csv": {
+      "get": {
+        "tags": [
+          "Stories & findings"
+        ],
+        "operationId": "getStorySeriesCsv",
+        "summary": "Download a site's series as CSV",
+        "description": "Every NISAR value at a study site, one row per pass and metric: `site,date,metric,value,unit,quality,valid_pct,granule_id`. Study sites only.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Story slug, e.g. `okavango-flood-pulse` or `jakobshavn` (from `/api/stories`).",
+            "example": "sylhet-haor-floods"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "CSV file.",
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such study site."
+          }
+        }
+      }
+    },
+    "/api/findings/{slug}": {
+      "get": {
+        "tags": [
+          "Stories & findings"
+        ],
+        "operationId": "getFinding",
+        "summary": "Build a finding",
+        "description": "One moment of a story as a shareable card: the measured claim, the passes behind it, a confidence summary (provisional passes, partial coverage, gaps, record length), matching hypotheses, series to compare with, what can't be seen, links to reproduce it and a citation.",
+        "x-rate-limit": "120 per minute",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Story slug, e.g. `okavango-flood-pulse` or `jakobshavn` (from `/api/stories`).",
+            "example": "okavango-flood-pulse"
+          },
+          {
+            "name": "moment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Moment index; default is the story's key moment."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The finding.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "claim": {
+                      "type": "object"
+                    },
+                    "evidence": {
+                      "type": "object"
+                    },
+                    "confidence": {
+                      "type": "object"
+                    },
+                    "hypotheses": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Hypothesis"
+                      }
+                    },
+                    "links": {
+                      "type": "object"
+                    },
+                    "citation": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad moment."
+          },
+          "404": {
+            "description": "No such story."
+          }
+        }
+      }
+    },
+    "/api/coverage-check": {
+      "get": {
+        "tags": [
+          "Stories & findings"
+        ],
+        "operationId": "coverageCheck",
+        "summary": "Can NISAR answer a question here?",
+        "description": "For a box and window (default: the last year), count NISAR passes per product (GCOV, GUNW, GOFF, SME2), each track/frame's revisit, and the quality mix, with a plain verdict on what each product could support. Live NASA CMR search.",
+        "x-rate-limit": "20 per minute",
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/BboxRequired"
+          },
+          {
+            "name": "start",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Coverage per product.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "summary": {
+                      "type": "string"
+                    },
+                    "products": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad box or dates."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "parameters": {
+      "SiteId": {
+        "name": "site_id",
+        "in": "path",
+        "required": true,
+        "description": "Site id from `/api/sites`.",
+        "schema": {
+          "type": "integer"
+        },
+        "example": 3
+      },
+      "BboxRequired": {
+        "name": "bbox",
+        "in": "query",
+        "required": true,
+        "description": "`min_lon,min_lat,max_lon,max_lat` in degrees.",
+        "schema": {
+          "type": "string"
+        },
+        "example": "91.0,24.6,91.6,25.2"
+      },
+      "StartRequired": {
+        "name": "start",
+        "in": "query",
+        "required": true,
+        "description": "First date.",
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
+        "example": "2026-06-01"
+      },
+      "EndRequired": {
+        "name": "end",
+        "in": "query",
+        "required": true,
+        "description": "Last date (on or after `start`).",
+        "schema": {
+          "type": "string",
+          "format": "date"
+        },
+        "example": "2026-11-01"
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid parameters.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Not found.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Upstream": {
+        "description": "An upstream service (NASA CMR, weather) failed.",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      },
+      "Bbox": {
+        "type": "array",
+        "items": {
+          "type": "number"
+        },
+        "minItems": 4,
+        "maxItems": 4,
+        "description": "[min_lon, min_lat, max_lon, max_lat]"
+      },
+      "SiteSummary": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer"
+          },
+          "slug": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "change_type": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string",
+            "enum": [
+              "GCOV",
+              "GUNW"
+            ]
+          },
+          "latitude": {
+            "type": "number"
+          },
+          "longitude": {
+            "type": "number"
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/Bbox"
+          },
+          "frame": {
+            "type": "string",
+            "description": "NISAR track_direction_frame."
+          },
+          "scene_count": {
+            "type": "integer"
+          },
+          "first_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "last_date": {
+            "type": "string",
+            "format": "date"
+          },
+          "thumb_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Image of the newest pass that has one (a path under `/api/scenes`); null if no pass has an image."
+          },
+          "description": {
+            "type": "string"
+          }
+        }
+      },
+      "SiteDetail": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/SiteSummary"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "story_metric": {
+                "type": "string",
+                "description": "The metric that tells this site's story."
+              },
+              "observations": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "observed_on": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "metric": {
+                      "type": "string",
+                      "description": "hh_db, hv_db, water_pct or los_mm"
+                    },
+                    "value": {
+                      "type": "number"
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "granule_id": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              },
+              "scenes": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "date": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "granule_id": {
+                      "type": "string"
+                    },
+                    "image_url": {
+                      "type": "string"
+                    },
+                    "quality": {
+                      "type": "string"
+                    },
+                    "valid_pct": {
+                      "type": "number"
+                    }
+                  }
+                }
+              },
+              "reference": {
+                "type": [
+                  "array",
+                  "null"
+                ],
+                "description": "For displacement sites: [lon, lat] of the stable reference point motion is measured against."
+              }
+            }
+          }
+        ]
+      },
+      "ChangeType": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "color": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "image_legend": {
+            "type": "string"
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "label": {
+                  "type": "string"
+                },
+                "unit": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Product": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "collections": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Granule": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "product": {
+            "type": "string"
+          },
+          "collection": {
+            "type": "string"
+          },
+          "quality": {
+            "type": "string",
+            "description": "provisional or validated"
+          },
+          "start": {
+            "type": "string"
+          },
+          "end": {
+            "type": "string"
+          },
+          "size_mb": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "footprint": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "description": "Footprint polygon as [[lon, lat], ...]."
+          },
+          "bbox": {
+            "$ref": "#/components/schemas/Bbox"
+          },
+          "data_url": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "HDF5 download (needs an Earthdata login)."
+          },
+          "thumbnail_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "browse_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "browse_kml_url": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        }
+      },
+      "ProfileJob": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "queued",
+              "running",
+              "done",
+              "error"
+            ]
+          },
+          "progress": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "result": {
+            "type": [
+              "object",
+              "null"
+            ]
+          }
+        }
+      },
+      "Tool": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "input_schema": {
+            "type": "object"
+          }
+        }
+      },
+      "Hypothesis": {
+        "type": "object",
+        "description": "A physical explanation the data raises, not a tested cause.",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "driver": {
+            "type": "string",
+            "description": "The physical process."
+          },
+          "mechanism": {
+            "type": "string",
+            "description": "How it changes what the radar sees."
+          },
+          "channel": {
+            "type": "string",
+            "description": "Which polarization or measurement responds, and why."
+          },
+          "consistent_with": {
+            "type": "string",
+            "description": "What in the record fits, with numbers and dates."
+          },
+          "alternative": {
+            "type": "string",
+            "description": "Another explanation that fits the same data."
+          },
+          "test": {
+            "type": "string",
+            "description": "Data that would tell them apart."
+          },
+          "moments": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "description": "Moments this hypothesis addresses."
+          }
+        }
+      }
+    }
+  }
+}

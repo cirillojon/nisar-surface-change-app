@@ -1,0 +1,48 @@
+export const meta = {
+  title: "Polarization & backscatter",
+  description: "What HH and HV show on land and ice, the false-colour images, and the dB scale.",
+};
+
+**HH** sends and receives horizontal waves. **HV** sends horizontal and receives vertical. Vegetation scrambles the wave, so more vegetation means more HV.
+
+| Channel | Responds to | Shows |
+| --- | --- | --- |
+| HH | Ground surface, stems, flooded vegetation | Open water, floods |
+| HV | Leaves, branches, canopy | Crop growth and harvest, forest |
+| HH/HV | Surface vs. volume scattering | Bare ground vs. vegetation |
+
+## On land and ice
+
+| Change | Channel | Why |
+| --- | --- | --- |
+| Floods, wetlands | HH | Calm water is very dark; water under trees or rice is bright (double bounce) |
+| Crop growth and harvest | HV | Canopy builds, then is removed |
+| Bare, smooth fields | HH | Very dark, as for calm water |
+| Forest clearing | HV | Drops sharply where trees are cut (none in this app's boxes) |
+| Glacier fronts and fjord ice | HH | Rough ice is bright, calm water dark |
+| Ground motion | Phase (not a polarization) | Interferometry measures distance, see [Interferometry](/docs/science/interferometry) |
+
+This app has HH and HV at most places. Jakobshavn was collected in HH only, and Rio Branco and Etna have HV on only some passes; their images open in HH so every pass is drawn the same way.
+
+More, with the physical drivers behind each change: [Physical drivers & hypotheses](/docs/science/hypotheses).
+
+## False colour
+
+Red = HH, green = HV, blue = HH/HV.
+
+- Purple-blue: smooth ground, short crops
+- Green-yellow: trees, tall crops, buildings
+- Black: calm water
+
+<OpenInWorkspace mode="stories" site="punjab-crop-cycles">Punjab through the year</OpenInWorkspace>
+
+## dB
+
+Natural surfaces are usually negative. More negative is darker; +3 dB is about twice as bright. Values depend on angle, moisture and structure, so each site is compared with itself over time on one track and frame. The only fixed threshold is open water, at HH below −18 dB.
+
+## Pitfalls
+
+- Rain on the pass date brightens soil.
+- Wind brightens water.
+- A box median mixes fields, towns and water.
+- Partial passes (hollow points) can shift a median.

@@ -1,0 +1,47 @@
+export const meta = {
+  title: "Run it locally",
+  description: "Python 3.11+, Node.js 22+, git. No account needed.",
+};
+
+## macOS / Linux
+
+```bash
+git clone https://github.com/cirillojon/nisar-surface-change.git
+cd nisar-surface-change
+
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
+cp .env.example .env
+bin/start dev                      # http://localhost:8880
+
+cd frontend && npm install && npm run dev   # http://localhost:5173
+```
+
+## Windows (PowerShell)
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+pip install -r requirements.txt -r requirements-dev.txt
+Copy-Item .env.example .env
+flask db upgrade
+flask nisar load --force
+flask run --port 8880 --debug
+```
+
+Then in `frontend/`: `npm install` and `npm run dev`.
+
+## Optional
+
+`EARTHDATA_TOKEN` in `.env` enables soil moisture and new height profiles.
+
+`ENABLE_MCP=1` (the default) serves the read-only tool registry at `/api/tools` that the [MCP server](/docs/developers/mcp-install) wraps. `ENABLE_AI=1` plus an `ANTHROPIC_API_KEY` turns on the in-app assistant.
+
+## Commands
+
+| Task | Command |
+| --- | --- |
+| Backend tests | `pytest tests/` |
+| Frontend tests | `cd frontend && npm test` |
+| Lint / build | `npm run lint`, `npm run build` |
+| Reload site data | `flask nisar load --force` |
