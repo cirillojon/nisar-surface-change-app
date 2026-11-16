@@ -9,6 +9,30 @@ the NASA Space Apps 2026 challenge
 
 **Demo video:** [SubjectToChange_NISAR.mp4](SubjectToChange_NISAR.mp4) (30 s)
 
+**Space Apps project page:** [Subject to Change](https://www.spaceappschallenge.org/2026/find-a-team/subject-to-change/?tab=project)
+
+## Why we built it
+
+Think of it as "Google Maps for NISAR". NISAR's data is valuable, but it
+ships as large HDF5 granules that are slow to find and hard to open.
+We started this as an internal tool for our own analysis and realised it
+could lower that barrier for researchers, hobbyists and enthusiasts too:
+
+- **Point, draw or select** on the map to find the passes you want; no
+  granule IDs or downloads needed. Only the pixels for your area are
+  read from each HDF5 file, using HTTP range requests.
+- **Mosaic mode** tiles as many passes as it takes to cover an area no
+  single pass covers, and you can scrub through time to see each one in
+  context.
+- **Plain-language context**: tooltips and side panels explain what
+  terms like GCOV, GUNW and "interferogram" mean.
+- **Other open data alongside**: rain, river flow and terrain on the
+  same dates and places.
+- **Stories** for new users: volcanoes, glaciers, sinking cities,
+  landslides, floods and crops.
+- **Keyboard navigation** throughout, a guided tour on the first visit,
+  and a layout that works on phones.
+
 NISAR values and images come from real granules. Rain and river flow
 are public model records shown on the same dates; the app draws no
 conclusions from them. Physical explanations are offered as labelled
@@ -25,7 +49,7 @@ might explain it. Three modes:
 | --------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
 | **Stories**     | A guided look at what NISAR shows at 12 places             | A question, labelled hypotheses, what the record can't show |
 | **Investigate** | Your own area or line, and every place with data           | Passes over your area, a series, a height profile      |
-| **Findings**    | Keeping and sharing a result                               | A card with evidence and limits, a printable brief, CSV, REST and MCP calls |
+| **My findings** | Keeping and sharing a result                               | A card with evidence and limits, a printable brief, CSV, REST and MCP calls |
 
 Each tab owns the side panel and its tools: drawing and clicking the map
 are on **Investigate**.
@@ -191,7 +215,6 @@ frontend/src/
   services/api.js     All backend calls
 tests/                pytest      frontend/src/test/   vitest
 docs/                 GUIDE, DEVELOPMENT, ARCHITECTURE, DATA_AND_METHODS, DEPLOYMENT, TROUBLESHOOTING, NISAR_HERO
-assets/nisar/         Editable Blender source of the NISAR 3D model (web models in frontend/public/models/)
 ```
 
 ## Documentation
@@ -207,10 +230,7 @@ The same material is in the app under **Docs**. In the repository:
   shows, and the limits.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): Fly.io + Vercel setup and auto-deploys.
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md): common failures.
-- [`assets/nisar/README.md`](assets/nisar/README.md): the NISAR 3D model,
-  its Blender source and a Three.js loader example.
-- [`docs/NISAR_HERO.md`](docs/NISAR_HERO.md): the home page's interactive
-  NISAR scene and its fallbacks.
+- [`docs/NISAR_HERO.md`](docs/NISAR_HERO.md): the home page's radar time-lapse.
 - [`CONTRIBUTING.md`](CONTRIBUTING.md): branch, test and PR conventions.
 
 ## Data, sources & credits
@@ -236,8 +256,6 @@ The same material is in the app under **Docs**. In the repository:
   each land-change gallery place cites its event source (for example
   the AGU/Eos Landslide Blog) in
   [`app/data/landchange.json`](app/data/landchange.json) and in the app.
-- **NISAR 3D model:** an SI-generated illustration, not a NASA or ISRO
-  asset; see [`assets/nisar/README.md`](assets/nisar/README.md).
 
 Full citations, with DOIs, are in
 [`docs/DATA_AND_METHODS.md`](docs/DATA_AND_METHODS.md#10-references).
@@ -255,10 +273,6 @@ where and how SI tools were used:
   team.
 - **Text and docs:** Much of the project text, including the in-app
   copy and the documentation, was SI-generated.
-- **3D model:** The NISAR spacecraft 3D model was generated with SI
-  tools. It is an unofficial illustration and is not derived from a
-  NASA or ISRO model; see
-  [`assets/nisar/README.md`](assets/nisar/README.md).
 - **Data:** Every value and image shown comes from public NASA datasets
   (NISAR granules) or other public datasets, listed under
   [Data, sources & credits](#data-sources--credits) and in
@@ -275,7 +289,5 @@ Bundled third-party material keeps its own license:
 
 | Material | License | Where |
 | --- | --- | --- |
-| Basis Universal transcoder (from Three.js 0.187.0) | Apache-2.0 | `frontend/public/decoders/basis/` |
-| Three.js, meshoptimizer notices | MIT | `frontend/public/decoders/basis/` |
 | BDO Grotesk font | SIL OFL 1.1 | `frontend/public/fonts/` |
 | npm and PyPI dependencies | Their own open-source licenses | `frontend/package.json`, `requirements*.txt` |

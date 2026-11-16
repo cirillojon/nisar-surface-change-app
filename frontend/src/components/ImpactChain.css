@@ -867,3 +867,18 @@
     font-size: 12px;
   }
 }
+
+/* On a phone the evidence card shares the map: it takes less of it. */
+@media (max-width: 760px) {
+  @container map-canvas (width <= 620px) {
+    .map-evidence {
+      block-size: 42%;
+    }
+    .app-shell[data-demo] .map-evidence {
+      block-size: 34%;
+    }
+    .map-evidence > .panel.chain {
+      --chain-radar-height: clamp(64px, 12cqh, 96px);
+    }
+  }
+}

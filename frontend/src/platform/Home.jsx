@@ -36,7 +36,7 @@ export default function Home() {
         <div className="pf-hero-text">
           <h1>Watch Earth’s surface change through NISAR’s radar.</h1>
           <p className="pf-hero-lede">
-            Track floods, crops, ground motion, lava, and ice across 16 sites, even through clouds and darkness.
+            Track floods, crops, ground motion, lava, and ice across the globe, even through clouds and darkness.
           </p>
           <div className="pf-hero-ctas">
             <Link to="/workspace" className="pf-btn pf-btn-primary">Open the Workspace →</Link>

@@ -421,14 +421,49 @@ function stepStatus({ step, state, playing, looked, look, sequenceAt, atEntry })
   };
 }
 
+const PHONE_QUERY = "(max-width: 760px)";
+
+/**
+ * On a phone the bubble can fold down to its title and buttons, to show the
+ * map behind it. It opens again on the next step.
+ */
+function useFold(index) {
+  const [foldedAt, setFoldedAt] = useState(-1);
+  const [phone, setPhone] = useState(() => Boolean(window.matchMedia?.(PHONE_QUERY).matches));
+  useEffect(() => {
+    const query = window.matchMedia?.(PHONE_QUERY);
+    if (!query) return undefined;
+    const update = () => setPhone(query.matches);
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+  const folded = phone && foldedAt === index;
+  const toggle = () => setFoldedAt(folded ? -1 : index);
+  return { phone, folded, toggle };
+}
+
+function FoldButton({ folded, onToggle }) {
+  return (
+    <button
+      type="button"
+      className="tour-fold"
+      aria-expanded={!folded}
+      aria-label={folded ? "Show the tour text" : "Hide the tour text to see the map"}
+      onClick={onToggle}
+    >
+      {folded ? "Show" : "Hide"}
+    </button>
+  );
+}
+
 /**
  * The bubble: a non-modal dialog (the page stays usable), kept out of sight
  * until it has its measured place, and shaken by a stray click.
  */
-function TourBubble({ bubbleRef, bubble, step, index, width, nudged, children }) {
+function TourBubble({ bubbleRef, bubble, step, index, width, nudged, fold, children }) {
   // Keep the next step out of sight until we have its coordinates.
   const placing = bubble?.index !== index;
-  const classes = ["tour-bubble", nudged && "tour-bubble-nudge", step.art && "tour-bubble-intro"].filter(Boolean).join(" ");
+  const classes = ["tour-bubble", nudged && "tour-bubble-nudge", step.art && "tour-bubble-intro", fold.folded && "tour-bubble-folded"].filter(Boolean).join(" ");
   const style = { left: bubble?.left, top: bubble?.top, width: bubble?.w ?? width };
   return (
     <dialog
@@ -439,6 +474,7 @@ function TourBubble({ bubbleRef, bubble, step, index, width, nudged, children })
       style={placing ? { ...style, opacity: 0, pointerEvents: "none" } : style}
       aria-labelledby="tour-bubble-title"
     >
+      {fold.phone && <FoldButton folded={fold.folded} onToggle={fold.toggle} />}
       {children}
     </dialog>
   );
@@ -469,6 +505,7 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
   useFollowTheApp({ isDone, lost: status.lost, step, index, go: steps.go });
   useTourKeys({ steps, canNext, onEnd });
   const [nudged, onBlocked] = useNudge();
+  const fold = useFold(index);
   const bubbleRef = useRef(null);
   const snappedLine = Boolean(state.snapped) && step.id === "profile-elevation";
   const width = step.art ? INTRO_W : BUBBLE_W;
@@ -478,7 +515,7 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
   return (
     <div className="tour-layer" data-testid="tour">
       <TourShade look={look} bubble={bubble} interactive={Boolean(step.interactive)} onBlocked={onBlocked} />
-      <TourBubble bubbleRef={bubbleRef} bubble={bubble} step={step} index={index} width={width} nudged={nudged}>
+      <TourBubble bubbleRef={bubbleRef} bubble={bubble} step={step} index={index} width={width} nudged={nudged} fold={fold}>
         <BubbleText step={step} index={index} waiting={waiting} snappedLine={snappedLine} isDone={isDone} />
         <BubbleActions steps={steps} canNext={canNext} onEnd={onEnd} />
       </TourBubble>
