@@ -1,27 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
 
-import AoiPanel from "../components/AoiPanel.jsx";
 import ChangeMap from "../components/ChangeMap.jsx";
-import CoverageCheck from "../components/CoverageCheck.jsx";
 import ErrorBoundary from "../components/ErrorBoundary.jsx";
-import FindingCard from "../components/FindingCard.jsx";
 import ImpactChain from "../components/ImpactChain.jsx";
-import LandChangePanel from "../components/LandChangePanel.jsx";
-import LandPlayer from "../components/LandPlayer.jsx";
-import NotebookPanel from "../components/NotebookPanel.jsx";
-import PlacesList from "../components/PlacesList.jsx";
-import ProfilePanel from "../components/ProfilePanel.jsx";
 import SaveFindingDialog from "../components/SaveFindingDialog.jsx";
-import ScenePlayer from "../components/ScenePlayer.jsx";
 import SidebarResizer from "../components/SidebarResizer.jsx";
-import SiteDetail from "../components/SiteDetail.jsx";
-import SitePending from "../components/SitePending.jsx";
-import StoryList from "../components/StoryList.jsx";
-import StoryPanel from "../components/StoryPanel.jsx";
 import DemoTour from "../components/tour/DemoTour.jsx";
 import Tour from "../components/tour/Tour.jsx";
-import { Icon } from "../platform/icons.jsx";
+import DrawTools from "./components/DrawTools.jsx";
+import MapHeader from "./components/MapHeader.jsx";
+import ModeTabs from "./components/ModeTabs.jsx";
+import PanelLists from "./components/PanelLists.jsx";
+import SaveToast from "./components/SaveToast.jsx";
+import SelectionDetails from "./components/SelectionDetails.jsx";
+import TimelineDock from "./components/TimelineDock.jsx";
 import { LANGTANG, SYLHET } from "../components/tour/steps.js";
 import { setWorkspaceContext } from "../platform/workspaceContext.js";
 import {
@@ -55,7 +48,6 @@ import {
 import { aoiAround, footprintOverlay as buildFootprintOverlay, profileLayers } from "./mapLayers.js";
 import {
   DEFAULT_MODE,
-  MODES,
   findingParam,
   historyAction,
   modeForPlace,
@@ -860,128 +852,36 @@ export default function WorkspaceApp({ active = true }) {
   const firstPass = tourImagery?.passes?.[0]?.date;
   const tourPlace = tourImagery ? { ...tourImagery, bbox: aoi.bbox, suggested: [firstPass, firstPass] } : null;
 
-  let details = null;
-  if (landSite) {
-    details = (
-      <LandChangePanel
-        key={landSite.slug}
-        site={landSite}
-        onBack={backToList}
-        changeShown={landLayer === "change"}
-        onToggleChange={
-          landSite.passes?.some((p) => p.hh_url)
-            ? () => setLandLayer((layer) => (layer === "change" ? null : "change"))
-            : null
-        }
-        embedded={Boolean(activeStory)}
-      />
-    );
-  } else if (profileLine) {
-    details = (
-      <ProfilePanel
-        key={JSON.stringify(profileLine)}
-        line={profileLine}
-        onBack={backToList}
-      />
-    );
-  } else if (site) {
-    details = (
-      <SiteDetail
-        key={site.id}
-        site={site}
-        changeType={changeTypeOf(site.change_type)}
-        selectedDate={site.scenes?.[sceneIndex]?.date}
-        onSceneIndexChange={setSceneIndex}
-        catalogOpen={catalogOpen}
-        onCatalogToggle={toggleCatalog}
-        embedded={Boolean(activeStory)}
-        {...granuleProps}
-      />
-    );
-  } else if (tourPlace) {
-    // The tours' Kīlauea box: its imagery ships with the app and plays in
-    // the dock like a gallery place. No catalog search, no NASA browse images.
-    details = (
-      <article className="panel detail" aria-label="Selected area">
-        <button type="button" className="btn btn-link" onClick={backToList}>
-          ← All places
-        </button>
-        <p className="muted small detail-meta">Kīlauea summit · {tourPlace.region}</p>
-        <p>
-          Every NISAR pass over the summit caldera, {tourPlace.passes.length} of them on frame{" "}
-          <code>{tourPlace.frame}</code>, ~{tourPlace.pixel_m} m pixels. Play them under the map.
-        </p>
-      </article>
-    );
-  } else if (aoi) {
-    details = (
-      <AoiPanel
-        key={aoi.bbox.join(",")}
-        aoi={aoi}
-        changeTypes={changeTypes}
-        imagery={aoi.imagery ? landChange?.imagery?.[aoi.imagery] ?? null : null}
-        {...granuleProps}
-        onAreaRange={setAreaRange}
-        onAreaSeries={setAreaSeries}
-        areaFocus={areaFocus}
-      >
-        {aoi.drawn && !aoi.imagery && <CoverageCheck key={`cov-${aoi.bbox.join(",")}`} bbox={aoi.bbox} />}
-      </AoiPanel>
-    );
-  } else if (selectedSiteId !== null) {
-    details = (
-      <SitePending
-        site={pendingSite}
-        changeType={changeTypeOf(pendingSite?.change_type)}
-        error={siteError}
-        onRetry={() => setSiteAttempt((n) => n + 1)}
-        onBack={backToList}
-        backLabel={mode === "stories" && story ? "← All stories" : "← All places"}
-        embedded={Boolean(activeStory)}
-      />
-    );
-  }
+  // Is something selected on the map? Its panel (SelectionDetails) shows one
+  // of: a gallery place, a line, a site (loaded or loading), the tour's box
+  // (which is an area) or an area.
+  const hasSelection = Boolean(landSite || profileLine || site || aoi) || selectedSiteId !== null;
+  const shownSiteDate = site?.scenes?.[sceneIndex]?.date;
 
-  if (activeStory && details) {
-    details = (
-      <StoryPanel
-        key={activeStory.slug}
-        slug={activeStory.slug}
-        summary={activeStory}
-        selectedDate={site?.scenes?.[sceneIndex]?.date}
-        onSelectDate={(date, layer) => {
-          if (!site?.scenes?.some((pass) => pass.date === date)) return;
-          if (catalogOpen) returnToStudy();
-          setKeepDate(true);
-          selectAnalysisDate(date);
-          if (layer) setSiteLayer(layer);
-          if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
-        }}
-        activeChangePair={landLayer === "change" ? landDates : null}
-        onCompareImages={landSite ? (from, date, layer = "change") => {
-          const before = landSite.passes.find((p) => p.date === from);
-          if (!before || !landSite.passes.some((p) => p.date === date)) return;
-          setLandFocus((previous) => ({ from, date, n: (previous?.n ?? 0) + 1 }));
-          setLandLayer(layer === "change" && !before.hh_url ? "hh" : layer);
-          if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
-        } : null}
-        onOpenFinding={openFindingCard}
-        onSave={(ctx) => openSaveFor(storyDraft(ctx))}
-        shareOpen={shareOpen}
-        onShareToggle={() => setShareOpen((v) => !v)}
-        onBack={backToList}
-      >
-        {details}
-      </StoryPanel>
-    );
-  }
+  // A story's chart or text asks for a date (and maybe a layer) of its site.
+  const onStorySelectDate = (date, layer) => {
+    if (!site?.scenes?.some((pass) => pass.date === date)) return;
+    if (catalogOpen) returnToStudy();
+    setKeepDate(true);
+    selectAnalysisDate(date);
+    if (layer) setSiteLayer(layer);
+    if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
+  };
+  // A place's story asks to compare two of its images (or show their change map).
+  const onCompareImages = landSite ? (from, date, layer = "change") => {
+    const before = landSite.passes.find((p) => p.date === from);
+    if (!before || !landSite.passes.some((p) => p.date === date)) return;
+    setLandFocus((previous) => ({ from, date, n: (previous?.n ?? 0) + 1 }));
+    setLandLayer(layer === "change" && !before.hh_url ? "hh" : layer);
+    if (narrow()) mapTitleRef.current?.scrollIntoView({ block: "nearest" });
+  } : null;
 
   // What the side panel holds: this tab's view of the selection where it has
   // one, otherwise its list (navigation.js).
   const view = panelView({
     mode,
     hasStory: Boolean(story),
-    hasSelection: Boolean(details),
+    hasSelection,
     findingOpen: Boolean(openFinding),
   });
   const showPanelLabel = mode === "mine" ? "Show My findings" : `Show ${view}`;
@@ -992,21 +892,6 @@ export default function WorkspaceApp({ active = true }) {
     setMode(next);
     setPanelOpen(true);
     if (!panelOpen && narrow()) window.scrollTo({ top: 0, behavior: "instant" });
-  };
-
-  const onModeTabKeyDown = (event, index) => {
-    const count = MODES.length;
-    const destinations = {
-      ArrowLeft: (index + count - 1) % count,
-      ArrowRight: (index + 1) % count,
-      Home: 0,
-      End: count - 1,
-    };
-    if (!Object.hasOwn(destinations, event.key)) return;
-    event.preventDefault();
-    const nextIndex = destinations[event.key];
-    event.currentTarget.parentElement.children[nextIndex]?.focus({ preventScroll: true });
-    switchMode(MODES[nextIndex].id);
   };
 
   // Explorer images, when shown, replace the site's own scene on the map.
@@ -1057,63 +942,6 @@ export default function WorkspaceApp({ active = true }) {
   const siteLegend = site
     ? layerLegend(siteLayers ? siteLayer : "colour", changeTypeOf(site.change_type)?.image_legend)
     : { ramp: null, text: null };
-  // The dock under the map: time, layer and opacity for whatever is on it.
-  // It stays mounted while the tabs and the panel change, so a time-lapse
-  // keeps its date, layer and playback.
-  const timeline = (
-    <div
-      className="map-timeline"
-      ref={setTimelineHost}
-      inert={Boolean(drawing)}
-    >
-      {tourPlace ? (
-        <LandPlayer
-          key={`tour-${aoi.imagery}`}
-          site={tourPlace}
-          dbRange={landChange.db_range}
-          opacity={overlayOpacity}
-          onOpacityChange={setOverlayOpacity}
-          onOverlay={setLandOverlay}
-          layer={landLayer}
-          onLayerChange={setLandLayer}
-          colourLegend={backscatterLegend}
-        />
-      ) : landSite ? (
-        <LandPlayer
-          key={landSite.slug}
-          site={landSite}
-          dbRange={landChange.db_range}
-          opacity={overlayOpacity}
-          onOpacityChange={setOverlayOpacity}
-          onOverlay={setLandOverlay}
-          layer={landLayer}
-          onLayerChange={setLandLayer}
-          onDatesChange={setLandDates}
-          focus={landFocus}
-          guideDates={touring ? tourGuide : null}
-          colourLegend={backscatterLegend}
-        />
-      ) : site?.scenes?.length > 0 && !catalogOnMap ? (
-        <ScenePlayer
-          key={site.id}
-          scenes={site.scenes}
-          index={sceneIndex}
-          onIndexChange={setSceneIndex}
-          opacity={overlayOpacity}
-          onOpacityChange={setOverlayOpacity}
-          product={site.product}
-          imageRange={site.image_range}
-          legend={siteLegend.text}
-          ramp={siteLegend.ramp}
-          layers={siteLayers}
-          layer={siteLayer}
-          onLayerChange={setSiteLayer}
-          imageUrl={siteLayers ? mapSiteUrl : undefined}
-          docked
-        />
-      ) : null}
-    </div>
-  );
 
   const selectAnalysisDate = (date) => {
     if (aoi) {
@@ -1166,12 +994,30 @@ export default function WorkspaceApp({ active = true }) {
     setPanelOpen((open) => !open);
     if (!panelOpen && narrow()) window.scrollTo({ top: 0, behavior: "instant" });
   };
+  // The Tour button ends a running tour, or starts one. Shift-click starts
+  // demo mode, for presenting (full screen, Space to move on).
+  const onTourClick = (e) => {
+    if (touring) endTour();
+    else if (e.shiftKey) {
+      document.documentElement.requestFullscreen?.().catch(() => {});
+      startDemo();
+    } else startTour();
+  };
   // "Clear" removes a drawing and nothing else: the map stays where it is.
   const clearDrawing = () => {
     clearSelection();
     cancelDraw();
   };
-  const nothingSelected = !details;
+  // An evidence card's Save: its place may not be on the map yet, so build from the card itself.
+  const saveFindingCard = (ref, card) => {
+    if (card.story.source === "site" && site?.slug === card.site.slug) {
+      const m = { ...card.claim, focus: card.claim.focus ?? card.claim.end };
+      openSaveFor(momentDraft(card.story.title, m, card.moment));
+    } else if (landSite?.slug === card.site.slug) {
+      openSaveFor(placeDraft("moment"));
+    }
+  };
+  const nothingSelected = !hasSelection;
   // The selection's own panel (a story, a place's details); a finding card
   // and every list live in the other one.
   const showDetails = view === "story" || view === "details";
@@ -1186,90 +1032,23 @@ export default function WorkspaceApp({ active = true }) {
       data-demo-chain={demo && demoView.chain ? "" : undefined}
     >
       <div className="app-body" data-sidebar-open={demo ? demoView.panel : panelOpen} data-map-selection={Boolean(selectionTitle)} data-mode={mode}>
-        <section className="map-header" aria-label="Map controls">
-          <div className="map-heading">
-            <h1
-              id="map-title"
-              ref={mapTitleRef}
-              tabIndex={-1}
-              className={selectionTitle ? undefined : "visually-hidden"}
-              title={selectionTitle ?? undefined}
-            >
-              {selectionTitle ?? "NISAR map"}
-            </h1>
-            {/* With the story panel closed, its question stays with the map. */}
-            {activeStory && !panelOpen && <p title={activeStory.question}>{activeStory.question}</p>}
-          </div>
-          <div className="map-actions">
-            <button
-              type="button"
-              ref={panelButtonRef}
-              className="btn btn-secondary map-action panel-action"
-              aria-label={panelOpen ? "Hide panel" : showPanelLabel}
-              aria-controls="workspace-panel"
-              aria-expanded={panelOpen}
-              onClick={togglePanel}
-            >
-              <span className="panel-action-full">{panelOpen ? "Hide panel" : showPanelLabel}</span>
-              <span className="panel-action-short" aria-hidden="true">Panel</span>
-            </button>
-            {/* Save what is on the map: a place on a date and layer, a drawn area or line. */}
-            {details && !drawing && (
-              <button
-                type="button"
-                className="btn btn-secondary map-action"
-                data-tour="save-view"
-                title="Save what is on the map, with your own notes, to My findings"
-                onClick={() => openSaveFor(viewDraft())}
-              >
-                Save view
-              </button>
-            )}
-            <button
-              type="button"
-              ref={tourButtonRef}
-              className="btn btn-secondary map-action tour-button"
-              title={touring ? "End the guided tour" : "Take the guided tour (about 3 minutes)"}
-              onClick={(e) => {
-                if (touring) endTour();
-                // Shift-click: demo mode, for presenting (full screen, Space to move on).
-                else if (e.shiftKey) {
-                  document.documentElement.requestFullscreen?.().catch(() => {});
-                  startDemo();
-                } else startTour();
-              }}
-            >
-              <Icon name="compass" size={16} strokeWidth={2} />
-              <span className="map-action-label">{touring ? "End tour" : "Tour"}</span>
-            </button>
-          </div>
-        </section>
+        <MapHeader
+          title={selectionTitle}
+          question={activeStory && !panelOpen ? activeStory.question : null}
+          titleRef={mapTitleRef}
+          panelButtonRef={panelButtonRef}
+          tourButtonRef={tourButtonRef}
+          panelOpen={panelOpen}
+          showPanelLabel={showPanelLabel}
+          onTogglePanel={togglePanel}
+          canSaveView={hasSelection && !drawing}
+          onSaveView={() => openSaveFor(viewDraft())}
+          touring={touring}
+          onTourClick={onTourClick}
+        />
         <aside className="sidebar" aria-label="Workspace sidebar" hidden={demo && !demoView.panel}>
           <SidebarResizer />
-          <div className="sidebar-tabs">
-            <div className="mode-switch" role="tablist" aria-label="Workspace mode">
-              {MODES.map((m, index) => (
-                <button
-                  key={m.id}
-                  type="button"
-                  role="tab"
-                  id={`mode-${m.id}`}
-                  className="mode-tab"
-                  tabIndex={mode === m.id ? 0 : -1}
-                  aria-selected={mode === m.id}
-                  aria-controls="workspace-panel"
-                  title={m.hint}
-                  onClick={() => switchMode(m.id)}
-                  onKeyDown={(event) => onModeTabKeyDown(event, index)}
-                >
-                  {m.label}
-                  {m.id === "mine" && notebook.findings.length > 0 && (
-                    <span className="mode-count">{notebook.findings.length}</span>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
+          <ModeTabs mode={mode} onSwitch={switchMode} findingsCount={notebook.findings.length} />
           <div
             id="workspace-panel"
             className="sidebar-panel"
@@ -1279,57 +1058,67 @@ export default function WorkspaceApp({ active = true }) {
             hidden={!panelOpen}
           >
             <div id="panel-list" className="sidebar-scroll" hidden={showDetails}>
-              {mode === "stories" && view === "finding" && openFinding && (
-                <div className="findings-open">
-                  <button type="button" className="btn btn-link" onClick={() => setOpenFinding(null)}>
-                    {story ? "← Back to the story" : "← All stories"}
-                  </button>
-                  <FindingCard
-                    key={`${openFinding.slug}/${openFinding.moment ?? ""}`}
-                    slug={openFinding.slug}
-                    moment={openFinding.moment}
-                    saved={notebook.isSaved(openFinding)}
-                    onSave={(ref, card) => {
-                      // The card's place may not be on the map yet: build from the card itself.
-                      if (card.story.source === "site" && site?.slug === card.site.slug) {
-                        const m = { ...card.claim, focus: card.claim.focus ?? card.claim.end };
-                        openSaveFor(momentDraft(card.story.title, m, card.moment));
-                      } else if (landSite?.slug === card.site.slug) {
-                        openSaveFor(placeDraft("moment"));
-                      }
-                    }}
-                    onShowOnMap={showFindingOnMap}
-                    autoShow
-                    onChangeMoment={(moment) => setOpenFinding({ ...openFinding, moment })}
-                  />
-                </div>
-              )}
-              {mode === "stories" && view !== "finding" && (
-                <StoryList data={stories} selected={story?.slug} onSelect={selectStory} />
-              )}
-              {mode === "investigate" && (
-                <PlacesList
-                  loading={loading}
-                  sites={sites}
-                  changeTypes={changeTypes}
-                  selectedSiteId={selectedSiteId}
-                  onSelectSite={selectSite}
-                  landSites={landChange?.sites}
-                  landSlug={landSlug}
-                  onSelectLand={selectLandChange}
-                />
-              )}
-              {mode === "mine" && (
-                <NotebookPanel
-                  notebook={notebook}
-                  onShow={showSavedFinding}
-                  onOpenEvidence={(f) => openFindingCard({ slug: f.source.slug, moment: f.source.moment, title: f.title })}
-                />
-              )}
+              <PanelLists
+                mode={mode}
+                view={view}
+                stories={stories}
+                story={story}
+                onSelectStory={selectStory}
+                openFinding={openFinding}
+                onCloseFinding={() => setOpenFinding(null)}
+                onChangeFindingMoment={(moment) => setOpenFinding({ ...openFinding, moment })}
+                findingSaved={openFinding ? notebook.isSaved(openFinding) : false}
+                onSaveFinding={saveFindingCard}
+                onShowFindingOnMap={showFindingOnMap}
+                loading={loading}
+                sites={sites}
+                changeTypes={changeTypes}
+                selectedSiteId={selectedSiteId}
+                onSelectSite={selectSite}
+                landSites={landChange?.sites}
+                landSlug={landSlug}
+                onSelectLand={selectLandChange}
+                notebook={notebook}
+                onShowSaved={showSavedFinding}
+                onOpenEvidence={(f) => openFindingCard({ slug: f.source.slug, moment: f.source.moment, title: f.title })}
+              />
             </div>
             {/* Kept mounted while another tab shows, so a search or a profile isn't run again. */}
             <div id="selection-details" className="sidebar-scroll" hidden={!showDetails}>
-              {details}
+              <SelectionDetails
+                onBack={backToList}
+                changeTypeOf={changeTypeOf}
+                landSite={landSite}
+                landLayer={landLayer}
+                onLandLayerChange={setLandLayer}
+                profileLine={profileLine}
+                site={site}
+                selectedDate={shownSiteDate}
+                onSceneIndexChange={setSceneIndex}
+                catalogOpen={catalogOpen}
+                onCatalogToggle={toggleCatalog}
+                granuleProps={granuleProps}
+                selectedSiteId={selectedSiteId}
+                pendingSite={pendingSite}
+                siteError={siteError}
+                onRetrySite={() => setSiteAttempt((n) => n + 1)}
+                backLabel={mode === "stories" && story ? "← All stories" : "← All places"}
+                tourPlace={tourPlace}
+                aoi={aoi}
+                aoiImagery={aoi?.imagery ? landChange?.imagery?.[aoi.imagery] ?? null : null}
+                changeTypes={changeTypes}
+                onAreaRange={setAreaRange}
+                onAreaSeries={setAreaSeries}
+                areaFocus={areaFocus}
+                activeStory={activeStory}
+                onStorySelectDate={onStorySelectDate}
+                activeChangePair={landLayer === "change" ? landDates : null}
+                onCompareImages={onCompareImages}
+                onOpenFinding={openFindingCard}
+                onSaveStory={(ctx) => openSaveFor(storyDraft(ctx))}
+                shareOpen={shareOpen}
+                onShareToggle={() => setShareOpen((v) => !v)}
+              />
             </div>
           </div>
         </aside>
@@ -1379,43 +1168,14 @@ export default function WorkspaceApp({ active = true }) {
                   <div className="draw-host" ref={setDrawHost} />
                   <div className="moment-host" ref={setMomentHost} />
                   {mode === "investigate" && (
-                    <div className="map-draw-tools" role="group" aria-label="Drawing tools">
-                      <button
-                        type="button"
-                        ref={drawButtonRef}
-                        data-tour="draw-area"
-                        className="btn map-action draw-action"
-                        aria-pressed={drawing === "area"}
-                        aria-describedby={drawing === "area" ? "draw-instructions" : undefined}
-                        onClick={() => toggleDraw("area")}
-                      >
-                        <Icon name="drawArea" size={16} strokeWidth={2} />
-                        <span className="map-action-label">Draw area</span>
-                      </button>
-                      <button
-                        type="button"
-                        ref={lineButtonRef}
-                        data-tour="draw-line"
-                        className="btn map-action draw-action"
-                        aria-pressed={drawing === "line"}
-                        aria-describedby={drawing === "line" ? "draw-instructions" : undefined}
-                        title="Draw a line to see a height profile over time"
-                        onClick={() => toggleDraw("line")}
-                      >
-                        <Icon name="drawLine" size={16} strokeWidth={2} />
-                        <span className="map-action-label">Draw line</span>
-                      </button>
-                      {(aoi || profileLine) && (
-                        <button
-                          type="button"
-                          className="btn map-action"
-                          title="Remove what you drew from the map"
-                          onClick={clearDrawing}
-                        >
-                          Clear
-                        </button>
-                      )}
-                    </div>
+                    <DrawTools
+                      drawing={drawing}
+                      onToggle={toggleDraw}
+                      canClear={Boolean(aoi || profileLine)}
+                      onClear={clearDrawing}
+                      areaButtonRef={drawButtonRef}
+                      lineButtonRef={lineButtonRef}
+                    />
                   )}
                   {!demo && evidence && (
                     <div className="map-evidence" ref={evidenceRef} hidden={Boolean(drawing)} data-tour-active={touring}>
@@ -1423,7 +1183,32 @@ export default function WorkspaceApp({ active = true }) {
                     </div>
                   )}
                 </div>
-                {timeline}
+                <TimelineDock
+                  hostRef={setTimelineHost}
+                  inert={Boolean(drawing)}
+                  opacity={overlayOpacity}
+                  onOpacityChange={setOverlayOpacity}
+                  colourLegend={backscatterLegend}
+                  dbRange={landChange?.db_range}
+                  tourPlace={tourPlace}
+                  tourKey={aoi?.imagery}
+                  landSite={landSite}
+                  landLayer={landLayer}
+                  onLandLayerChange={setLandLayer}
+                  onLandOverlay={setLandOverlay}
+                  onLandDatesChange={setLandDates}
+                  landFocus={landFocus}
+                  guideDates={touring ? tourGuide : null}
+                  site={site}
+                  catalogOnMap={catalogOnMap}
+                  sceneIndex={sceneIndex}
+                  onSceneIndexChange={setSceneIndex}
+                  siteLegend={siteLegend}
+                  siteLayers={siteLayers}
+                  siteLayer={siteLayer}
+                  onSiteLayerChange={setSiteLayer}
+                  mapSiteUrl={mapSiteUrl}
+                />
               </div>
             </div>
             {demo && evidence}
@@ -1440,12 +1225,10 @@ export default function WorkspaceApp({ active = true }) {
         />
       )}
       {savedNote && (
-        <div className="save-toast" role="status">
-          Saved “{savedNote}” to My findings.
-          {mode !== "mine" && !touring && (
-            <button type="button" className="btn btn-link" onClick={() => switchMode("mine")}>Open</button>
-          )}
-        </div>
+        <SaveToast
+          title={savedNote}
+          onOpen={mode !== "mine" && !touring ? () => switchMode("mine") : null}
+        />
       )}
       {touring && demo && (
         <DemoTour
