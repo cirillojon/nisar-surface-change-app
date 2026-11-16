@@ -194,6 +194,9 @@ docs/                 TEAM_GUIDE, DEVELOPMENT, ARCHITECTURE, DATA_AND_METHODS, D
 
 ## Documentation
 
+- [`assets/nisar/README.md`](assets/nisar/README.md): NISAR 3D models, editable
+  Blender source, and the loader example for using the assets in the frontend.
+
 - [`docs/TEAM_GUIDE.md`](docs/TEAM_GUIDE.md): **start here.** Setup, a
   NISAR primer, the data pipeline, the codebase tour, and next steps.
 - [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md): day-to-day commands.

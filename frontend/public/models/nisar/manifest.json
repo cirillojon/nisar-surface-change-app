@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "credit": "NASA/JPL-Caltech",
+  "source": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.gltf",
+  "coordinateSystem": "glTF right-handed Y-up, source meter-scale units; NASA model origin retained",
+  "nominalReflectorMeters": 12,
+  "accuracy": "Public visualization; exact flight geometry is unverified",
+  "extensionsRequired": [
+    "EXT_meshopt_compression",
+    "KHR_mesh_quantization",
+    "KHR_texture_basisu"
+  ],
+  "decoderPath": "decoders/basis/",
+  "variants": {
+    "web": {
+      "file": "nisar-web.glb",
+      "bytes": 985044,
+      "triangles": 22386,
+      "drawCalls": 7,
+      "sha256": "f2c4163d8bd0a1e72d01b78d9f29b178fec7331279a9d18ee1345bc1f64b583b"
+    },
+    "compact": {
+      "file": "nisar-compact.glb",
+      "bytes": 587804,
+      "triangles": 15512,
+      "drawCalls": 7,
+      "sha256": "82c098307d24b6bd983e0220a8011bcf97419ffde7e5878507194b2f3c52437b"
+    }
+  }
+}

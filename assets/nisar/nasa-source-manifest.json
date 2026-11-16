@@ -1,0 +1,49 @@
+{
+  "retrievedAt": "2026-11-16T02:00:51.867Z",
+  "source": "NASA Eyes on the Earth",
+  "sourcePage": "https://eyes.nasa.gov/apps/earth/",
+  "credit": "NASA/JPL-Caltech",
+  "sourcePreservedUnmodified": true,
+  "asset": {
+    "generator": "Khronos glTF Blender I/O v1.3.48",
+    "version": "2.0"
+  },
+  "files": [
+    {
+      "name": "foil_n_jpg.jpg",
+      "url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/foil_n_jpg.jpg",
+      "bytes": 43058,
+      "sha256": "be922b7ea550409b042aaf666a70af1f32175a6ac732030812c2bac04595c578"
+    },
+    {
+      "name": "meshColor-Nisar_antenna.png",
+      "url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/meshColor-Nisar_antenna.png",
+      "bytes": 376812,
+      "sha256": "9ac20325cd9f5969421f8d04558e9d6491dc68319a574657c42689c699eb49d7"
+    },
+    {
+      "name": "Nisar_diff.png",
+      "url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar_diff.png",
+      "bytes": 490931,
+      "sha256": "09ec5c24b0a2ccd693a1381e552c091f0169367a689fea59aef6897309e5ee3d"
+    },
+    {
+      "name": "Nisar_norm.png",
+      "url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar_norm.png",
+      "bytes": 172451,
+      "sha256": "cca8e31dbb91f9dd5b08583761ea39fa2cc898c535821ae5a20d87f682b439b1"
+    },
+    {
+      "name": "Nisar.bin",
+      "url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.bin",
+      "bytes": 951036,
+      "sha256": "a2903ff03b64966975163bf71a8c693c1ce1a7b5a12c8bd3eef208d25616ecb4"
+    },
+    {
+      "name": "Nisar.gltf",
+      "url": "https://eyes.nasa.gov/assets/static/models/sc_nisar/Nisar.gltf",
+      "bytes": 91839,
+      "sha256": "8b506047c63067e2f93a89d78e4ed64562e3ddda63b5f051ae3327f3621d3dee"
+    }
+  ]
+}
