@@ -786,7 +786,15 @@ code {
 
 @media (max-width: 760px) {
   :root {
-    --control-height: 40px;
+    --control-height: 44px;
+  }
+  .chip:not([hidden]) {
+    min-height: 36px;
+  }
+  .map-frame .leaflet-bar a {
+    inline-size: var(--map-control-size);
+    block-size: var(--map-control-size);
+    line-height: var(--map-control-size);
   }
   .app-shell {
     min-height: 100dvh;
@@ -845,7 +853,7 @@ code {
     display: inline;
   }
   .map-frame {
-    --map-control-size: 36px;
+    --map-control-size: 40px;
     flex: none;
     height: max(300px, calc(100svh - var(--map-toolbar-bottom) - var(--workspace-tabs-height)));
     scroll-margin-block-start: var(--map-toolbar-bottom);
@@ -858,7 +866,7 @@ code {
   }
   .map-view-controls .btn,
   .scenes-docked .scene-controls .btn {
-    min-height: 36px;
+    min-height: 40px;
   }
 }
 
