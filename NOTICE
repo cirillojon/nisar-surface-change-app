@@ -9,18 +9,8 @@ NASA data and imagery does not imply endorsement by NASA or ISRO.
 
 This repository includes third-party material under its own terms:
 
-- Basis Universal transcoder (frontend/public/decoders/basis/basis_transcoder.*),
-  unmodified copies from Three.js 0.187.0. Apache License 2.0, Binomial LLC.
-  See frontend/public/decoders/basis/LICENSE-Basis.txt.
-- Three.js notice. MIT License, Copyright (c) 2010-2026 three.js authors.
-  See frontend/public/decoders/basis/LICENSE-Three.txt.
-- meshoptimizer notice. MIT License, Copyright (c) 2016-2026 Arseny Kapoulkine.
-  See frontend/public/decoders/basis/LICENSE-Meshoptimizer.txt.
 - BDO Grotesk font (frontend/public/fonts/). SIL Open Font License 1.1,
   Copyright 2020 The BDO Grotesk Project Authors. See frontend/public/fonts/OFL.txt.
-- NISAR spacecraft 3D model (frontend/public/models/nisar/, assets/nisar/),
-  generated with AI tools. It is an unofficial illustration, not derived
-  from a NASA or ISRO model. See assets/nisar/README.md.
 - NISAR-derived values and images (app/data/), computed from NISAR data
   products by NASA/JPL-Caltech and ISRO, distributed by the NASA Alaska
   Satellite Facility DAAC.
@@ -28,3 +18,7 @@ This repository includes third-party material under its own terms:
   (CC BY 4.0), based on ECMWF IFS, ERA5 and GloFAS data.
 
 Full source citations are in README.md and docs/DATA_AND_METHODS.md.
+
+Earlier versions included a spacecraft model adapted from NASA Eyes on the
+Earth, courtesy of NASA/JPL-Caltech. See assets/nisar/README.md for its source
+and modifications.
