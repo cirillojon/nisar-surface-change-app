@@ -1,6 +1,6 @@
 import { act, fireEvent, render, screen, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
-import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import App from "../App.jsx";
 import { codeSamples, operationById, operations } from "../platform/api/spec.js";
@@ -13,17 +13,6 @@ import { workspaceHref } from "../platform/workspaceContext.js";
 import * as api from "../services/api.js";
 
 describe("<TopBar />", () => {
-  beforeEach(() => {
-    const scheme = new EventTarget();
-    scheme.matches = false;
-    vi.stubGlobal("matchMedia", vi.fn(() => scheme));
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-    delete document.documentElement.dataset.theme;
-  });
-
   it("marks the current workspace without an opening arrow and keeps global actions usable", () => {
     const onSearch = vi.fn();
     render(
@@ -138,7 +127,6 @@ it("keeps the current page visible while a documentation page loads", async () =
     vi.restoreAllMocks();
     vi.unstubAllGlobals();
     delete document.documentElement.dataset.mode;
-    delete document.documentElement.dataset.theme;
   }
 });
 
