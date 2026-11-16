@@ -320,7 +320,7 @@ describe("<WorkspaceApp />", () => {
     fireEvent.click(await screen.findByRole("button", { name: /Okavango Delta/ }));
     // The story's heading is there before the story itself.
     expect(screen.getByRole("heading", { level: 2, name: SUMMARY.title })).toBeInTheDocument();
-    const why = { level: 3, name: /Why might this be happening/ };
+    const why = { level: 3, name: "Possible explanations" };
     expect(await screen.findByRole("heading", why)).toBeInTheDocument();
 
     // Investigate: the same site, as data rather than a story.
@@ -350,7 +350,7 @@ describe("<WorkspaceApp />", () => {
   it("returns from a story to the list and the whole world with its back link", async () => {
     open();
     fireEvent.click(await screen.findByRole("button", { name: /Okavango Delta/ }));
-    await screen.findByRole("heading", { level: 3, name: /Why might this be happening/ });
+    await screen.findByRole("heading", { level: 3, name: "Possible explanations" });
     await urlIs("/workspace?mode=stories&site=okavango-flood-pulse&date=2026-03-21");
     const home = Number(map().dataset.home);
 

@@ -67,7 +67,7 @@ export default function LandPlayer({
   layer: layerProp = null,
   onLayerChange = null,
   onDatesChange = null, // ({ from, to }) the two dates compared, as they change
-  focus = null, // { date, n }: show this date on the bar (the tour)
+  focus = null, // { date, from?, n }: show a requested pass or comparison
   guideDates = null, // dates to mark on the bar with yellow lines (the tour)
   loadLayer = defaultLoadLayer,
   toDataUrl = defaultToDataUrl,
@@ -75,15 +75,17 @@ export default function LandPlayer({
   const passes = site.passes;
   const dates = passes.map((p) => p.date);
   const idx = (d, fallback) => (dates.includes(d) ? dates.indexOf(d) : fallback);
-  const [from, setFrom] = useState(() => idx(site.suggested?.[0], 0));
+  const [from, setFrom] = useState(() => idx(focus?.from ?? site.suggested?.[0], 0));
   const [to, setTo] = useState(() => idx(focus?.date ?? site.suggested?.[1], dates.length - 1));
+  const focusFrom = focus?.from;
   const focusDate = focus?.date;
   const focusN = focus?.n;
   useEffect(() => {
+    if (focusFrom && dates.includes(focusFrom)) setFrom(dates.indexOf(focusFrom));
     if (focusDate && dates.includes(focusDate)) setTo(dates.indexOf(focusDate));
     // A new request (n), not a new `dates` array, moves the bar.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [focusDate, focusN]);
+  }, [focusFrom, focusDate, focusN]);
   const fromDate = dates[from];
   const toDate = dates[to];
   useEffect(() => {

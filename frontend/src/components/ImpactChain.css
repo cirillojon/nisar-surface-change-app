@@ -121,6 +121,8 @@
   }
   @supports (interpolate-size: allow-keywords) {
     .chain-disclosure::details-content {
+      /* Keep the first child's margin inside the animated height. */
+      display: flow-root;
       block-size: 0;
       overflow: clip;
       interpolate-size: allow-keywords;

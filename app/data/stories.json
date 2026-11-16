@@ -10,6 +10,7 @@
   "stories": [
     {
       "slug": "okavango-flood-pulse",
+      "key_limit": "Floodwater under vegetation can be missed.",
       "source": "site",
       "theme": "water",
       "title": "Open water shrinks through a rainless season",
@@ -20,6 +21,8 @@
       "hypotheses": [
         {
           "id": "upstream-pulse",
+          "caveat_summary": "The radar record starts too late to show the water arriving.",
+          "evidence_summary": "Modelled upstream flow peaked months before the highest radar reading.",
           "driver": "A flood pulse from Angola",
           "mechanism": "Rain in Angola's highlands reaches the delta months later as a slow flood, during Botswana's dry winter.",
           "channel": "HH: flooded lagoons and channels read dark.",
@@ -30,6 +33,8 @@
         },
         {
           "id": "dry-season-loss",
+          "caveat_summary": "Plant growth can hide water that is still there.",
+          "evidence_summary": "Open water fell or held at every pass.",
           "driver": "Evaporation and seepage",
           "mechanism": "Through the hot, dry months water evaporates, plants take it up and it seeps into the sand while inflow falls.",
           "channel": "HH: dark pixels shrink as water retreats.",
@@ -52,6 +57,7 @@
     },
     {
       "slug": "sylhet-haor-floods",
+      "key_limit": "Radar mode and wind can change how much water appears dark.",
       "source": "site",
       "theme": "water",
       "title": "Monsoon water in the Sylhet haors",
@@ -62,6 +68,8 @@
       "hypotheses": [
         {
           "id": "monsoon-filling",
+          "caveat_summary": "Different radar modes make the size of the July rise uncertain.",
+          "evidence_summary": "Open water rose as modelled river flow approached its July peak.",
           "driver": "Monsoon rain and rivers fill the haors",
           "mechanism": "Rain over the basin and the hills upstream raises the rivers, which spill into the haors.",
           "channel": "HH: open water spreads and the box darkens.",
@@ -72,6 +80,8 @@
         },
         {
           "id": "post-monsoon-drainage",
+          "caveat_summary": "A windy pass can make open water look like dry ground.",
+          "evidence_summary": "Both radar modes showed less open water by autumn.",
           "driver": "The haors drain after the monsoon",
           "mechanism": "As rain eases and the rivers fall, water drains back to the channels and the wetland beds emerge.",
           "channel": "HH: dark water gives way to brighter soil and plants.",
@@ -82,6 +92,8 @@
         },
         {
           "id": "acquisition-mode",
+          "caveat_summary": "Water and wind can also change between passes.",
+          "evidence_summary": "The late-season zigzag persisted over the same ground.",
           "driver": "The radar's mode, not water",
           "mechanism": "Passes alternate between two acquisition modes. If one mode reads the darkest water slightly brighter, for example through a higher noise floor, fewer pixels fall below −18 dB and less water is counted on the same ground.",
           "channel": "Not a surface signal: HH near the −18 dB threshold, in two radar modes.",
@@ -105,6 +117,7 @@
     },
     {
       "slug": "mekong-delta-rice",
+      "key_limit": "Floodwater under rice can be missed.",
       "source": "site",
       "theme": "water",
       "title": "Open water appears across An Giang in August",
@@ -115,6 +128,8 @@
       "hypotheses": [
         {
           "id": "river-flood-pulse",
+          "caveat_summary": "Local rain and deliberate flooding can also add water.",
+          "evidence_summary": "The largest rise in open water came near the modelled river peak.",
           "driver": "The Mekong's flood season",
           "mechanism": "Monsoon rain across the basin raises the river, which spreads over fields that are not behind high dikes.",
           "channel": "HH: flooded fields turn dark.",
@@ -125,6 +140,8 @@
         },
         {
           "id": "canopy-hides-water",
+          "caveat_summary": "Dense crops on drained fields can look the same.",
+          "evidence_summary": "Early fields read bright while little open water registered.",
           "driver": "Rice canopy hides the water",
           "mechanism": "Paddies are flooded under growing rice in June and July. The radar bounces off the water and then the stems, so they read bright.",
           "channel": "HH bright (double bounce); HV rising with the canopy.",
@@ -147,6 +164,7 @@
     },
     {
       "slug": "punjab-crop-cycles",
+      "key_limit": "A reading across the study area cannot identify individual crops.",
       "source": "site",
       "theme": "food",
       "title": "A year of HV over Punjab's fields",
@@ -157,6 +175,8 @@
       "hypotheses": [
         {
           "id": "wheat-growth-harvest",
+          "caveat_summary": "Rain can change the signal, and a 36-day gap obscures the timing.",
+          "evidence_summary": "The signal rose through winter, then dropped during the wheat harvest window.",
           "driver": "Wheat grows, then is harvested",
           "mechanism": "Wheat builds leaves and stems through winter and is cut in April, leaving stubble.",
           "channel": "HV: rises with canopy, falls when it is removed.",
@@ -167,6 +187,8 @@
         },
         {
           "id": "paddy-flooding",
+          "caveat_summary": "This was the only partial pass, covering 90% of the box. Rainwater can look the same.",
+          "evidence_summary": "Very dark pixels spiked on one July pass.",
           "driver": "Paddies flooded for transplanting",
           "mechanism": "Rice is transplanted into standing water. Until the canopy closes, calm water reflects the radar away.",
           "channel": "HH: field-shaped patches go very dark.",
@@ -177,6 +199,8 @@
         },
         {
           "id": "rice-growth-harvest",
+          "caveat_summary": "Other crops and trees can change the same radar signal.",
+          "evidence_summary": "The canopy signal rose into September and fell into November.",
           "driver": "Rice grows, then is harvested",
           "mechanism": "Irrigated rice builds canopy from July to September and is cut from October.",
           "channel": "HV: climbs to the record's highest values, then falls.",
@@ -199,6 +223,7 @@
     },
     {
       "slug": "columbia-basin-crops",
+      "key_limit": "Dark fields can be wet or smooth and dry.",
       "source": "site",
       "theme": "food",
       "title": "Circular fields darken in the Columbia Basin",
@@ -209,6 +234,8 @@
       "hypotheses": [
         {
           "id": "growth-harvest",
+          "caveat_summary": "Crops drying before harvest can also lower the signal.",
+          "evidence_summary": "The canopy signal fell at every pass after its August peak.",
           "driver": "Crops grow, then are harvested",
           "mechanism": "Irrigated crops build canopy through summer; harvest then removes it field by field.",
           "channel": "HV: rises with canopy, falls as it is removed.",
@@ -219,6 +246,8 @@
         },
         {
           "id": "bare-smooth-soil",
+          "caveat_summary": "Flooded or recently watered fields can also read dark.",
+          "evidence_summary": "Very dark patches spread as the canopy signal fell.",
           "driver": "Bare, smooth fields",
           "mechanism": "A field with no canopy and a smooth surface reflects the radar away, much as calm water does.",
           "channel": "HH: field-shaped patches fall below −18 dB.",
@@ -241,6 +270,7 @@
     },
     {
       "slug": "mexico-city-subsidence",
+      "key_limit": "One radar viewing angle cannot separate vertical and horizontal movement.",
       "source": "site",
       "theme": "ground",
       "title": "Ground in eastern Mexico City moves 20 cm in a year",
@@ -251,6 +281,8 @@
       "hypotheses": [
         {
           "id": "aquifer-compaction",
+          "caveat_summary": "The measurement depends on a reference point that could also move.",
+          "evidence_summary": "The measured point moved away from the satellite in both halves of the record.",
           "driver": "Clay compacting above a pumped aquifer",
           "mechanism": "Decades of groundwater pumping have lowered the water table, and the lake clays above it compact. Published work finds this almost fully irreversible (Chaussard et al., 2021).",
           "channel": "Phase: steady motion away from the satellite.",
@@ -261,6 +293,8 @@
         },
         {
           "id": "seasonal-pace",
+          "caveat_summary": "A year of data leaves other seasonal changes in compaction possible.",
+          "evidence_summary": "The fitted pace slowed during the wetter months.",
           "driver": "The change of pace may be the atmosphere",
           "mechanism": "This series has no correction for water vapour, which differs between dry and rainy months and shifts the measured distance. Chaussard et al. (2021) found steady rates here for decades and no link between subsidence rates and pumping or water levels.",
           "channel": "Phase: the fitted slope differs between the two periods.",
@@ -271,6 +305,8 @@
         },
         {
           "id": "april-step",
+          "caveat_summary": "A real, short-lived movement remains possible.",
+          "evidence_summary": "The next pass reversed part of the abrupt April step.",
           "driver": "The mid-April jump may be noise",
           "mechanism": "A 32 mm step that partly reverses on the next pass is unlike slow clay compaction. A passing difference in atmospheric delay between the point and its reference fits better.",
           "channel": "Phase in a single 12-day pair.",
@@ -293,6 +329,7 @@
     },
     {
       "slug": "rio-branco",
+      "key_limit": "A darker image can reflect drying ground or a drying canopy.",
       "source": "landchange",
       "theme": "forest",
       "title": "An Amazon forest and river dim through the dry season",
@@ -302,6 +339,8 @@
       "hypotheses": [
         {
           "id": "forest-floor-dries",
+          "caveat_summary": "A drying canopy or drift in radar calibration could also darken the image.",
+          "evidence_summary": "Forest and savanna both darkened through the dry season.",
           "driver": "The ground under the forest dries out",
           "mechanism": "L-band reaches through the canopy to trunks and ground. Wet or flooded ground sends a strong HH echo back off the trunks; as it drains and dries after the rains, that echo weakens.",
           "channel": "HH more than HV: HH carries the ground and trunk echo, HV comes mostly from the canopy.",
@@ -312,6 +351,8 @@
         },
         {
           "id": "river-recession",
+          "caveat_summary": "Wind-roughened water can look like newly exposed sand.",
+          "evidence_summary": "The change map shows a band of brighter pixels along the channel.",
           "driver": "The river falls and sandbars emerge",
           "mechanism": "As rain eases the river drops. Open water reads dark; exposed sand and banks read brighter.",
           "channel": "HH: bright streaks along the channel in the change map.",
@@ -334,6 +375,7 @@
     },
     {
       "slug": "jakobshavn",
+      "key_limit": "Brightness alone cannot tell whether the change is at the surface or within the snow.",
       "source": "landchange",
       "theme": "ice",
       "title": "A Greenland fjord brightens from June to October",
@@ -343,6 +385,8 @@
       "hypotheses": [
         {
           "id": "fjord-ice-packs",
+          "caveat_summary": "Wind-roughened water can be as bright as ice.",
+          "evidence_summary": "A broad area of the fjord brightened with a sharp edge.",
           "driver": "The fjord's ice packs together and refreezes",
           "mechanism": "In summer the glacier calves and the fjord's mix of icebergs and sea ice loosens, with open water between. In autumn it freezes into a rough, bright pack.",
           "channel": "HH: rough ice is bright, calm water dark.",
@@ -353,6 +397,8 @@
         },
         {
           "id": "melt-refreeze",
+          "caveat_summary": "The area-wide median can hide changes on the ice itself.",
+          "evidence_summary": "Median brightness varied little through the season.",
           "driver": "Surface melt and refreezing: expected, not clearly seen",
           "mechanism": "Wet snow absorbs radar energy and should read darker in high summer, then brighten once it refreezes. L-band reaches deeper than shorter wavelengths, so thin melt layers dim it less.",
           "channel": "HH. HV, which would show scattering inside the snow, was not collected.",
@@ -375,6 +421,7 @@
     },
     {
       "slug": "etna",
+      "key_limit": "These images show surface brightness. Detecting swelling requires a different radar product.",
       "source": "landchange",
       "theme": "ground",
       "title": "A ribbon of change on Etna",
@@ -384,6 +431,8 @@
       "hypotheses": [
         {
           "id": "new-surface",
+          "caveat_summary": "Snow, ash fall, and steep slopes can also change brightness.",
+          "evidence_summary": "A narrow ribbon brightened east of the summit area.",
           "driver": "Fresh lava replaced the old surface",
           "mechanism": "New lava has a different roughness at the radar's 24 cm wavelength from the ground it buried, so brightness changes along the flow.",
           "channel": "HH: a narrow ribbon in the change map.",
@@ -406,6 +455,7 @@
     },
     {
       "slug": "budhi-gandaki",
+      "key_limit": "Radar shadow hides slopes facing away from the satellite.",
       "source": "landchange",
       "theme": "ground",
       "title": "A reported landslide in the Himalaya",
@@ -415,6 +465,8 @@
       "hypotheses": [
         {
           "id": "slope-stripped",
+          "caveat_summary": "Radar distortion, moisture, and vegetation can produce similar patches.",
+          "evidence_summary": "A compact patch changed near the reported slide location.",
           "driver": "A slope stripped and buried in debris",
           "mechanism": "A slide removes vegetation and leaves rough rock and soil, which changes brightness over a compact area.",
           "channel": "HH: a compact patch in the change map.",
@@ -437,6 +489,7 @@
     },
     {
       "slug": "langtang",
+      "key_limit": "The images show the surface before and after the reported flow. Brightness alone cannot trace its outline.",
       "source": "landchange",
       "theme": "ground",
       "title": "A slope collapse high on Langtang Lirung",
@@ -446,6 +499,8 @@
       "hypotheses": [
         {
           "id": "debris-flow-track",
+          "caveat_summary": "Steep terrain, moisture, and snow can produce brightness changes too.",
+          "evidence_summary": "A streak of change appears in the pair bracketing the reported event.",
           "driver": "The debris flow scoured and buried the valley",
           "mechanism": "A debris flow strips plants and soil and leaves rough, wet deposits, which change how much radar energy comes back along its path.",
           "channel": "HH: a streak of brighter and darker pixels in the change map.",
@@ -456,6 +511,9 @@
         },
         {
           "id": "precursor",
+          "caveat_summary": "A brightness comparison can miss slow movement before a collapse.",
+          "imagery_pair": ["2026-07-26", "2026-08-19"],
+          "evidence_summary": "Earlier passes show no cluster of strong change near the reported source.",
           "driver": "Movement before the failure: not seen here",
           "mechanism": "A slope can creep or shed rock for weeks before it fails, which could change its brightness pass by pass.",
           "channel": "HH change between the passes before 19 August.",
@@ -479,6 +537,7 @@
     },
     {
       "slug": "jamuna",
+      "key_limit": "The images show exposed bars and water at the surface. Channel depth is unknown.",
       "source": "landchange",
       "theme": "water",
       "title": "A braided river after the monsoon",
@@ -488,6 +547,8 @@
       "hypotheses": [
         {
           "id": "monsoon-reshaping",
+          "caveat_summary": "Lower water can expose existing bars, and rough water can resemble sand.",
+          "evidence_summary": "Some areas that read as water in June brightened, while new dark patches appeared.",
           "driver": "Monsoon flows move the sand",
           "mechanism": "High flows erode banks, cut new channels and build new bars.",
           "channel": "HH: dark channels and brighter bars change places.",
