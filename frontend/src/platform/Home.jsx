@@ -1,14 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 
-import { assetUrl, fetchSite, fetchSites } from "../services/api.js";
+import HeroObservatory from "./HeroObservatory.jsx";
 import { useAssistant } from "./assistant/assistantStore.jsx";
 import { TABS, firstPageHref } from "./docs/nav.js";
 import { AI_ENABLED } from "./features.js";
 import { Icon } from "./icons.jsx";
 import { workspaceHref } from "./workspaceContext.js";
-
-const HERO_SITE = "sylhet-haor-floods";
 
 const CHANGES = [
   { icon: "flood", title: "Floods & wetlands", body: "Open water in Bangladesh's haors: 53% of the box in July, 14% by November.", site: "sylhet-haor-floods" },
@@ -22,99 +19,6 @@ const QUESTIONS = [
   "Why did Sylhet's open water shrink from July to November?",
   "Write Python that lists every study site and its date range",
 ];
-
-function HeroTimelapse() {
-  const [site, setSite] = useState(null);
-  const [index, setIndex] = useState(0);
-  const [playing, setPlaying] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetchSites()
-      .then((rows) => rows.find((s) => s.slug === HERO_SITE) ?? rows[0])
-      .then((s) => (s ? fetchSite(s.id) : null))
-      .then((s) => {
-        if (!cancelled && s) setSite(s);
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const scenes = useMemo(() => (site?.scenes ?? []).filter((s) => s.image_url), [site]);
-  const water = useMemo(() => {
-    const byDate = {};
-    for (const o of site?.observations ?? []) {
-      if (o.metric === "water_pct") byDate[o.observed_on] = o.value;
-    }
-    return byDate;
-  }, [site]);
-
-  useEffect(() => {
-    if (!playing || scenes.length < 2) return undefined;
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduce) return undefined;
-    const t = setInterval(() => setIndex((i) => (i + 1) % scenes.length), 1100);
-    return () => clearInterval(t);
-  }, [playing, scenes.length]);
-
-  const scene = scenes[index];
-  const pct = scene ? water[scene.date] : null;
-  const maxPct = Math.max(1, ...Object.values(water));
-
-  return (
-    <figure className="pf-hero-visual">
-      <div className="pf-hero-frame">
-        {scenes.map((s, i) => (
-          <img
-            key={s.date}
-            src={assetUrl(s.image_url)}
-            alt={i === index ? `NISAR radar image of ${site.name} on ${s.date}` : ""}
-            aria-hidden={i !== index}
-            className={i === index ? "is-on" : ""}
-            loading={i < 2 ? "eager" : "lazy"}
-          />
-        ))}
-        {!scene && <div className="pf-hero-placeholder">NISAR radar time-lapse</div>}
-        {scene && (
-          <div className="pf-hero-hud">
-            <span className="pf-hero-date">{scene.date}</span>
-            {pct != null && <span className="pf-hero-pct">{pct.toFixed(1)}% open water</span>}
-          </div>
-        )}
-      </div>
-      {scenes.length > 1 && (
-        <div className="pf-hero-strip" role="group" aria-label="Passes">
-          <button type="button" className="pf-hero-play" onClick={() => setPlaying((p) => !p)} aria-label={playing ? "Pause" : "Play"}>
-            {playing ? "❚❚" : "▶"}
-          </button>
-          <div className="pf-hero-bars">
-            {scenes.map((s, i) => (
-              <button
-                key={s.date}
-                type="button"
-                className={i === index ? "is-on" : ""}
-                style={{ "--h": `${Math.max(8, ((water[s.date] ?? 0) / maxPct) * 100)}%` }}
-                onClick={() => {
-                  setIndex(i);
-                  setPlaying(false);
-                }}
-                aria-label={`${s.date}${water[s.date] != null ? `, ${water[s.date].toFixed(1)}% open water` : ""}`}
-              />
-            ))}
-          </div>
-        </div>
-      )}
-      <figcaption>
-        {scenes.length > 0
-          ? `${site.name} · NISAR L-band radar · ${scenes.length} passes, ${scenes[0].date} to ${scenes[scenes.length - 1].date}. `
-          : "Loading NISAR passes… "}
-        <Link to={workspaceHref({ site: HERO_SITE })}>Explore it →</Link>
-      </figcaption>
-    </figure>
-  );
-}
 
 export default function Home() {
   const { ask } = useAssistant();
@@ -141,7 +45,7 @@ export default function Home() {
             )}
           </div>
         </div>
-        <HeroTimelapse />
+        <HeroObservatory />
       </section>
 
       <section className="pf-home-section">
@@ -202,7 +106,7 @@ export default function Home() {
         <div><strong>Data</strong><span>NISAR L2/L3 products from NASA’s ASF DAAC, via NASA CMR</span></div>
         <div><strong>Status</strong><span>NISAR products are provisional until reprocessing ends</span></div>
         <div><strong>Methods</strong><span><Link to="/docs/data/methods">Every number’s source and limits</Link></span></div>
-        <div><strong>License</strong><span>Open source (MIT) · <a href="https://github.com/cirillojon/nisar-surface-change" target="_blank" rel="noreferrer">GitHub</a></span></div>
+        <div><strong>License</strong><span>Open source (MIT) · <a href="https://github.com/cirillojon/nisar-surface-change-app" target="_blank" rel="noreferrer">GitHub</a></span></div>
       </section>
     </div>
   );
