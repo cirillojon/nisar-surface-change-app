@@ -868,6 +868,10 @@ code {
   .scenes-docked .scene-controls .btn {
     min-height: 40px;
   }
+  /* Fields are 16px on a phone (no iOS focus zoom): let the layer name fit. */
+  .scenes-docked .layer-select select {
+    width: auto;
+  }
 }
 
 .detail.panel > h2 {
@@ -1635,7 +1639,7 @@ code {
 @media (max-width: 760px) {
   .tour-bubble {
     padding: 10px 12px;
-    max-height: min(32svh, calc(100svh - 24px));
+    max-height: min(max(32svh, 220px), calc(100svh - 24px));
   }
   .tour-bubble .tour-step-count {
     margin-block: 0 2px;
@@ -1644,16 +1648,30 @@ code {
   .tour-bubble .tour-progress {
     display: none;
   }
+  /* The bubble may scroll on a short screen: its buttons stay in view. */
   .tour-bubble .tour-actions {
+    position: sticky;
+    z-index: 1;
+    inset-block-end: -10px;
     gap: 4px;
+    margin-block-end: -10px;
+    padding-block: 6px 10px;
+    background: var(--paper);
   }
   .tour-bubble .tour-actions .btn {
     min-height: 36px;
-    padding-inline: 10px;
+    padding-inline: 8px;
     font-size: 0.85rem;
   }
   .tour-bubble .tour-hint {
     font-size: 0.78rem;
+  }
+  /* Intro steps point at nothing on the map: they keep their full height. */
+  .tour-bubble.tour-bubble-intro {
+    max-height: calc(100svh - 24px);
+  }
+  .tour-bubble .tour-nav {
+    gap: 2px;
   }
   .tour-bubble-intro .tour-art {
     max-height: 18svh;
@@ -1662,7 +1680,7 @@ code {
     margin-inline: auto;
   }
   .tour-actions {
-    margin-top: 6px;
+    margin-top: 2px;
   }
   .tour-bubble h3 {
     font-size: 1.05rem;

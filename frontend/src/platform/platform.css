@@ -1918,7 +1918,6 @@ h3:hover > .pf-anchor,
   }
   body {
     overflow-x: hidden;
-    overscroll-behavior-y: none;
   }
   a,
   button,
