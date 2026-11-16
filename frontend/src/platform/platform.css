@@ -1934,14 +1934,13 @@ h3:hover > .pf-anchor,
   input:not([type="range"], [type="checkbox"], [type="radio"]),
   select,
   textarea {
-    font-size: 16px;
+    font-size: 16px !important;
   }
   .pf-breadcrumbs a,
   .pf-edit,
   .pf-footer a {
     display: inline-block;
     padding-block: 11px;
-    margin-block: -11px;
   }
   .pf-footer li {
     margin-bottom: 0;
