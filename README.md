@@ -7,6 +7,8 @@ the NASA Space Apps 2026 challenge
 
 **Live app:** <https://nisar-surface-change-app.vercel.app>
 
+**Demo video:** [SubjectToChange_NISAR.mp4](SubjectToChange_NISAR.mp4) (30 s)
+
 NISAR values and images come from real granules. Rain and river flow
 are public model records shown on the same dates; the app draws no
 conclusions from them. Physical explanations are offered as labelled
