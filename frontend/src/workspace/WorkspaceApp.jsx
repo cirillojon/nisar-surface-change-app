@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useLocation, useNavigationType, useSearchParams } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 
 import ChangeMap from "../components/ChangeMap.jsx";
 import ErrorBoundary from "../components/ErrorBoundary.jsx";
@@ -30,6 +30,7 @@ import {
 import { assetUrl, fetchStory } from "../services/api.js";
 import { siteQuery, useCatalog, useLandChange, useSite, useStories } from "./data/queries.js";
 import { defaultSceneIndex, useSelection } from "./state/selection.js";
+import { useWorkspaceUrl } from "./state/useWorkspaceUrl.js";
 import { loadImage } from "../services/imageCache.js";
 import { imageLayerOptions, layerLegend, useLayerMapper } from "../services/layers.js";
 import { siteSeries } from "../services/measurements.js";
@@ -43,12 +44,10 @@ import { aoiAround, footprintOverlay as buildFootprintOverlay, profileLayers } f
 import {
   DEFAULT_MODE,
   findingParam,
-  historyAction,
   modeForPlace,
   modeFrom,
   panelView,
   parseFinding,
-  workspaceParams,
 } from "./navigation.js";
 
 const NARROW_LAYOUT = "(max-width: 760px)";
@@ -58,12 +57,8 @@ const NARROW_LAYOUT = "(max-width: 760px)";
 // trip to the docs. `active` says whether it is the visible route; only
 // then does it read and write `?site=<slug>&date=<YYYY-MM-DD>` in the URL.
 export default function WorkspaceApp({ active = true }) {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const location = useLocation();
-  const navigationType = useNavigationType();
-  // A site (its id) or place (its slug) selected from the URL, until it shows.
-  const pendingSiteRef = useRef(null);
-  const pendingPlaceRef = useRef(null);
+  // The URL the workspace opened on sets where it starts (see also useWorkspaceUrl).
+  const [searchParams] = useSearchParams();
   // Server data (data/queries.js): the catalog, the gallery and the stories.
   const queryClient = useQueryClient();
   const { changeTypes, products, sites, loading, error } = useCatalog();
@@ -147,8 +142,6 @@ export default function WorkspaceApp({ active = true }) {
   const [demo, setDemo] = useState(() => Boolean(searchParams.get("demo")));
   const [demoView, setDemoView] = useState({ panel: false, chain: false });
   const tourButtonRef = useRef(null);
-  const touringRef = useRef(touring);
-  touringRef.current = touring;
   // Kīlauea steps: the pin / box / line drawn on the map, the place the map
   // is held on, a nonce that returns the map to it, and whether the line
   // the viewer drew was matched to the suggested one.
@@ -179,16 +172,8 @@ export default function WorkspaceApp({ active = true }) {
   const [saveDraft, setSaveDraft] = useState(null);
   const [savedNote, setSavedNote] = useState(null);
 
-  // Select one thing (or nothing), its view starting afresh plus `view`;
-  // either way nothing is left waiting on the URL.
-  const choose = (next, view) => {
-    select(next, view);
-    pendingSiteRef.current = null;
-  };
-  const clearSelection = useCallback(() => {
-    clear();
-    pendingSiteRef.current = null;
-  }, [clear]);
+  // Nothing selected (the reducer resets the view with it).
+  const clearSelection = clear;
 
   const narrow = () => window.matchMedia(NARROW_LAYOUT).matches;
   const cancelDraw = useCallback(() => setDrawing(null), []);
@@ -238,7 +223,7 @@ export default function WorkspaceApp({ active = true }) {
 
   const selectSite = (id) => {
     if (id !== selectedSiteId) {
-      choose({ kind: "site", id });
+      select({ kind: "site", id });
     } else if (siteError) {
       retrySite();
     }
@@ -249,7 +234,7 @@ export default function WorkspaceApp({ active = true }) {
 
   const selectPoint = ({ latitude, longitude }) => {
     setMode("investigate");
-    choose({ kind: "area", aoi: aoiAround(latitude, longitude) });
+    select({ kind: "area", aoi: aoiAround(latitude, longitude) });
     revealSelection();
   };
 
@@ -262,7 +247,7 @@ export default function WorkspaceApp({ active = true }) {
     const snapped = touring ? TOUR_BOX : null;
     const bbox = snapped ?? drawn;
     setMode("investigate");
-    choose({
+    select({
       kind: "area",
       aoi: {
         latitude: (bbox[1] + bbox[3]) / 2,
@@ -277,7 +262,7 @@ export default function WorkspaceApp({ active = true }) {
   };
 
   const selectLandChange = (slug) => {
-    choose({ kind: "place", slug });
+    select({ kind: "place", slug });
     cancelDraw();
     revealSelection();
   };
@@ -325,10 +310,10 @@ export default function WorkspaceApp({ active = true }) {
         else setPendingDate(finding.claim.end);
         setKeepDate(true);
       } else {
-        choose({ kind: "site", id: target.id }, { pendingDate: finding.claim.end, keepDate: true });
+        select({ kind: "site", id: target.id }, { pendingDate: finding.claim.end, keepDate: true });
       }
     } else if (finding.site.slug !== landSlug) {
-      choose({ kind: "place", slug: finding.site.slug });
+      select({ kind: "place", slug: finding.site.slug });
     }
     cancelDraw();
     if (focusMap && narrow()) {
@@ -351,7 +336,7 @@ export default function WorkspaceApp({ active = true }) {
     const snapped = touring ? TOUR_LINE : null;
     setMode("investigate");
     setTourSnapped(Boolean(snapped));
-    choose({ kind: "line", line: snapped ?? line });
+    select({ kind: "line", line: snapped ?? line });
     cancelDraw();
     revealSelection();
   };
@@ -373,13 +358,13 @@ export default function WorkspaceApp({ active = true }) {
         if (i >= 0) setSceneIndex(i);
         else if (date) setPendingDate(date);
       } else {
-        choose({ kind: "site", id: target.id }, { pendingDate: date });
+        select({ kind: "site", id: target.id }, { pendingDate: date });
       }
       setKeepDate(Boolean(date));
       if (layer) setSiteLayer(layer);
     } else {
       if (slug !== landSlug) {
-        choose({ kind: "place", slug });
+        select({ kind: "place", slug });
       }
       setLandLayer(layer);
       setLandFocus(date ? (f) => ({ date, n: (f?.n ?? 0) + 1 }) : null);
@@ -613,126 +598,75 @@ export default function WorkspaceApp({ active = true }) {
     setPanelOpen(!narrow());
     setHomeKey((n) => n + 1);
   };
-  // The top bar's Workspace link, clicked while already here, goes there.
-  // (Arriving from another page keeps what was open: see WorkspaceHost.)
-  const wasActiveRef = useRef(false);
-  useEffect(() => {
-    const here = wasActiveRef.current;
-    wasActiveRef.current = active;
-    if (active && here && navigationType === "PUSH" && !location.search && !touringRef.current) goHome();
-    // Only a navigation should run this, not each render's new goHome.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
-
-  // ── URL ⇄ selection (deep links from the docs and the assistant) ──
-  const selectedSiteIdRef = useRef(selectedSiteId);
-  selectedSiteIdRef.current = selectedSiteId;
-  const siteRef = useRef(site);
-  siteRef.current = site;
-  const urlSite = searchParams.get("site");
-  const urlDate = searchParams.get("date");
-  const urlMode = searchParams.get("mode");
-  const urlPlace = searchParams.get("place");
-  const urlFinding = searchParams.get("finding");
-  // A mode, place or finding asked for by a link while the workspace is open
-  // (an old `mode=findings` link opens Stories or My findings).
-  useEffect(() => {
-    if (active && urlMode) setMode((m) => modeFrom(urlMode, m, { hasFinding: Boolean(urlFinding) }));
-    // The finding is read with the mode; a new finding alone is handled below.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, urlMode]);
-  useEffect(() => {
-    if (!active || !urlFinding || findingParam(openFinding) === urlFinding) return;
-    setOpenFinding(parseFinding(urlFinding));
-    setMode("stories");
-    setPanelOpen(true);
-    // Only a new finding in the URL should reopen the panel.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, urlFinding]);
+  // ── The URL (state/useWorkspaceUrl.js): links, Back / Forward, the top bar ──
   // A link that names a place but no tab: My findings has no view of a
   // place, so move to a tab that does. A finding link keeps its card in view.
-  const showLinkedPlace = (slug) => {
-    if (!urlMode) setMode((m) => (m === "mine" ? modeForPlace(m, storyIndex.has(slug)) : m));
-    if (urlFinding) setPanelOpen(true);
+  const showLinkedPlace = (slug, request) => {
+    if (!request.mode) setMode((m) => (m === "mine" ? modeForPlace(m, storyIndex.has(slug)) : m));
+    if (request.finding) setPanelOpen(true);
   };
-  const landSlugRef = useRef(landSlug);
-  landSlugRef.current = landSlug;
-  useEffect(() => {
-    if (!active || !urlPlace || !landChange || urlPlace === landSlugRef.current) return;
-    // Only places with passes open: a "checked, nothing visible" place has no images.
-    if (landChange.sites.some((s) => s.slug === urlPlace && s.passes?.length)) {
-      pendingPlaceRef.current = urlPlace;
-      selectLandChange(urlPlace);
-      showLinkedPlace(urlPlace);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, urlPlace, landChange]);
-  useEffect(() => {
-    if (!active || !urlSite || sites.length === 0) return;
-    const target = sites.find((s) => s.slug === urlSite || String(s.id) === urlSite);
-    if (!target) return;
-    if (target.id === selectedSiteIdRef.current) {
-      const index = urlDate ? siteRef.current?.scenes?.findIndex((x) => x.date === urlDate) ?? -1 : -1;
-      if (index >= 0) setSceneIndex(index);
+  // Apply a navigation to the workspace: what its URL asks for.
+  const followUrl = (request, { pop, home }) => {
+    // The top bar's Workspace link, clicked while already here, goes to the
+    // default workspace. (Arriving from another page keeps what was open.)
+    if (home) {
+      if (!touring) goHome();
       return;
     }
-    selectSite(target.id);
-    // After selectSite, which clears whatever was left waiting.
-    pendingSiteRef.current = target.id;
-    setPendingDate(urlDate);
-    setKeepDate(Boolean(urlDate));
-    showLinkedPlace(target.slug);
-    // selectSite is recreated each render; the URL and site list drive this.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, urlSite, urlDate, sites]);
-
-  // ?demo=1 (the search menu's "Demo mode"): start demo mode, then drop it from the URL.
-  const urlDemo = searchParams.get("demo");
-  useEffect(() => {
-    if (!active || !urlDemo) return;
-    if (!demo) startDemo();
-    const next = new URLSearchParams(searchParams);
-    next.delete("demo");
-    setSearchParams(next, { replace: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, urlDemo]);
-
-  // Back or Forward to a URL without a place or finding: close what is open,
-  // so the panel shows the list the URL describes.
-  const openFindingRef = useRef(openFinding);
-  openFindingRef.current = openFinding;
-  useEffect(() => {
-    if (!active || navigationType !== "POP") return;
-    if (!urlSite && !urlPlace && (selectedSiteIdRef.current != null || landSlugRef.current)) {
-      clearSelection();
-      cancelDraw();
+    // A tab (an old `mode=findings` link opens Stories or My findings).
+    if (request.mode) setMode((m) => modeFrom(request.mode, m, { hasFinding: Boolean(request.finding) }));
+    // An evidence card.
+    if (request.finding && findingParam(openFinding) !== request.finding) {
+      setOpenFinding(parseFinding(request.finding));
+      setMode("stories");
+      setPanelOpen(true);
     }
-    if (!urlFinding && openFindingRef.current) setOpenFinding(null);
-    // Only a Back or Forward should run this.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.key]);
-
+    // Back or Forward to a URL without a place or finding: close what is
+    // open, so the panel shows the list the URL describes.
+    if (pop) {
+      if (!request.site && !request.place && (selectedSiteId != null || landSlug)) {
+        clearSelection();
+        cancelDraw();
+      }
+      if (!request.finding && openFinding) setOpenFinding(null);
+    }
+    // A gallery place; only places with passes open (a "checked, nothing
+    // visible" place has no images).
+    if (request.place && request.place !== landSlug
+      && landChange?.sites.some((p) => p.slug === request.place && p.passes?.length)) {
+      selectLandChange(request.place);
+      showLinkedPlace(request.place, request);
+    }
+    // A study site, by slug or id, on a date.
+    const linked = request.site && sites.find((s) => s.slug === request.site || String(s.id) === request.site);
+    if (linked && linked.id === selectedSiteId) {
+      const index = request.date && site ? site.scenes?.findIndex((x) => x.date === request.date) ?? -1 : -1;
+      if (index >= 0) setSceneIndex(index);
+      else if (request.date && !site) setPendingDate(request.date);
+    } else if (linked) {
+      selectSite(linked.id);
+      setPendingDate(request.date);
+      setKeepDate(Boolean(request.date));
+      showLinkedPlace(linked.slug, request);
+    }
+    // ?demo=1 (the search menu's "Demo mode"); the URL then drops it.
+    if (request.demo && !demo) startDemo();
+  };
   const shownDate = site?.scenes?.[sceneIndex]?.date ?? null;
-  // State → URL: ?mode=…&site=…&date=… or &place=…, plus &finding=… in Findings.
-  useEffect(() => {
-    if (!active) return;
-    // A site or place asked for by the URL stays there until it shows; after
-    // that the URL follows the selection (and empties when it is cleared).
-    if ((urlSite && sites.length === 0) || (urlPlace && !landChange)) return;
-    if (pendingSiteRef.current != null) {
-      if (!site && !siteError) return;
-      pendingSiteRef.current = null;
-    }
-    if (pendingPlaceRef.current) {
-      if (pendingPlaceRef.current !== landSlug) return;
-      pendingPlaceRef.current = null;
-    }
-    const next = workspaceParams({ mode, site: site?.slug, date: shownDate, place: landSlug, finding: openFinding });
-    if (new URLSearchParams(next).toString() === searchParams.toString()) return;
-    // Opening a place, tab or finding adds a step Back can undo; dates don't.
-    setSearchParams(next, { replace: historyAction(searchParams, next) === "replace" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, site, siteError, shownDate, mode, landSlug, openFinding, landChange]);
+  useWorkspaceUrl({
+    active,
+    ready: { sites: !loading, places: landChange != null },
+    // A site is in the URL from the moment it is picked: its date once its
+    // passes arrive (until then, the date it was asked for).
+    view: {
+      mode,
+      site: sites.find((s) => s.id === selectedSiteId)?.slug ?? null,
+      date: site ? shownDate : pendingDate,
+      place: landSlug,
+      finding: openFinding,
+    },
+    onNavigate: followUrl,
+  });
 
   // What the AI assistant knows about the current view.
   useEffect(() => {

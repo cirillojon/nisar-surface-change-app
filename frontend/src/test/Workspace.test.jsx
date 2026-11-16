@@ -49,6 +49,7 @@ import {
   modeFrom,
   panelView,
   parseFinding,
+  readWorkspaceUrl,
   workspaceParams,
 } from "../workspace/navigation.js";
 
@@ -66,6 +67,15 @@ describe("the navigation model", () => {
     expect(panelView({ mode: "stories", ...place, findingOpen: true })).toBe("finding");
     // A drawn area, or a place without a story, has nothing to show in Stories.
     expect(panelView({ mode: "stories", hasSelection: true })).toBe("stories");
+  });
+
+  it("reads what a workspace link asks for", () => {
+    expect(readWorkspaceUrl("mode=stories&site=sylhet&date=2026-07-14&finding=sylhet:2&demo=1")).toEqual({
+      mode: "stories", site: "sylhet", date: "2026-07-14", place: null, finding: "sylhet:2", demo: true,
+    });
+    expect(readWorkspaceUrl(new URLSearchParams("place=etna&site="))).toEqual({
+      mode: null, site: null, date: null, place: "etna", finding: null, demo: false,
+    });
   });
 
   it("writes a link that reopens the same view", () => {
@@ -404,6 +414,45 @@ describe("<WorkspaceApp />", () => {
     await waitFor(() => expect(title()).toHaveClass("visually-hidden"));
     expect(map()).toHaveAttribute("data-site", "");
     expect(screen.queryByTestId("player")).toBeNull();
+  });
+
+  it("goes back from one site to the one before with Back, and forward again", async () => {
+    function Forward() {
+      const navigate = useNavigate();
+      return <button type="button" onClick={() => navigate(1)}>Browser forward</button>;
+    }
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/workspace?mode=investigate"]}>
+          <WorkspaceApp />
+          <Where />
+          <Back />
+          <Forward />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Punjab/ }));
+    await urlIs("/workspace?mode=investigate&site=punjab-crop-cycles&date=2026-03-21");
+    fireEvent.click(screen.getByRole("button", { name: "Okavango marker" }));
+    await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-21");
+    // Back to an address the workspace wrote itself is still a navigation.
+    fireEvent.click(screen.getByRole("button", { name: "Browser back" }));
+    await waitFor(() => expect(title()).toHaveTextContent("Punjab"));
+    expect(map()).toHaveAttribute("data-site", "1");
+    await urlIs("/workspace?mode=investigate&site=punjab-crop-cycles&date=2026-03-21");
+    fireEvent.click(screen.getByRole("button", { name: "Browser forward" }));
+    await waitFor(() => expect(title()).toHaveTextContent("Okavango Delta"));
+  });
+
+  it("keeps a linked site and date in the address while its passes load", async () => {
+    let answer;
+    fetchSite.mockImplementation(() => new Promise((resolve) => { answer = resolve; }));
+    open("/workspace?site=okavango-flood-pulse&date=2026-03-09");
+    await waitFor(() => expect(title()).toHaveTextContent("Okavango Delta"));
+    await urlIs("/workspace?mode=stories&site=okavango-flood-pulse&date=2026-03-09");
+    await act(async () => answer(loaded(SITES[1])));
+    expect(await screen.findByTestId("player")).toHaveTextContent("2026-03-09");
+    await urlIs("/workspace?mode=stories&site=okavango-flood-pulse&date=2026-03-09");
   });
 
   it("opens the list, not an empty place, from a link to a place with nothing visible", async () => {
