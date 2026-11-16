@@ -27,17 +27,13 @@ export default function Home() {
     <div className="pf-home">
       <section className="pf-hero">
         <div className="pf-hero-text">
-          <p className="pf-eyebrow">NASA–ISRO SAR mission · Open source</p>
           <h1>Watch Earth’s surface change through NISAR’s radar.</h1>
           <p className="pf-hero-lede">
-            Floods, crops, ground motion, lava and ice at 16 places, through cloud and darkness. NISAR’s orbit
-            repeats every 12 days; the passes shown are the ones delivered so far, 12 or more days apart.
+            Track floods, crops, ground motion, lava, and ice across 16 sites, even through clouds and darkness.
           </p>
           <div className="pf-hero-ctas">
             <Link to="/workspace" className="pf-btn pf-btn-primary">Open the Workspace →</Link>
-            <Link to="/docs/get-started/what-is-nisar" className="pf-btn pf-btn-accent">
-              <Icon name="satellite" size={18} /> What is NISAR?
-            </Link>
+            <Link to="/docs/get-started/what-is-nisar" className="pf-btn pf-btn-secondary">What is NISAR?</Link>
             {AI_ENABLED && (
               <button type="button" className="pf-btn pf-btn-ghost" onClick={() => ask()}>
                 <span aria-hidden="true">✦</span> Ask AI

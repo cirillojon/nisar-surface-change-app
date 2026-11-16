@@ -1,14 +1,8 @@
-/* Small inline icons for the platform shell. Original artwork: an orbit
- * over a surface line. Not the NASA insignia (this is not a NASA product). */
+/* Satellite mark and inline icons for the platform shell. */
 
-export function Logo({ size = 28 }) {
+export function Logo({ size = 32 }) {
   return (
-    <svg className="pf-logo" width={size} height={size} viewBox="0 0 32 32" aria-hidden="true">
-      <rect width="32" height="32" rx="8" fill="var(--pf-logo-bg)" />
-      <ellipse cx="16" cy="13" rx="11" ry="4.5" fill="none" stroke="var(--pf-logo-fg)" strokeWidth="1.6" transform="rotate(-18 16 13)" />
-      <circle cx="24.5" cy="9.2" r="2.2" fill="var(--pf-logo-fg)" />
-      <path d="M5 24c3-2.6 5.2-2.6 7.6 0s4.6 2.6 7.2 0 5-2.6 7.2 0" fill="none" stroke="var(--pf-logo-fg)" strokeWidth="1.8" strokeLinecap="round" />
-    </svg>
+    <img className="pf-logo" src={`${import.meta.env.BASE_URL}nisar-logo.png`} width={size} height={size} alt="" />
   );
 }
 
@@ -20,7 +14,6 @@ const paths = {
   book: "M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2V5Zm0 14a2 2 0 0 1 2-2h13",
   code: "m8 8-4 4 4 4M16 8l4 4-4 4",
   map: "M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14",
-  satellite: "M4 10 7 7l4 4-3 3-4-4ZM13 13l4-4 3 3-4 4-3-3ZM9.5 12.5l2-2M12 12l1 1M5 19a6 6 0 0 0 6-6M3 15a2 2 0 0 0 2-2",
   plug: "M9 3v5M15 3v5M6 8h12v3a6 6 0 0 1-12 0V8ZM12 17v4",
   drawArea: "M5 9V5h4m6 0h4v4m0 6v4h-4m-6 0H5v-4",
   drawLine: "m7.4 16.6 9.2-9.2M8 18a2 2 0 1 0-4 0 2 2 0 0 0 4 0Zm12-12a2 2 0 1 0-4 0 2 2 0 0 0 4 0Z",

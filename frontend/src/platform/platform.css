@@ -13,8 +13,6 @@
   --pf-brand: var(--accent);
   --pf-brand-strong: #1431b3;
   --pf-brand-soft: var(--accent-soft);
-  --pf-logo-bg: var(--action-bg);
-  --pf-logo-fg: var(--action-fg);
   --pf-code-bg: #15171c;
   --pf-code-fg: #e6e8ee;
   --pf-code-line: #2a2d35;
@@ -29,8 +27,6 @@
 :root[data-theme="dark"] {
   --pf-canvas: #121215;
   --pf-brand-strong: #d4d6ff;
-  --pf-logo-bg: #575cc9;
-  --pf-logo-fg: #f2f2ff;
   --pf-code-bg: #0c0c0f;
   --pf-code-line: #24242a;
   --pf-get: #8ad3a5;
@@ -107,6 +103,9 @@ html[data-mode="workspace"] .pf-topbar-row {
 }
 .pf-brand-name {
   font-size: 16px;
+}
+.pf-logo {
+  flex: none;
 }
 .pf-brand-sub {
   color: var(--pf-muted);
@@ -975,10 +974,8 @@ h3:hover > .pf-anchor,
 .pf-btn-ghost {
   background: transparent;
 }
-.pf-btn-accent {
-  color: var(--pf-brand-strong);
-  background: var(--pf-brand-soft);
-  border-color: var(--pf-brand);
+.pf-btn-secondary {
+  background: var(--pf-sunken);
 }
 
 /* ── Home ── */
