@@ -1635,6 +1635,16 @@ code {
 @media (max-width: 760px) {
   .tour-bubble {
     padding: 10px 12px;
+    max-height: min(44svh, calc(100svh - 24px));
+  }
+  .tour-bubble-intro .tour-art {
+    max-height: 18svh;
+    inline-size: auto;
+    max-inline-size: 100%;
+    margin-inline: auto;
+  }
+  .tour-actions {
+    margin-top: 6px;
   }
   .tour-bubble h3 {
     font-size: 1.05rem;
