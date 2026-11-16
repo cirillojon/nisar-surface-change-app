@@ -2,8 +2,14 @@ import * as THREE from "three";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { createNisarLoader, disposeNisarModel } from "./nisarModel.js";
 
+const MODEL_SCALE = 1.12;
+const MAX_TILT = 22;
+const IMAGE_WIDTH = 24;
+const IMAGE_DEPTH = 20;
+const IMAGE_SHEAR = .32;
+
 /** A fixed camera keeps the satellite, beam, image, and callouts in one space. */
-export function createNisarHeroScene(host, { onReady, onError, onImageError, onImageReady }) {
+export function createNisarHeroScene(host, dragArea, { onReady, onError, onImageError, onImageReady }) {
   const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: "low-power" });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.75));
   renderer.setClearColor(0, 0);
@@ -17,9 +23,11 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
   const target = new THREE.Vector3(3, 2.7, 0);
   camera.position.copy(target).addScaledVector(direction, 60);
   camera.lookAt(target);
+  const up = new THREE.Vector3(0, 1, 0);
+  const cameraUp = up.clone().applyQuaternion(camera.quaternion);
   const groundForward = new THREE.Vector3(direction.x, 0, direction.z).normalize();
-  const groundRight = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), groundForward);
-  const groundRotation = new THREE.Matrix4().makeBasis(groundRight, groundForward.clone().negate(), new THREE.Vector3(0, 1, 0));
+  const groundRight = new THREE.Vector3().crossVectors(up, groundForward);
+  const groundRotation = new THREE.Matrix4().makeBasis(groundRight, groundForward.clone().negate(), up);
 
   const studio = new RoomEnvironment();
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -40,24 +48,32 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
   scene.add(key, fill, rim, overhead, overhead.target);
 
   const satellite = new THREE.Group();
-  satellite.scale.setScalar(1.12);
+  satellite.scale.setScalar(MODEL_SCALE);
   satellite.position.y = 1.2;
   scene.add(satellite);
   const ground = new THREE.Group();
   ground.position.set(3, -5, 0);
   ground.quaternion.setFromRotationMatrix(groundRotation);
   scene.add(ground);
+  // Anchor the badges to the top edge where the rounded left corner ends.
+  const imageTop = IMAGE_DEPTH / 2;
+  const imageAnchor = ground.localToWorld(new THREE.Vector3(-IMAGE_WIDTH / 2 + imageTop * IMAGE_SHEAR + .6, imageTop, 0));
+  const beamColor = new THREE.Color();
+  const aperture = new THREE.Vector3(0, -.35, 0);
+  const beamSource = new THREE.Vector3();
+  const beamLanding = ground.position.clone().addScaledVector(up, .03);
   const fallbackTexture = new THREE.DataTexture(new Uint8Array([24, 30, 38, 255]), 1, 1);
   fallbackTexture.needsUpdate = true;
   const terrainMaterial = new THREE.ShaderMaterial({
     uniforms: {
       previousMap: { value: fallbackTexture }, currentMap: { value: fallbackTexture },
       blend: { value: 1 }, edgeColor: { value: new THREE.Color(0xa49be0) },
+      beamColor: { value: beamColor },
     }, transparent: true, depthWrite: false,
     vertexShader: `varying vec2 imageUv;
       void main() { imageUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
     fragmentShader: `uniform sampler2D previousMap; uniform sampler2D currentMap;
-      uniform float blend; uniform vec3 edgeColor; varying vec2 imageUv;
+      uniform float blend; uniform vec3 edgeColor; uniform vec3 beamColor; varying vec2 imageUv;
       void main() {
         vec2 q = abs((imageUv - .5) * vec2(24., 20.)) - vec2(11.4, 9.4);
         float distance = length(max(q, 0.)) + min(max(q.x, q.y), 0.) - .6;
@@ -65,44 +81,55 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
         vec4 image = mix(texture2D(previousMap, imageUv), texture2D(currentMap, imageUv), blend);
         float edge = 1. - smoothstep(.045, .12, abs(distance + .1));
         vec3 radarColor = mix(vec3(.004, .006, .01), image.rgb, image.a);
+        float footprint = 1. - smoothstep(.08, 1., length((imageUv - .5) / vec2(.25, .29)));
+        radarColor += beamColor * .14 * footprint * image.a;
         gl_FragColor = vec4(mix(radarColor, edgeColor, edge * .75), alpha);
         #include <colorspace_fragment>
       }`,
   });
-  const terrainGeometry = new THREE.PlaneGeometry(24, 20);
+  const terrainGeometry = new THREE.PlaneGeometry(IMAGE_WIDTH, IMAGE_DEPTH);
   // A small shear gives the image the shallow, oblique framing of the hero reference.
   const positions = terrainGeometry.getAttribute("position");
   for (let index = 0; index < positions.count; index++) {
-    positions.setX(index, positions.getX(index) + positions.getY(index) * .32);
+    positions.setX(index, positions.getX(index) + positions.getY(index) * IMAGE_SHEAR);
   }
   terrainGeometry.computeBoundingSphere();
   const terrain = new THREE.Mesh(terrainGeometry, terrainMaterial);
   terrain.renderOrder = 1;
   ground.add(terrain);
 
-  const beamVertices = [];
-  const beamOpacity = [];
-  const footprint = [[-7, -6], [7, -6], [7, 6], [-7, 6]].map(([x, y]) =>
-    new THREE.Vector3(3, -4.97, 0).addScaledVector(groundRight, x).addScaledVector(groundForward, y));
-  for (let index = 0; index < 4; index++) {
-    beamVertices.push(0, .86, 0, ...footprint[index].toArray(), ...footprint[(index + 1) % 4].toArray());
-    beamOpacity.push(.035, .13, .13);
-  }
-  const beamGeometry = new THREE.BufferGeometry();
-  beamGeometry.setAttribute("position", new THREE.Float32BufferAttribute(beamVertices, 3));
-  beamGeometry.setAttribute("beamAlpha", new THREE.Float32BufferAttribute(beamOpacity, 1));
+  // One sheet across the beam's width gives the fixed camera a continuous gradient.
+  const beamGeometry = new THREE.PlaneGeometry();
   const beamMaterial = new THREE.ShaderMaterial({
-    uniforms: { beamColor: { value: new THREE.Color(0x9380ed) } },
-    vertexShader: `attribute float beamAlpha; varying float opacity;
-      void main() { opacity = beamAlpha; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.); }`,
-    fragmentShader: `uniform vec3 beamColor; varying float opacity;
+    uniforms: {
+      source: { value: beamSource },
+      landing: { value: beamLanding },
+      acrossBeam: { value: groundRight },
+      beamColor: { value: beamColor },
+    },
+    vertexShader: `uniform vec3 source; uniform vec3 landing; uniform vec3 acrossBeam;
+      varying vec3 beamPosition;
       void main() {
-        gl_FragColor = vec4(beamColor, opacity);
+        float width = mix(.13, 6.6, uv.y);
+        float offset = (uv.x * 2. - 1.) * width;
+        beamPosition = vec3(offset, width, uv.y);
+        vec3 point = mix(source, landing, uv.y) + acrossBeam * offset;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(point, 1.);
+      }`,
+    fragmentShader: `uniform vec3 beamColor; varying vec3 beamPosition;
+      void main() {
+        float across = beamPosition.x / beamPosition.y;
+        float along = beamPosition.z;
+        float edge = 1. - smoothstep(.22, 1., abs(across));
+        float core = exp(-across * across * 9.);
+        float falloff = smoothstep(0., .17, along) * (1. - smoothstep(.70, 1., along));
+        gl_FragColor = vec4(beamColor, edge * (.16 + .10 * core) * falloff);
         #include <colorspace_fragment>
       }`,
     transparent: true, depthWrite: false, side: THREE.DoubleSide, forceSinglePass: true,
   });
   const beam = new THREE.Mesh(beamGeometry, beamMaterial);
+  beam.frustumCulled = false;
   beam.renderOrder = 2;
   scene.add(beam);
 
@@ -117,22 +144,53 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
   let imageRequest = 0;
   let transitionStart = 0;
   let renderCount = 0;
-  let pointerX = 0;
-  let pointerY = 0;
+  let yaw = 0;
+  let tilt = 0;
+  let poseChanged = true;
+  let drag = null;
   const projected = new THREE.Vector3();
+  const labelPoint = new THREE.Vector3();
   const dishAnchor = new THREE.Vector3(6.1, 10.2, -6.1);
   const busAnchor = new THREE.Vector3(.2, -.1, -5.5);
+  const tiltRotation = new THREE.Quaternion();
+  const inverseRotation = new THREE.Quaternion();
+  const localCameraUp = new THREE.Vector3();
+  const pivotHeight = cameraUp.dot(satellite.position);
+  const pivotViewY = pivotHeight - cameraUp.dot(camera.position);
+  const roomBelow = pivotHeight - cameraUp.dot(imageAnchor) - .4;
+  let modelVertices = new Float32Array();
 
   function projectToCss(name, position) {
     projected.copy(position).project(camera);
     host.style.setProperty(`--${name}-x`, `${(projected.x + 1) * 50}%`);
     host.style.setProperty(`--${name}-y`, `${(1 - projected.y) * 50}%`);
   }
-  function updateLabels() {
-    satellite.updateMatrixWorld();
-    projectToCss("dish", satellite.localToWorld(dishAnchor.clone()));
-    projectToCss("bus", satellite.localToWorld(busAnchor.clone()));
-    projectToCss("image", new THREE.Vector3(3, -4.9, 0).addScaledVector(groundRight, -7.76).addScaledVector(groundForward, -7));
+  function updatePose() {
+    poseChanged = false;
+    satellite.quaternion.setFromAxisAngle(up, THREE.MathUtils.degToRad(yaw))
+      .premultiply(tiltRotation.setFromAxisAngle(groundRight, THREE.MathUtils.degToRad(tilt)));
+
+    // Keep the reflector and wings in the space above the image at every angle.
+    localCameraUp.copy(cameraUp).applyQuaternion(inverseRotation.copy(satellite.quaternion).invert());
+    let top = 0;
+    let bottom = 0;
+    for (let index = 0; index < modelVertices.length; index += 3) {
+      const height = modelVertices[index] * localCameraUp.x
+        + modelVertices[index + 1] * localCameraUp.y
+        + modelVertices[index + 2] * localCameraUp.z;
+      top = Math.max(top, height);
+      bottom = Math.max(bottom, -height);
+    }
+    const roomAbove = camera.top - pivotViewY - .18;
+    satellite.scale.setScalar(Math.min(MODEL_SCALE, roomAbove / top, roomBelow / bottom));
+
+    satellite.localToWorld(beamSource.copy(aperture));
+    const rotated = Math.abs(yaw) > .05 || Math.abs(tilt) > .05;
+    host.toggleAttribute("data-rotated", rotated);
+    if (!rotated) {
+      projectToCss("dish", satellite.localToWorld(labelPoint.copy(dishAnchor)));
+      projectToCss("bus", satellite.localToWorld(labelPoint.copy(busAnchor)));
+    }
   }
   function requestRender() {
     if (!disposed && !frame && inView && !document.hidden) frame = requestAnimationFrame(render);
@@ -140,11 +198,7 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
   function render(time) {
     frame = 0;
     if (disposed || !inView || document.hidden) return;
-    const rotationX = motion.matches ? 0 : pointerY * .025;
-    const rotationY = motion.matches ? 0 : pointerX * .055;
-    satellite.rotation.x += (rotationX - satellite.rotation.x) * .14;
-    satellite.rotation.y += (rotationY - satellite.rotation.y) * .14;
-    const moving = Math.abs(rotationX - satellite.rotation.x) + Math.abs(rotationY - satellite.rotation.y) > .0001;
+    if (poseChanged) updatePose();
     if (transitionStart) {
       terrainMaterial.uniforms.blend.value = motion.matches ? 1 : Math.min((time - transitionStart) / 280, 1);
       if (terrainMaterial.uniforms.blend.value === 1) {
@@ -153,10 +207,9 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
         trimTextures();
       }
     }
-    updateLabels();
     renderer.render(scene, camera);
     renderCount++;
-    if (transitionStart || moving) requestRender();
+    if (transitionStart) requestRender();
   }
   function resize() {
     const { width, height } = host.getBoundingClientRect();
@@ -168,6 +221,8 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
     camera.left = -camera.right;
     camera.updateProjectionMatrix();
     renderer.setSize(width, height, false);
+    projectToCss("image", imageAnchor);
+    poseChanged = true;
     requestRender();
   }
   function trimTextures() {
@@ -213,18 +268,41 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
     transitionStart = performance.now();
     requestRender();
   }
-  function pointerMove(event) {
-    if (event.pointerType !== "mouse" || motion.matches) return;
-    const bounds = host.getBoundingClientRect();
-    pointerX = (event.clientX - bounds.left) / bounds.width - .5;
-    pointerY = (event.clientY - bounds.top) / bounds.height - .5;
+  function rotateView(turn, tip) {
+    yaw = THREE.MathUtils.euclideanModulo(yaw + turn + 180, 360) - 180;
+    tilt = THREE.MathUtils.clamp(tilt + tip, -MAX_TILT, MAX_TILT);
+    poseChanged = true;
     requestRender();
   }
-  function pointerLeave() { pointerX = 0; pointerY = 0; requestRender(); }
+  function resetView() {
+    yaw = 0;
+    tilt = 0;
+    poseChanged = true;
+    requestRender();
+  }
+  function startDrag(event) {
+    if (drag || !event.isPrimary || event.button !== 0) return;
+    dragArea.setPointerCapture(event.pointerId);
+    dragArea.setAttribute("data-dragging", "");
+    drag = { id: event.pointerId, x: event.clientX, y: event.clientY, width: host.clientWidth, height: host.clientHeight };
+  }
+  function moveDrag(event) {
+    if (drag?.id !== event.pointerId) return;
+    const turn = 420 * (event.clientX - drag.x) / drag.width;
+    const tip = event.pointerType === "touch" ? 0 : 150 * (event.clientY - drag.y) / drag.height;
+    drag.x = event.clientX;
+    drag.y = event.clientY;
+    rotateView(turn, tip);
+  }
+  function endDrag(event) {
+    if (event && event.pointerId !== drag?.id) return;
+    drag = null;
+    dragArea.removeAttribute("data-dragging");
+  }
   function themeChanged() {
     const dark = document.documentElement.dataset.theme === "dark";
     scene.environmentIntensity = dark ? .75 : .95;
-    beamMaterial.uniforms.beamColor.value.set(dark ? 0x9380ed : 0x7668b8);
+    beamColor.set(dark ? 0xa794ff : 0x8271ce);
     requestRender();
   }
   function contextLost(event) { event.preventDefault(); onError(); dispose(); }
@@ -234,8 +312,9 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
   visibilityObserver.observe(host);
   const themeObserver = new MutationObserver(themeChanged);
   themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-  host.addEventListener("pointermove", pointerMove);
-  host.addEventListener("pointerleave", pointerLeave);
+  dragArea.addEventListener("pointerdown", startDrag);
+  dragArea.addEventListener("pointermove", moveDrag);
+  dragArea.addEventListener("lostpointercapture", endDrag);
   document.addEventListener("visibilitychange", requestRender);
   motion.addEventListener("change", requestRender);
   renderer.domElement.addEventListener("webglcontextlost", contextLost);
@@ -247,11 +326,13 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
     let dishEdge = -Infinity;
     let busEdge = -Infinity;
     const point = new THREE.Vector3();
+    const vertices = [];
     model.traverse((object) => {
       if (!object.isMesh) return;
       const position = object.geometry.getAttribute("position");
       for (let index = 0; index < position.count; index++) {
         point.fromBufferAttribute(position, index).applyMatrix4(object.matrixWorld);
+        vertices.push(point.x, point.y, point.z);
         const edge = point.dot(groundRight);
         if (point.y > 8 && edge > dishEdge) { dishEdge = edge; dishAnchor.copy(point); }
         if (point.y < 2 && edge > busEdge) { busEdge = edge; busAnchor.copy(point); }
@@ -261,7 +342,9 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
     busAnchor.y = .1;
     dishAnchor.addScaledVector(groundRight, .45);
     busAnchor.addScaledVector(groundRight, .45);
+    modelVertices = new Float32Array(vertices);
     satellite.add(model);
+    poseChanged = true;
     requestRender();
     onReady();
   }).catch(() => { if (!disposed) { onError(); dispose(); } });
@@ -271,7 +354,11 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
     disposed = true;
     cancelAnimationFrame(frame);
     resizeObserver.disconnect(); visibilityObserver.disconnect(); themeObserver.disconnect();
-    host.removeEventListener("pointermove", pointerMove); host.removeEventListener("pointerleave", pointerLeave);
+    dragArea.removeEventListener("pointerdown", startDrag);
+    dragArea.removeEventListener("pointermove", moveDrag);
+    dragArea.removeEventListener("lostpointercapture", endDrag);
+    if (drag && dragArea.hasPointerCapture(drag.id)) dragArea.releasePointerCapture(drag.id);
+    endDrag();
     document.removeEventListener("visibilitychange", requestRender); motion.removeEventListener("change", requestRender);
     renderer.domElement.removeEventListener("webglcontextlost", contextLost);
     if (model) disposeNisarModel(model);
@@ -296,5 +383,5 @@ export function createNisarHeroScene(host, { onReady, onError, onImageError, onI
     };
   }
   themeChanged(); resize();
-  return { setImage, preloadImage: (url) => getTexture(url).then(trimTextures), dispose };
+  return { setImage, preloadImage: (url) => getTexture(url).then(trimTextures), rotateView, resetView, dispose };
 }

@@ -1,13 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { assetUrl, fetchSite, fetchSites } from "../services/api.js";
+import { Icon } from "./icons.jsx";
 import { workspaceHref } from "./workspaceContext.js";
 
 const HERO_SITE = "sylhet-haor-floods";
 const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)");
+const ARROW_ROTATION = new Map([
+  ["ArrowLeft", [-15, 0]],
+  ["ArrowRight", [15, 0]],
+  ["ArrowUp", [0, -8]],
+  ["ArrowDown", [0, 8]],
+]);
 
 export default function HeroObservatory() {
   const stage = useRef(null);
+  const dragArea = useRef(null);
   const figure = useRef(null);
   const renderer = useRef(null);
   const imageUrl = useRef(null);
@@ -19,6 +27,7 @@ export default function HeroObservatory() {
   const [playing, setPlaying] = useState(() => !reducedMotion().matches);
   const [visible, setVisible] = useState(true);
   const [renderState, setRenderState] = useState(() => window.WebGLRenderingContext || window.WebGL2RenderingContext ? "loading" : "fallback");
+  const canRotate = renderState === "ready";
   const scenes = useMemo(() => (site?.scenes ?? []).filter((scene) => scene.image_url), [site]);
   const water = useMemo(() => Object.fromEntries((site?.observations ?? [])
     .filter((observation) => observation.metric === "water_pct")
@@ -72,7 +81,7 @@ export default function HeroObservatory() {
     if (!window.WebGLRenderingContext && !window.WebGL2RenderingContext) return undefined;
     import("../services/nisarHeroScene.js").then(({ createNisarHeroScene }) => {
       if (cancelled) return;
-      const instance = createNisarHeroScene(stage.current, {
+      const instance = createNisarHeroScene(stage.current, dragArea.current, {
         onReady: () => { if (!cancelled) setRenderState("ready"); },
         onError: () => { if (!cancelled) setRenderState("fallback"); },
         onImageError: () => { if (!cancelled) setImageFailed(true); },
@@ -92,25 +101,46 @@ export default function HeroObservatory() {
     if (nextUrl) renderer.current?.preloadImage(nextUrl);
   }, [currentUrl, nextUrl]);
 
+  function rotateWithKeys(event) {
+    if (event.altKey || event.ctrlKey || event.metaKey) return;
+    const rotation = ARROW_ROTATION.get(event.key);
+    if (!rotation) return;
+    event.preventDefault();
+    renderer.current?.rotateView(...rotation);
+  }
+
   return (
     <figure ref={figure} className="pf-hero-visual" data-renderer={renderState}>
-      <div ref={stage} className="pf-hero-stage" role="img" aria-label={`NISAR satellite above a radar image plane. ${scene ? `Sylhet, ${scene.date}${pct != null ? `, ${pct.toFixed(1)} percent open water` : ""}.` : "Loading radar imagery."} Illustration, not to scale.`}>
-        <div className="pf-hero-fallback" aria-hidden="true">
-          <img className="pf-hero-poster" src={`${import.meta.env.BASE_URL}models/nisar/nisar-hero-poster.png`} alt="" />
-          <div className="pf-hero-flat">
-            {currentUrl && <img key={currentUrl} src={currentUrl} alt="" onLoad={() => setImageFailed(false)} onError={() => setImageFailed(true)} />}
+      <div ref={stage} className="pf-hero-stage">
+        <div className="pf-hero-art" role="img" aria-label={`NISAR satellite above a radar image plane. ${scene ? `Sylhet, ${scene.date}${pct != null ? `, ${pct.toFixed(1)} percent open water` : ""}.` : "Loading radar imagery."} Illustration, not to scale.`}>
+          <div className="pf-hero-fallback" aria-hidden="true">
+            <img className="pf-hero-poster" src={`${import.meta.env.BASE_URL}models/nisar/nisar-hero-poster.png`} alt="" />
+            <div className="pf-hero-flat">
+              {currentUrl && <img key={currentUrl} src={currentUrl} alt="" onLoad={() => setImageFailed(false)} onError={() => setImageFailed(true)} />}
+            </div>
+          </div>
+          <div className="pf-hero-callout pf-hero-callout-dish" aria-hidden="true">
+            <span className="pf-hero-pin" /><span><strong>12 m deployable reflector</strong><small>L- &amp; S-band SAR</small></span>
+          </div>
+          <div className="pf-hero-callout pf-hero-callout-bus" aria-hidden="true">
+            <span className="pf-hero-pin" /><span><strong>NISAR</strong><small>NASA–ISRO</small></span>
+          </div>
+          <div className="pf-hero-hud" aria-hidden="true">
+            {scene ? <><time dateTime={scene.date}>{scene.date}</time>{imageFailed ? <span>Radar image unavailable</span> : pct != null && <span>{pct.toFixed(1)}% open water</span>}</> :
+              <span>{failed ? "Radar images unavailable" : "Loading radar passes…"}</span>}
           </div>
         </div>
-        <div className="pf-hero-callout pf-hero-callout-dish" aria-hidden="true">
-          <span className="pf-hero-pin" /><span><strong>12 m deployable reflector</strong><small>L- &amp; S-band SAR</small></span>
-        </div>
-        <div className="pf-hero-callout pf-hero-callout-bus" aria-hidden="true">
-          <span className="pf-hero-pin" /><span><strong>NISAR</strong><small>NASA–ISRO</small></span>
-        </div>
-        <div className="pf-hero-hud" aria-hidden="true">
-          {scene ? <><span>{scene.date}</span>{imageFailed ? <span>Radar image unavailable</span> : pct != null && <span>{pct.toFixed(1)}% open water</span>}</> :
-            <span>{failed ? "Radar images unavailable" : "Loading radar passes…"}</span>}
-        </div>
+        <div ref={dragArea} className="pf-hero-drag" hidden={!canRotate} aria-hidden="true" />
+        {canRotate && (
+          <div className="pf-hero-view-controls">
+            <button type="button" aria-label="Reset satellite view" title="Reset view or use the arrow keys to rotate"
+              aria-keyshortcuts="ArrowLeft ArrowRight ArrowUp ArrowDown"
+              onClick={() => renderer.current?.resetView()} onKeyDown={rotateWithKeys}>
+              <Icon name="resetView" size={15} />
+            </button>
+            <span aria-hidden="true">Drag to rotate</span>
+          </div>
+        )}
       </div>
       <div className="pf-hero-footer">
         {scenes.length > 1 && (
