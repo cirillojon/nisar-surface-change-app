@@ -1,3 +1,5 @@
+import { Suspense, lazy } from "react";
+
 import ChangeMap from "../../components/ChangeMap.jsx";
 import ErrorBoundary from "../../components/ErrorBoundary.jsx";
 import ImpactChain from "../../components/ImpactChain.jsx";
@@ -9,6 +11,7 @@ import Tour from "../../components/tour/Tour.jsx";
 import { evidenceSubjectOf, moreSeriesOf } from "../workspaceView.js";
 import DrawTools from "./DrawTools.jsx";
 import MapHeader from "./MapHeader.jsx";
+import MapViewToggle from "./MapViewToggle.jsx";
 import ModeTabs from "./ModeTabs.jsx";
 import PanelLists from "./PanelLists.jsx";
 import SaveToast from "./SaveToast.jsx";
@@ -19,6 +22,9 @@ import TimelineDock from "./TimelineDock.jsx";
 // its state, what it shows, and what it does.
 
 const ignore = () => {};
+
+// CesiumJS is large: the globe loads only when someone switches to 3D.
+const GlobeMap = lazy(() => import("../../components/GlobeMap.jsx"));
 
 /** Each tab's list (stories, an evidence card, places, My findings). */
 function ListPanel({ ws }) {
@@ -153,33 +159,57 @@ function Evidence({ ws, subject }) {
   );
 }
 
-/** The map: markers, the selection's image and outlines, the catalog's images, drawing. */
+/**
+ * The map: markers, the selection's image and outlines, the catalog's images,
+ * drawing. The 2D map (Leaflet) or the 3D globe (CesiumJS) shows them, and
+ * both draw areas and lines; the tour and the demo use the 2D map.
+ */
 function WorkspaceMap({ ws }) {
   const { act, data, ui, v, map, tour, refs } = ws;
   const { touring } = tour;
+  const shared = {
+    sites: data.sites,
+    changeTypes: data.changeTypes,
+    selectedSiteId: v.selectedSiteId,
+    places: v.galleryPlaces,
+    selectedPlace: v.landSlug,
+    focusBbox: map.focusBbox,
+    focusObstructionRef: refs.evidenceRef,
+    sceneOverlay: map.sceneOverlay,
+    footprintOverlay: map.footprintOverlay,
+    referencePoint: v.site?.reference ?? null,
+    regionLayers: map.regionLayers,
+    studyLayers: map.studyLayers,
+    showFocusOutline: map.showFocusOutline,
+    focusMaxZoom: map.focusMaxZoom,
+    onSelectSite: touring ? ignore : act.selectSiteOnMap,
+    onSelectPlace: touring ? ignore : act.selectPlaceOnMap,
+    onMapClick: touring || ui.mode !== "investigate" ? ignore : act.selectPoint,
+    fitKey: touring ? tour.refit : 0,
+    homeKey: ui.homeKey,
+  };
+  if (ws.globeShown) {
+    return (
+      <ErrorBoundary>
+        <Suspense fallback={<div className="map-loading" aria-hidden="true">Loading the globe…</div>}>
+          <GlobeMap
+            {...shared}
+            drawing={ui.drawing}
+            drawHost={ui.drawHost}
+            onDrawArea={act.selectArea}
+            onDrawLine={act.selectLine}
+            onCancelDraw={act.stopDraw}
+            onUnavailable={act.globeUnavailable}
+          />
+        </Suspense>
+      </ErrorBoundary>
+    );
+  }
   return (
     <ErrorBoundary>
       <ChangeMap
-        sites={data.sites}
-        changeTypes={data.changeTypes}
-        selectedSiteId={v.selectedSiteId}
-        places={v.galleryPlaces}
-        selectedPlace={v.landSlug}
-        focusBbox={map.focusBbox}
-        focusObstructionRef={refs.evidenceRef}
-        sceneOverlay={map.sceneOverlay}
-        footprintOverlay={map.footprintOverlay}
-        referencePoint={v.site?.reference ?? null}
-        regionLayers={map.regionLayers}
-        studyLayers={map.studyLayers}
-        showFocusOutline={map.showFocusOutline}
-        focusMaxZoom={map.focusMaxZoom}
+        {...shared}
         tourMarks={touring ? tour.marks : null}
-        onSelectSite={touring ? ignore : act.selectSiteOnMap}
-        onSelectPlace={touring ? ignore : act.selectPlaceOnMap}
-        onMapClick={touring || ui.mode !== "investigate" ? ignore : act.selectPoint}
-        fitKey={touring ? tour.refit : 0}
-        homeKey={ui.homeKey}
         onDrawArea={act.selectArea}
         onDrawLine={act.selectLine}
         finishLineWhen={touring ? (line) => line.length >= 2 : null}
@@ -234,6 +264,9 @@ function MapPane({ ws }) {
           <div className="map-frame" aria-label="NISAR map" ref={refs.mapFrameRef}>
             <div className="map-canvas">
               <WorkspaceMap ws={ws} />
+              {!tour.touring && !tour.demo && (
+                <MapViewToggle view={ws.globeShown ? "3d" : "2d"} globeUnavailable={ui.globeUnavailable} onChange={act.setMapView} />
+              )}
               {/* The map's drawing bar: what to do, Finish and Cancel. */}
               <div className="draw-host" ref={ui.setDrawHost} />
               <div className="moment-host" ref={ui.setMomentHost} />

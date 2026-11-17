@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import {
   CircleMarker,
   ImageOverlay,
@@ -20,7 +19,9 @@ import {
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
-import { MAX_LINE_KM, addPoint, canFinish, lineKm } from "../services/drawing.js";
+import { MAX_LINE_KM, addPoint, canFinish, lineKm, lineStatus } from "../services/drawing.js";
+import DrawBar, { LineBarButtons } from "./DrawBar.jsx";
+import { LABELS_URL } from "../services/globe.js";
 import { loadImage } from "../services/imageCache.js";
 import { mercY, normalizeBbox } from "../services/regions.js";
 import { useStableCallback } from "../services/useStableCallback.js";
@@ -108,24 +109,6 @@ function HomeView({ homeKey }) {
     else map.flyTo(DEFAULT_CENTER, zoom, { duration: 0.4 });
   }, [map, homeKey]);
   return null;
-}
-
-/**
- * The bar shown over the map while drawing: what to do next, and buttons
- * for it, drawn into `host` (an element over the map, outside Leaflet, so
- * clicks on the bar never reach the map).
- */
-function DrawBar({ host, status, warning = false, children }) {
-  if (!host) return null;
-  return createPortal(
-    <div className="draw-bar" role="group" aria-label="Drawing">
-      <span id="draw-instructions" className={warning ? "draw-status warning" : "draw-status"} role="status">
-        {status}
-      </span>
-      <span className="draw-bar-actions">{children}</span>
-    </div>,
-    host,
-  );
 }
 
 // Guided-tour drawings: a pulsing pin, and the box / line to trace.
@@ -572,31 +555,13 @@ function LineDrawer({ active, drawingRef, onDraw, onCancel, finishWhen, hint, ho
   }, [active, map, drawingRef, onDraw, onCancel, finish, undo, update]);
 
   if (!active) return null;
-  const km = lineKm(points);
-  const tooLong = km > MAX_LINE_KM;
   const preview = cursor && points.length ? [...points, cursor] : points;
   const previewKm = lineKm(preview);
-  let status = hint ?? "Click the map to start a line.";
-  if (tooLong) status = `${km.toFixed(1)} km is over the ${MAX_LINE_KM} km limit: undo a point.`;
-  else if (!hint && points.length === 1) status = "Click to add the next point.";
-  else if (!hint && points.length > 1) status = `${points.length} points, ${km.toFixed(1)} km. Add more, or finish.`;
+  const status = lineStatus(points, hint);
   return (
     <>
-      <DrawBar host={host} status={status} warning={tooLong}>
-        <button type="button" className="btn btn-small btn-secondary" onClick={undo} disabled={!points.length}>
-          Undo
-        </button>
-        <button
-          type="button"
-          className="btn btn-small btn-primary"
-          onClick={finish}
-          disabled={!canFinish(points)}
-        >
-          Finish line
-        </button>
-        <button type="button" className="btn btn-small btn-secondary" onClick={onCancel}>
-          Cancel
-        </button>
+      <DrawBar host={host} status={status.text} warning={status.warning}>
+        <LineBarButtons points={points} canFinishLine={canFinish(points)} onUndo={undo} onFinish={finish} onCancel={onCancel} />
       </DrawBar>
       {points.length > 0 && (
         <Polyline
@@ -761,6 +726,21 @@ function useDrawCallbacks(onDrawArea, onDrawLine, finishLineWhen) {
   return { onDraw, onLine, finishLine };
 }
 
+// Country, region and city names with borders (LABELS_URL): a transparent
+// layer over the images, the same one the 3D globe shows.
+const LABELS_PANE = "place-labels";
+
+/** The labels' pane: over the NISAR images and outlines, under the markers, and never in the way of a click. */
+function LabelsPane() {
+  const map = useMap();
+  if (!map.getPane(LABELS_PANE)) {
+    const pane = map.createPane(LABELS_PANE);
+    pane.style.zIndex = "455";
+    pane.style.pointerEvents = "none";
+  }
+  return null;
+}
+
 function BaseLayers() {
   return (
     <LayersControl position="topleft">
@@ -782,6 +762,9 @@ function BaseLayers() {
           maxZoom={12}
         />
       </LayersControl.BaseLayer>
+      <LayersControl.Overlay checked name="Place names">
+        <TileLayer url={LABELS_URL} pane={LABELS_PANE} attribution="Labels &copy; Esri" maxZoom={18} />
+      </LayersControl.Overlay>
     </LayersControl>
   );
 }
@@ -921,6 +904,7 @@ export default function ChangeMap({
       <KeepMapSized />
       <ZoomControl position="topleft" zoomInText={zoomInIcon} zoomOutText={zoomOutIcon} />
       <ResetViewControl />
+      <LabelsPane />
       <BaseLayers />
       <LineDrawer
         active={drawing === "line"}

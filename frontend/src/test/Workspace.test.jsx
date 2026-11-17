@@ -30,6 +30,16 @@ vi.mock("../components/ChangeMap.jsx", () => ({
     </div>
   ),
 }));
+// The globe needs WebGL: a stand-in with its markers and its fallback.
+vi.mock("../components/GlobeMap.jsx", () => ({
+  default: ({ focusBbox, drawing, onSelectSite, onDrawArea, onUnavailable }) => (
+    <div data-testid="globe" data-focus={focusBbox?.join(",") ?? ""} data-drawing={drawing ?? ""}>
+      <button type="button" onClick={() => onSelectSite(2)}>Okavango on the globe</button>
+      <button type="button" onClick={() => onDrawArea([10, 20, 11, 21])}>Drag a box on the globe</button>
+      <button type="button" onClick={onUnavailable}>No WebGL</button>
+    </div>
+  ),
+}));
 vi.mock("../components/ImpactChain.jsx", () => ({
   default: ({ siteId }) => <div data-testid="charts" data-site={siteId ?? ""} />,
 }));
@@ -48,6 +58,7 @@ import { fetchChangeTypes, fetchFinding, fetchLandChange, fetchProducts, fetchSi
 import { testQueryClient as createQueryClient } from "./render.jsx";
 import { TOUR_STORAGE_KEY } from "../services/tour.js";
 import WorkspaceApp from "../workspace/WorkspaceApp.jsx";
+import { MAP_VIEW_KEY } from "../workspace/useWorkspace.js";
 import {
   DEFAULT_MODE,
   findingParam,
@@ -358,6 +369,48 @@ describe("<WorkspaceApp />", () => {
     expect(await screen.findByText(/No places found/)).toBeVisible();
     fireEvent.keyDown(field, { key: "Escape" });
     expect(screen.queryByText(/No places found/)).toBeNull();
+  });
+
+  it("switches between the 2D map and the 3D globe, and remembers the choice", async () => {
+    open("/workspace?mode=investigate");
+    const views = await screen.findByRole("group", { name: "Map view" });
+    expect(within(views).getByRole("button", { name: "2D" })).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(within(views).getByRole("button", { name: "3D" }));
+    expect(await screen.findByTestId("globe")).toBeInTheDocument();
+    expect(screen.queryByTestId("map")).toBeNull();
+    expect(window.localStorage.getItem(MAP_VIEW_KEY)).toBe("3d");
+    // The globe's markers open their places, and it flies to them.
+    fireEvent.click(screen.getByRole("button", { name: "Okavango on the globe" }));
+    await waitFor(() => expect(title()).toHaveTextContent("Okavango Delta"));
+    expect(screen.getByTestId("globe")).toHaveAttribute("data-focus", "22,-20,23,-19");
+    fireEvent.click(within(views).getByRole("button", { name: "2D" }));
+    expect(await screen.findByTestId("map")).toHaveAttribute("data-site", "2");
+    expect(window.localStorage.getItem(MAP_VIEW_KEY)).toBe("2d");
+  });
+
+  it("draws areas on the globe itself, without leaving 3D", async () => {
+    window.localStorage.setItem(MAP_VIEW_KEY, "3d");
+    open("/workspace?mode=investigate");
+    const globe = await screen.findByTestId("globe");
+    const draw = screen.getByRole("button", { name: "Draw area" });
+    fireEvent.click(draw);
+    expect(globe).toHaveAttribute("data-drawing", "area");
+    expect(screen.queryByTestId("map")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Drag a box on the globe" }));
+    await waitFor(() => expect(title()).toHaveTextContent("Drawn area"));
+    expect(globe).toHaveAttribute("data-drawing", "");
+    expect(globe).toHaveAttribute("data-focus", "10,20,11,21");
+    expect(draw).toHaveAttribute("aria-pressed", "false");
+  });
+
+  it("stays on the 2D map where the browser can't draw the globe", async () => {
+    window.localStorage.setItem(MAP_VIEW_KEY, "3d");
+    open("/workspace?mode=investigate");
+    fireEvent.click(await screen.findByRole("button", { name: "No WebGL" }));
+    expect(await screen.findByTestId("map")).toBeInTheDocument();
+    const views = screen.getByRole("group", { name: "Map view" });
+    expect(within(views).getByRole("button", { name: "3D" })).toBeDisabled();
+    expect(within(views).getByRole("button", { name: "2D" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("says when the backend can't be reached", async () => {

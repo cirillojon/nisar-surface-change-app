@@ -82,6 +82,10 @@ are on **Investigate**.
   related series (rain or river flow) on the same dates.
 - **Land-change gallery**: lava, a glacier front, rivers and landslides
   at ~20 m, with change maps between any two dates.
+- **2D map or 3D globe**: a flat Leaflet map, or a Google Earth-style
+  CesiumJS globe among the stars that you can spin any way, tilt to the
+  horizon and zoom into, both with country and city names. Areas and
+  lines can be drawn on either; the tour and the demo use the 2D map.
 - **Find a place**: type a name in Investigate's map bar (OpenStreetMap
   search) and it opens as an area, with every NISAR pass over it.
 - **Draw area**: every NISAR pass over any rectangle, with SME2 soil
@@ -142,7 +146,7 @@ React + Leaflet ◄── /api/sites, /api/scenes ◄── Flask ◄── SQLi
 | -------- | ------------------------------------------------------------ |
 | Data     | h5py · numpy · pyproj · Pillow (HTTP range reads of NISAR)   |
 | Backend  | Flask 3 · SQLAlchemy 2 · Flask-Migrate · requests (NASA CMR) |
-| Frontend | React 19 · Vite 7 · Leaflet / react-leaflet · axios          |
+| Frontend | React 19 · Vite 7 · Leaflet / react-leaflet · CesiumJS (3D globe) · axios |
 | Database | SQLite by default; Postgres via `DATABASE_URL`               |
 | CI       | GitHub Actions (pytest · vitest · lint · build · schema)     |
 

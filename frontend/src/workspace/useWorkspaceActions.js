@@ -33,6 +33,10 @@ function useLayoutActions(ws) {
     narrow,
     cancelDraw,
     stopDraw,
+    // 2D map or 3D globe (a drawing carries on in the other).
+    setMapView: (view) => ui.setMapView(view),
+    // No WebGL: back to the 2D map, and the 3D button says why.
+    globeUnavailable: () => ui.setGlobeUnavailable(true),
     toggleDraw: (tool = "area") => {
       if (ui.drawing !== tool) {
         ui.setMode("investigate");

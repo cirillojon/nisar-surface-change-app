@@ -72,11 +72,38 @@ function useWorkspaceUi(searchParams) {
   // The finding being saved, and the note after a save.
   const [saveDraft, setSaveDraft] = useState(null);
   const [savedNote, setSavedNote] = useState(null);
+  const view = useMapView();
   return {
+    ...view,
     overlayOpacity, setOverlayOpacity, panelOpen, setPanelOpen, drawing, setDrawing,
     timelineHost, setTimelineHost, drawHost, setDrawHost, momentHost, setMomentHost, homeKey, setHomeKey,
     mode, setMode, openFinding, setOpenFinding, saveDraft, setSaveDraft, savedNote, setSavedNote,
   };
+}
+
+// The viewer's choice of 2D map or 3D globe, kept in this browser.
+export const MAP_VIEW_KEY = "nisar-map-view";
+const savedMapView = () => {
+  try {
+    return window.localStorage.getItem(MAP_VIEW_KEY) === "3d" ? "3d" : "2d";
+  } catch {
+    return "2d";
+  }
+};
+
+/** 2D map or 3D globe, remembered; and whether this browser can draw the globe. */
+function useMapView() {
+  const [mapView, setView] = useState(savedMapView);
+  const [globeUnavailable, setGlobeUnavailable] = useState(false);
+  const setMapView = (view) => {
+    setView(view);
+    try {
+      window.localStorage.setItem(MAP_VIEW_KEY, view);
+    } catch {
+      // Storage blocked: the choice lasts for this visit.
+    }
+  };
+  return { mapView, setMapView, globeUnavailable, setGlobeUnavailable };
 }
 
 /** The elements focus and scrolling move between. */
@@ -358,6 +385,8 @@ export function useWorkspace(active) {
     removeShift: selection.landShift,
     setDates: ws.sel.setLandDates,
   });
+  // The globe, when chosen, except in the tour and the demo (their steps point at the 2D map).
+  ws.globeShown = ws.ui.mapView === "3d" && !ws.ui.globeUnavailable && !ws.tour.touring && !ws.tour.demo;
   ws.images = useSiteImages(ws);
   ws.map = mapViewOf({ ...ws, ...ws.images, opacity: ws.ui.overlayOpacity });
   useWorkspaceNavigation(ws);
