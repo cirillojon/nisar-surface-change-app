@@ -99,6 +99,9 @@ export const fetchBrowseBounds = (kmlUrl) =>
 /** Land-change gallery: { sites, method, db_range, generated_at }. */
 export const fetchLandChange = () => get("/api/landchange");
 
+/** Places matching a name (OpenStreetMap, via the backend): `{query, results, attribution}`. */
+export const searchPlaces = (q) => get("/api/geocode", { params: { q } });
+
 /**
  * Start (or find) the height-profile job for a line ([[lon, lat], ...]).
  * Resolves to { id, state }; poll fetchProfile(id) until state is

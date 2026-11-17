@@ -321,6 +321,95 @@
         }
       }
     },
+    "/api/geocode": {
+      "get": {
+        "tags": [
+          "Areas"
+        ],
+        "operationId": "geocodePlace",
+        "summary": "Find a place by name",
+        "description": "Places matching a name, best first, from OpenStreetMap's Nominatim (cached for a day; © OpenStreetMap contributors). Search on submit, not as the user types.",
+        "x-rate-limit": "30 per minute",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": true,
+            "description": "A place name, 2 to 120 characters.",
+            "schema": {
+              "type": "string",
+              "minLength": 2,
+              "maxLength": 120
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Matching places.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "query": {
+                      "type": "string"
+                    },
+                    "results": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "name": {
+                            "type": "string"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "kind": {
+                            "type": "string"
+                          },
+                          "latitude": {
+                            "type": "number"
+                          },
+                          "longitude": {
+                            "type": "number"
+                          },
+                          "bbox": {
+                            "type": "array",
+                            "items": {
+                              "type": "number"
+                            },
+                            "minItems": 4,
+                            "maxItems": 4
+                          }
+                        }
+                      }
+                    },
+                    "attribution": {
+                      "type": "object",
+                      "properties": {
+                        "text": {
+                          "type": "string"
+                        },
+                        "url": {
+                          "type": "string"
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "$ref": "#/components/responses/Upstream"
+          }
+        }
+      }
+    },
     "/api/nisar/products": {
       "get": {
         "tags": [
@@ -1839,7 +1928,10 @@
           },
           "imagery_pair": {
             "type": "array",
-            "items": { "type": "string", "format": "date" },
+            "items": {
+              "type": "string",
+              "format": "date"
+            },
             "minItems": 2,
             "maxItems": 2,
             "description": "Before and after pass dates when a gallery hypothesis uses a specific comparison."

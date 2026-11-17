@@ -82,6 +82,8 @@ are on **Investigate**.
   related series (rain or river flow) on the same dates.
 - **Land-change gallery**: lava, a glacier front, rivers and landslides
   at ~20 m, with change maps between any two dates.
+- **Find a place**: type a name in Investigate's map bar (OpenStreetMap
+  search) and it opens as an area, with every NISAR pass over it.
 - **Draw area**: every NISAR pass over any rectangle, with SME2 soil
   moisture when `EARTHDATA_TOKEN` is set.
 - **Draw line**: ground motion along a line up to 100 km from every GUNW
@@ -156,6 +158,7 @@ All endpoints are public and read-only. Errors come back as `{"error": "..."}`.
 | GET    | `/api/sites/<id>`          | Site + `observations` (one per metric per date) + `scenes`          |
 | GET    | `/api/sites/<id>/chain`    | Site story: NISAR series, moments, related series                  |
 | GET    | `/api/area-context`        | `?bbox=&start=&end=`; daily rain at the area's centre (live)       |
+| GET    | `/api/geocode`             | `?q=`; places matching a name (OpenStreetMap Nominatim, cached a day) |
 | GET    | `/api/scenes/<site>/<f>`   | A scene image (WebP)                                                |
 | GET    | `/api/nisar/products`      | Searchable NISAR products                                           |
 | GET    | `/api/nisar/granules`      | `?bbox=minLon,minLat,maxLon,maxLat&product=GCOV&start=&end=&limit=` |

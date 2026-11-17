@@ -245,6 +245,7 @@ function MapPane({ ws }) {
                   onClear={act.clearDrawing}
                   areaButtonRef={refs.drawButtonRef}
                   lineButtonRef={refs.lineButtonRef}
+                  onPlace={tour.touring ? null : act.selectPlace}
                 />
               )}
               {!tour.demo && evidence && (

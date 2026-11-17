@@ -35,6 +35,11 @@ export default function AoiPanel({
         {aoi.latitude.toFixed(3)}°, {aoi.longitude.toFixed(3)}° ·{" "}
         {sizeKm(aoi.bbox)} · box {aoi.bbox.map((v) => v.toFixed(2)).join(", ")}
       </p>
+      {aoi.clipped && (
+        <p className="muted small">
+          {aoi.label} is larger than one search, so this box is its centre. Use Draw area to search another part of it.
+        </p>
+      )}
       {!aoi.drawn && (
         <p className="muted small">
           Use Draw area to choose a larger or more precise region.

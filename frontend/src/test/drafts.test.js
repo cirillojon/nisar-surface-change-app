@@ -192,4 +192,10 @@ describe("viewDraft", () => {
     expect(clicked.title).toBe("Area around a map click");
     expect(clicked.evidence).toMatchObject({ date: null, source: "NASA CMR search" });
   });
+
+  it("saves a place found by name under its name, to reopen it so", () => {
+    const place = viewDraft({ aoi: { bbox: [1, 2, 3, 4], drawn: true, label: "Lake Chad" } });
+    expect(place.title).toBe("Lake Chad");
+    expect(place.view).toEqual({ mode: "investigate", bbox: [1, 2, 3, 4], name: "Lake Chad", label: "Lake Chad" });
+  });
 });

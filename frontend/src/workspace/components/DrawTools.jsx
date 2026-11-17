@@ -1,12 +1,16 @@
 import { Icon } from "../../platform/icons.jsx";
+import PlaceSearch from "./PlaceSearch.jsx";
 
 /**
- * The map's drawing buttons: a box (an area to search) or a line (a height
- * profile), and Clear once something is drawn. `drawing` is the tool in use.
+ * The map's tools: find a place by name (it opens as an area to search), the
+ * drawing buttons, a box (an area to search) or a line (a height profile),
+ * and Clear once something is drawn. `drawing` is the tool in use.
  */
-export default function DrawTools({ drawing, onToggle, canClear, onClear, areaButtonRef, lineButtonRef }) {
+export default function DrawTools({ drawing, onToggle, canClear, onClear, areaButtonRef, lineButtonRef, onPlace }) {
   return (
-    <div className="map-draw-tools" role="group" aria-label="Drawing tools">
+    <div className="map-draw-tools">
+      {onPlace && <PlaceSearch onPick={onPlace} />}
+      <div className="map-draw-buttons" role="group" aria-label="Drawing tools">
       <button
         type="button"
         ref={areaButtonRef}
@@ -37,6 +41,7 @@ export default function DrawTools({ drawing, onToggle, canClear, onClear, areaBu
           Clear
         </button>
       )}
+      </div>
     </div>
   );
 }

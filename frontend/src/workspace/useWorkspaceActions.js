@@ -13,7 +13,7 @@ import {
   placeDraft as buildPlaceDraft,
   viewDraft as buildViewDraft,
 } from "./drafts.js";
-import { aoiAround } from "./mapLayers.js";
+import { aoiAround, areaForPlace } from "./mapLayers.js";
 import { DEFAULT_MODE, modeForPlace } from "./navigation.js";
 
 export const NARROW_LAYOUT = "(max-width: 760px)";
@@ -113,14 +113,22 @@ function selectionActions(ws, layout) {
   // A rectangle drawn with the map's draw tool. The tours draw only at
   // Kīlauea, so during one any box becomes the suggested box: the sharp
   // imagery rendered for it then plays, never NASA's coarse browse images of
-  // whole orbit frames (which differ in size from pass to pass).
-  const selectArea = (drawn) => {
+  // whole orbit frames (which differ in size from pass to pass). `place`
+  // names a box found by place search ({label, clipped}).
+  const selectArea = (drawn, place = null) => {
     const snapped = ws.tour.touring ? TOUR_BOX : null;
     const bbox = snapped ?? drawn;
     ui.setMode("investigate");
     sel.select({
       kind: "area",
-      aoi: { latitude: (bbox[1] + bbox[3]) / 2, longitude: (bbox[0] + bbox[2]) / 2, bbox, drawn: true, imagery: snapped ? TOUR_IMAGERY : null },
+      aoi: {
+        latitude: (bbox[1] + bbox[3]) / 2,
+        longitude: (bbox[0] + bbox[2]) / 2,
+        bbox,
+        drawn: true,
+        imagery: snapped ? TOUR_IMAGERY : null,
+        ...(place && !snapped ? { label: place.label, clipped: Boolean(place.clipped) } : {}),
+      },
     });
     cancelDraw();
     revealSelection();
@@ -145,6 +153,11 @@ function selectionActions(ws, layout) {
     selectLandChange,
     selectArea,
     selectLine,
+    // A place found by name: its box (or the middle of a big one) as a search area.
+    selectPlace: (place) => {
+      const area = areaForPlace(place);
+      selectArea(area.bbox, area);
+    },
     selectPoint: ({ latitude, longitude }) => {
       ui.setMode("investigate");
       sel.select({ kind: "area", aoi: aoiAround(latitude, longitude) });
@@ -223,7 +236,7 @@ function storyActions(ws, layout, selection) {
     if (slug) {
       openStory(slug, { date: view.site ? view.date : null, layer: view.layer, panel: !isNarrow() });
       if (!data.storyIndex.has(slug)) ui.setMode("investigate");
-    } else if (view.bbox) selection.selectArea(view.bbox);
+    } else if (view.bbox) selection.selectArea(view.bbox, view.label ? { label: view.label } : null);
     else if (view.line) selection.selectLine(view.line);
     scrollToMap();
   };

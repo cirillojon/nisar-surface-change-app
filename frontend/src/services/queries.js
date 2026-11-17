@@ -24,6 +24,7 @@ import {
   fetchStories,
   fetchStory,
   searchGranules,
+  searchPlaces,
   startProfile,
 } from "./api.js";
 import { loadAreaChain } from "./chain.js";
@@ -116,3 +117,7 @@ export const profileQuery = (id) =>
       return over ? false : PROFILE_POLL_MS;
     },
   });
+
+/** Places matching a submitted name (`q` empty: none). */
+export const placeSearchQuery = (q) =>
+  queryOptions({ queryKey: ["places", q.toLowerCase()], queryFn: () => searchPlaces(q), enabled: q.length >= 2 });

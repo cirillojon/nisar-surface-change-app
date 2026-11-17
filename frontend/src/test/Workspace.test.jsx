@@ -14,6 +14,12 @@ vi.mock("../services/api.js", async (importOriginal) => ({
   fetchSites: vi.fn(),
   fetchStories: vi.fn(),
   fetchStory: vi.fn(),
+  searchPlaces: vi.fn(),
+  // An area's catalog stays loading: its panels have their own tests.
+  fetchAreaContext: vi.fn(() => new Promise(() => {})),
+  fetchCoverage: vi.fn(() => new Promise(() => {})),
+  fetchCoverageCheck: vi.fn(() => new Promise(() => {})),
+  searchGranules: vi.fn(() => new Promise(() => {})),
 }));
 // The map, the players and the charts have their own tests. Here they are
 // stand-ins that show what the workspace hands them.
@@ -38,7 +44,7 @@ vi.mock("../components/FindingCard.jsx", () => ({
 }));
 
 import SitePending from "../components/SitePending.jsx";
-import { fetchChangeTypes, fetchFinding, fetchLandChange, fetchProducts, fetchSite, fetchSites, fetchStories, fetchStory } from "../services/api.js";
+import { fetchChangeTypes, fetchFinding, fetchLandChange, fetchProducts, fetchSite, fetchSites, fetchStories, fetchStory, searchPlaces } from "../services/api.js";
 import { testQueryClient as createQueryClient } from "./render.jsx";
 import { TOUR_STORAGE_KEY } from "../services/tour.js";
 import WorkspaceApp from "../workspace/WorkspaceApp.jsx";
@@ -321,6 +327,37 @@ describe("<WorkspaceApp />", () => {
     await waitFor(() => expect(screen.getByRole("article", { name: "Okavango Delta" })).not.toHaveAttribute("aria-busy"));
     expect(screen.getByTestId("player")).toHaveTextContent("2026-03-21");
     await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-21");
+  });
+
+  it("opens a place found by name as an area to search, centred on a big one", async () => {
+    searchPlaces.mockResolvedValue({
+      query: "Lake Chad",
+      results: [{ name: "Lake Chad", label: "Lake Chad, Chad", kind: "water", latitude: 13.2, longitude: 14.1, bbox: [13, 12.3, 15.2, 14.4] }],
+      attribution: { text: "© OpenStreetMap contributors", url: "https://www.openstreetmap.org/copyright" },
+    });
+    open("/workspace?mode=investigate");
+    const field = await screen.findByRole("combobox", { name: "Place name" });
+    fireEvent.change(field, { target: { value: "  Lake   Chad " } });
+    fireEvent.submit(field);
+    expect(await screen.findByRole("option", { name: /Lake Chad, Chad/ })).toHaveAttribute("aria-selected", "true");
+    expect(searchPlaces).toHaveBeenCalledWith("Lake Chad");
+    expect(screen.getByRole("link", { name: "© OpenStreetMap contributors" })).toBeVisible();
+    // Enter on the same name opens the highlighted place.
+    fireEvent.submit(field);
+    await waitFor(() => expect(title()).toHaveTextContent("Lake Chad"));
+    expect(screen.queryByRole("listbox", { name: "Places" })).toBeNull();
+    expect(screen.getByRole("article", { name: "Selected area" })).toHaveTextContent("box 13.00, 12.30, 15.20, 14.40");
+  });
+
+  it("says when no place matches", async () => {
+    searchPlaces.mockResolvedValue({ query: "Qwzx", results: [], attribution: null });
+    open("/workspace?mode=investigate");
+    const field = await screen.findByRole("combobox", { name: "Place name" });
+    fireEvent.change(field, { target: { value: "Qwzx" } });
+    fireEvent.submit(field);
+    expect(await screen.findByText(/No places found/)).toBeVisible();
+    fireEvent.keyDown(field, { key: "Escape" });
+    expect(screen.queryByText(/No places found/)).toBeNull();
   });
 
   it("says when the backend can't be reached", async () => {

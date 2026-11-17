@@ -6,6 +6,7 @@
   • ``GET /api/sites/<id>``       — one site + its time series and scenes
   • ``GET /api/sites/<id>/chain`` — NISAR story: series, moments, related data
   • ``GET /api/area-context``     — rain at a drawn area over given dates
+  • ``GET /api/geocode``          — find a place by name (OpenStreetMap)
   • ``GET /api/scenes/<image>``    — a scene image (``app/data/scenes/``)
 
 NISAR catalog search lives in ``app/routes/nisar.py``.
@@ -20,7 +21,7 @@ import requests
 from flask import Blueprint, abort, jsonify, request, send_from_directory
 from sqlalchemy import func
 
-from app import chains, db, drivers, limiter
+from app import chains, db, drivers, geocode, limiter
 from app.change_types import CHANGE_TYPES, change_type_list
 from app.loader import SCENES_DIR
 from app.models import LoadJob, Scene, Site
@@ -165,6 +166,20 @@ def get_area_context():
     except (requests.RequestException, drivers.SourceError):
         logger.warning("Area context: rain lookup failed", exc_info=True)
         return jsonify({"error": "Rainfall data is temporarily unavailable."}), 502
+
+
+@api_blueprint.route('/geocode')
+@limiter.limit("30 per minute")
+def geocode_place():
+    """Places matching ``?q=`` (OpenStreetMap Nominatim, cached)."""
+    try:
+        query = geocode.clean_query(request.args.get("q"))
+        return jsonify({"query": query, "results": geocode.search(query), "attribution": geocode.ATTRIBUTION})
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), 400
+    except requests.RequestException:
+        logger.warning("Place search failed", exc_info=True)
+        return jsonify({"error": "Place search is temporarily unavailable."}), 502
 
 
 LANDCHANGE_PATH = SCENES_DIR.parent / 'landchange.json'

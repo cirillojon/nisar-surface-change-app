@@ -17,6 +17,102 @@
   background: var(--paper);
   box-shadow: 0 1px 4px var(--map-control-shadow);
 }
+.map-draw-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+/* Find a place: a search field in the map's tool bar, its results below. */
+.place-search {
+  position: relative;
+  display: flex;
+  flex: 1 1 11rem;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 0;
+  max-inline-size: 16rem;
+  padding-inline: 8px 4px;
+  border-radius: calc(var(--card-radius) - 3px);
+  background: var(--bg-elevated);
+}
+.place-search > svg {
+  flex: none;
+  color: var(--fg-muted);
+}
+.place-input {
+  flex: 1;
+  min-inline-size: 0;
+  min-height: calc(var(--control-height) - 4px);
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-ui);
+}
+.place-input:focus {
+  outline: none;
+}
+.place-search:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.place-results {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-start: -4px;
+  /* As wide as the map allows, right of its zoom buttons. */
+  inline-size: min(22rem, calc(100cqi - var(--map-control-size) - 34px));
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--paper);
+  box-shadow: 0 6px 20px var(--map-control-shadow);
+}
+.place-results ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.place-results li {
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.place-results li[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+.place-name {
+  font-weight: 600;
+  font-size: var(--text-ui);
+}
+.place-label {
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-note {
+  margin: 0;
+  padding: 8px 9px;
+  color: var(--fg-muted);
+  font-size: var(--text-ui);
+}
+.place-credit {
+  margin: 4px 0 0;
+  padding: 4px 9px 2px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+.place-credit a {
+  color: inherit;
+}
+
 .map-draw-tools .map-action {
   min-height: calc(var(--control-height) - 4px);
   padding: 4px 8px;

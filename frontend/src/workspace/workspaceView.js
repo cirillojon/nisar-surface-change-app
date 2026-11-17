@@ -17,6 +17,7 @@ function selectionTitle({ landSite, profileLine, site, pendingSite, aoi }) {
   const named = site?.name ?? pendingSite?.name;
   if (named) return named;
   if (!aoi) return null;
+  if (aoi.label) return aoi.label;
   return aoi.drawn ? "Drawn area" : "Selected area";
 }
 
