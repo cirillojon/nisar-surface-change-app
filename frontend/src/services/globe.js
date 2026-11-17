@@ -4,7 +4,8 @@
 // without WebGL. Coordinates are [lon, lat] unless named otherwise.
 
 export const IMAGERY_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}";
-// Country, region and city names with borders, over the imagery (the 2D map shows the same layer).
+// Country, region and city names with borders, over the 2D map's imagery. (The globe
+// draws its own upright names instead: components/globe/usePlaceNames.js.)
 export const LABELS_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/Reference/World_Boundaries_and_Places/MapServer/tile/{z}/{y}/{x}";
 // Esri serves the same tiles from two hosts, both HTTP/1.1, where a browser
 // opens at most 6 connections per host: the globe spreads its tiles over
@@ -12,7 +13,6 @@ export const LABELS_URL = "https://server.arcgisonline.com/ArcGIS/rest/services/
 export const TILE_SUBDOMAINS = ["server", "services"];
 const onBothHosts = (url) => url.replace("https://server.", "https://{s}.");
 export const GLOBE_IMAGERY_URL = onBothHosts(IMAGERY_URL);
-export const GLOBE_LABELS_URL = onBothHosts(LABELS_URL);
 
 // The whole Earth, from far enough out to see it round, Africa and Europe in front.
 export const GLOBE_HOME = { lon: 10, lat: 20, height: 2.2e7 };

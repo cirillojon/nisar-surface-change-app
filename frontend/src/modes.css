@@ -1380,6 +1380,10 @@
 .globe-controls button:last-child {
   border-block-end: 0;
 }
+.globe-controls button[aria-pressed="false"] {
+  color: var(--fg-muted);
+  text-decoration: line-through;
+}
 .globe-controls svg {
   display: block;
   margin: auto;

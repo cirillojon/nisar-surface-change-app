@@ -14,6 +14,9 @@ This repository includes third-party material under its own terms:
 - NISAR-derived values and images (app/data/), computed from NISAR data
   products by NASA/JPL-Caltech and ISRO, distributed by the NASA Alaska
   Satellite Facility DAAC.
+- Place names and borders on the 3D globe
+  (frontend/src/components/globe/places.json) from Natural Earth
+  (public domain), naturalearthdata.com.
 - Rain and river-flow series (app/data/drivers.json) from Open-Meteo
   (CC BY 4.0), based on ECMWF IFS, ERA5 and GloFAS data.
 

@@ -107,6 +107,7 @@ const EXAMPLE_ARGS = {
   list_land_change: { kind: "volcano" },
   height_profile: { line: [[-155.335, 19.392], [-155.231, 19.425]] },
   search_docs: { query: "why is HV higher over crops" },
+  find_place: { query: "Lake Chad" },
   open_in_workspace: { site: "Mexico City" },
 };
 

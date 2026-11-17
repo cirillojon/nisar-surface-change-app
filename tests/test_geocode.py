@@ -98,3 +98,40 @@ def test_geocoder_url_can_be_configured(client, nominatim, monkeypatch):
     monkeypatch.setenv("GEOCODER_URL", "https://geocoder.example/search")
     client.get("/api/geocode?q=Phoenix")
     assert nominatim[0]["url"] == "https://geocoder.example/search"
+
+
+def test_find_place_tool_gives_a_search_box(client, monkeypatch):
+    from app import tools
+
+    places = [
+        {"name": "Lake Chad", "label": "Lake Chad, Africa", "kind": "lake",
+         "latitude": 13.2, "longitude": 14.1, "bbox": [13.0, 12.3, 15.2, 14.5]},
+        {"name": "Brazil", "label": "Brazil", "kind": "country",
+         "latitude": -10.3, "longitude": -53.2, "bbox": [-74.0, -33.8, -28.6, 5.3]},
+    ]
+    monkeypatch.setattr(geocode, "search", lambda q, session=None: places)
+    r = client.post("/api/tools/find_place", json={"query": "  lake   chad "})
+    assert r.status_code == 200
+    result = r.get_json()["result"]
+    assert result["query"] == "lake chad"
+    lake, country = result["results"]
+    assert lake["search_bbox"] == [13.0, 12.3, 15.2, 14.5] and not lake["search_bbox_clipped"]
+    # A country is searched as a 3° box around its centre.
+    assert country["search_bbox"] == [-54.7, -11.8, -51.7, -8.8] and country["search_bbox_clipped"]
+    assert result["attribution"] == geocode.ATTRIBUTION
+    assert tools.validate_bbox(country["search_bbox"])
+
+
+def test_find_place_tool_errors(client, monkeypatch):
+    import requests
+
+    assert client.post("/api/tools/find_place", json={"query": "x"}).status_code == 400
+    monkeypatch.setattr(geocode, "search", lambda q, session=None: [])
+    r = client.post("/api/tools/find_place", json={"query": "Atlantis"})
+    assert r.status_code == 400 and "No places match" in r.get_json()["error"]
+
+    def down(q, session=None):
+        raise requests.ConnectionError("down")
+    monkeypatch.setattr(geocode, "search", down)
+    r = client.post("/api/tools/find_place", json={"query": "Lake Chad"})
+    assert r.status_code == 400 and "temporarily unavailable" in r.get_json()["error"]

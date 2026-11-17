@@ -20,7 +20,9 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, Callable
 
-from app import chains, db, nisar, stories
+import requests
+
+from app import chains, db, geocode, nisar, stories
 from app.change_types import change_type_list
 from app.models import Site
 from app.validators import validate_bbox, validate_optional_date
@@ -435,6 +437,56 @@ def coverage_check_tool(bbox, start: str | None = None, end: str | None = None) 
     return stories.coverage_check(box, start_d, end_d)
 
 
+# A searched place larger than this (degrees a side) is searched as a box
+# this size around its centre, as the workspace's place search does
+# (PLACE_MAX_SPAN_DEG and AOI_HALF_DEG in frontend/src/workspace/mapLayers.js).
+PLACE_MAX_SPAN_DEG = 3.0
+PLACE_MIN_SPAN_DEG = 0.5
+
+
+def search_box(place: dict) -> tuple[list[float], bool]:
+    """The box to search NISAR over for a place, and whether it was cut down to fit."""
+    lon, lat = place["longitude"], max(-89.5, min(89.5, place["latitude"]))
+    west, south, east, north = place["bbox"]
+    lon_span = east - west if west <= east else 360.0
+    lat_span = north - south
+    clipped = lon_span > PLACE_MAX_SPAN_DEG or lat_span > PLACE_MAX_SPAN_DEG
+    c_lon = lon if clipped or west > east else (west + east) / 2
+    c_lat = lat if clipped else (south + north) / 2
+    def half(span):
+        return min(PLACE_MAX_SPAN_DEG, max(PLACE_MIN_SPAN_DEG, span)) / 2
+    box = [
+        round(max(c_lon - half(lon_span), -180), 3), round(max(c_lat - half(lat_span), -90), 3),
+        round(min(c_lon + half(lon_span), 180), 3), round(min(c_lat + half(lat_span), 90), 3),
+    ]
+    return box, clipped
+
+
+def find_place(query: str) -> dict:
+    try:
+        q = geocode.clean_query(query)
+    except ValueError as exc:
+        raise ToolError(str(exc)) from None
+    try:
+        places = geocode.search(q)
+    except requests.RequestException:
+        raise ToolError("Place search is temporarily unavailable; try again in a moment.") from None
+    if not places:
+        raise ToolError(f"No places match {q!r}. Try a fuller name, e.g. 'Lake Chad, Chad'.")
+    results = []
+    for p in places:
+        box, clipped = search_box(p)
+        results.append({**p, "search_bbox": box, "search_bbox_clipped": clipped})
+    return {
+        "query": q,
+        "results": results,
+        "note": ("search_bbox is the box to pass to coverage_check, search_granules or area_rain: the place's "
+                 f"own box, or a {PLACE_MAX_SPAN_DEG:g}° box around its centre when the place is larger "
+                 "(search_bbox_clipped)."),
+        "attribution": geocode.ATTRIBUTION,
+    }
+
+
 def open_in_workspace(site: str | None = None, date: str | None = None) -> dict:
     slug = resolve_site(site).slug if site else None
     return {"url": workspace_url(slug, date)}
@@ -556,6 +608,15 @@ TOOLS: list[Tool] = [
          {"type": "object", "required": ["bbox"], "properties": {
              "bbox": BBOX_SCHEMA, "start": DATE_SCHEMA, "end": DATE_SCHEMA}},
          coverage_check_tool),
+    Tool("find_place", "Find a place by name",
+         "Look up a town, region, lake, volcano or country by name (OpenStreetMap) and get its position, "
+         "its bounding box and a search_bbox ready for coverage_check, search_granules or area_rain. "
+         "Use it whenever someone names a place instead of giving coordinates. Up to 6 matches, best first; "
+         "if several fit, say which one you used.",
+         {"type": "object", "required": ["query"], "properties": {"query": {
+             "type": "string", "minLength": 2, "maxLength": 120,
+             "description": "A place name, e.g. 'Lake Chad', 'Mount Etna', 'Jakarta, Indonesia'."}}},
+         find_place),
     Tool("open_in_workspace", "Link to the map workspace",
          "Build a link that opens the interactive map workspace on a study site (and optionally a pass date).",
          {"type": "object", "properties": {"site": SITE_SCHEMA, "date": DATE_SCHEMA}},

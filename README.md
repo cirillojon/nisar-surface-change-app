@@ -83,9 +83,12 @@ are on **Investigate**.
 - **Land-change gallery**: lava, a glacier front, rivers and landslides
   at ~20 m, with change maps between any two dates.
 - **2D map or 3D globe**: a flat Leaflet map, or a Google Earth-style
-  CesiumJS globe among the stars that you can spin any way, tilt to the
-  horizon and zoom into, both with country and city names. Areas and
-  lines can be drawn on either; the tour and the demo use the 2D map.
+  CesiumJS globe among the stars with Google Earth's mouse controls (drag
+  spins; right-drag turns sideways and zooms up and down; middle- or
+  Shift-drag tilts), both with country and city names. The globe's names
+  (Natural Earth, built by `scripts/build_globe_places.py`) stay upright
+  however the Earth is turned. Areas and lines can be drawn on either;
+  the tour and the demo use the 2D map.
 - **Find a place**: type a name in Investigate's map bar (OpenStreetMap
   search) and it opens as an area, with every NISAR pass over it.
 - **Draw area**: every NISAR pass over any rectangle, with SME2 soil

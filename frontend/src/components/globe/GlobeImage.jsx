@@ -4,12 +4,12 @@ import { ImageryLayer, Rectangle, SingleTileImageryProvider } from "cesium";
 import { clipToCanvas } from "../../services/globe.js";
 
 /**
- * One image laid over its [west, south, east, north] box, under the place
- * names. A new `url` loads first and then replaces the old one, so a
+ * One image laid over its [west, south, east, north] box (under the place
+ * names, which are drawn above all imagery). A new `url` loads first and then replaces the old one, so a
  * time-lapse swaps passes without the image blinking out.
  */
 export function GlobeImage({ globe, url, bbox, opacity = 1 }) {
-  const { widget, labels } = globe;
+  const { widget } = globe;
   const shown = useRef(null);
   const alpha = useRef(opacity);
   const box = bbox.join(",");
@@ -21,7 +21,8 @@ export function GlobeImage({ globe, url, bbox, opacity = 1 }) {
         if (cancelled || widget.isDestroyed()) return;
         const layers = widget.imageryLayers;
         const layer = new ImageryLayer(provider, { alpha: alpha.current });
-        layers.add(layer, layers.indexOf(labels));
+        // In the old image's place, so images keep their order as they change.
+        layers.add(layer, shown.current ? layers.indexOf(shown.current) : undefined);
         if (shown.current) layers.remove(shown.current, true);
         shown.current = layer;
         widget.scene.requestRender();
@@ -30,7 +31,7 @@ export function GlobeImage({ globe, url, bbox, opacity = 1 }) {
     return () => {
       cancelled = true;
     };
-  }, [widget, labels, url, box]);
+  }, [widget, url, box]);
   useEffect(() => {
     alpha.current = opacity;
     if (shown.current) shown.current.alpha = opacity;

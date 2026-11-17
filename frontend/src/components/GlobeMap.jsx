@@ -8,7 +8,19 @@ import { lonLatAt } from "./globe/geo.js";
 import { GlobeAreaDrawer, GlobeLineDrawer } from "./globe/GlobeDrawing.jsx";
 import { GlobeImage, GlobeRegionTile } from "./globe/GlobeImage.jsx";
 import { useCesiumGlobe } from "./globe/useCesiumGlobe.js";
+import { usePlaceNames } from "./globe/usePlaceNames.js";
 import { useShapes } from "./globe/useGlobeShapes.js";
+
+// What a pick returns for the app's own markers and named lines (not place names or images).
+const isItem = (id) => Boolean(id?.kind) || typeof id?.label === "string";
+
+/** The marker or named line at `position`, looking under a place name that covers it. */
+function itemAt(scene, position) {
+  const top = scene.pick(position);
+  if (!top) return null;
+  if (isItem(top.id)) return top.id;
+  return scene.drillPick(position, 4).map((p) => p.id).find(isItem) ?? null;
+}
 
 const prefersReducedMotion = () => Boolean(window.matchMedia?.("(prefers-reduced-motion: reduce)").matches);
 
@@ -25,7 +37,7 @@ function useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapCli
   });
   const click = useStableCallback((e) => {
     if (drawingRef.current) return;
-    const item = scene.pick(e.position)?.id;
+    const item = itemAt(scene, e.position);
     if (item?.kind === "site") onSelectSite?.(item.ref);
     else if (item?.kind === "place") onSelectPlace?.(item.ref);
     else {
@@ -38,7 +50,7 @@ function useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapCli
     const handler = new ScreenSpaceEventHandler(scene.canvas);
     handler.setInputAction(click, ScreenSpaceEventType.LEFT_CLICK);
     handler.setInputAction((e) => {
-      const item = scene.pick(e.endPosition)?.id;
+      const item = itemAt(scene, e.endPosition);
       const label = typeof item?.label === "string" ? item.label : null;
       if (!drawingRef.current) scene.canvas.style.cursor = item?.kind ? "pointer" : "";
       setTip(label ? { label, x: e.endPosition.x, y: e.endPosition.y } : null);
@@ -125,6 +137,8 @@ export default function GlobeMap({
   const container = useRef(null);
   const globe = useCesiumGlobe(container, onUnavailable);
   const scene = globe?.widget.scene ?? null;
+  const [namesShown, setNamesShown] = useState(true);
+  usePlaceNames(scene, namesShown);
   const colorOf = Object.fromEntries(changeTypes.map((ct) => [ct.id, ct.color]));
   const overlay = overlayShapes({ outlines: regionLayers?.outlines, lines: studyLayers?.lines, points: studyLayers?.points, referencePoint });
   const points = [...overlay.points, ...markersOf({ sites, places, colorOf })];
@@ -139,7 +153,7 @@ export default function GlobeMap({
       {globe && (
         <>
           <GlobeImages globe={globe} sceneOverlay={sceneOverlay} regionLayers={regionLayers} footprintOverlay={footprintOverlay} />
-          <GlobeControls scene={scene} reducedMotion={prefersReducedMotion()} />
+          <GlobeControls scene={scene} reducedMotion={prefersReducedMotion()} namesShown={namesShown} onToggleNames={() => setNamesShown((v) => !v)} />
           {drawing === "area" && <GlobeAreaDrawer scene={scene} onDraw={onDrawArea} onCancel={onCancelDraw} host={drawHost} />}
           {drawing === "line" && <GlobeLineDrawer scene={scene} onDraw={onDrawLine} onCancel={onCancelDraw} host={drawHost} />}
         </>

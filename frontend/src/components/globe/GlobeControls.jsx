@@ -31,9 +31,10 @@ const zoom = (scene, factor) => {
 
 /**
  * Buttons for what the mouse does (zoom, tilt, north up, the whole Earth),
- * for keyboards and touch screens. The title says the mouse controls.
+ * for keyboards and touch screens, and place names on or off. The title says
+ * the mouse controls.
  */
-export default function GlobeControls({ scene, reducedMotion }) {
+export default function GlobeControls({ scene, reducedMotion, namesShown, onToggleNames }) {
   const tilted = () => scene.camera.pitch > CesiumMath.toRadians(-60);
   const home = () =>
     scene.camera.flyTo({
@@ -42,7 +43,7 @@ export default function GlobeControls({ scene, reducedMotion }) {
       duration: reducedMotion ? 0 : 2,
     });
   return (
-    <div className="globe-controls" role="group" aria-label="Globe controls" title="Drag to spin · scroll or right-drag to zoom · Shift- or Ctrl-drag to tilt">
+    <div className="globe-controls" role="group" aria-label="Globe controls" title="Drag to spin · scroll to zoom · right-drag: sideways turns, up and down zooms · middle- or Shift-drag tilts">
       <button type="button" aria-label="Zoom in" onClick={() => zoom(scene, 0.5)}>+</button>
       <button type="button" aria-label="Zoom out" onClick={() => zoom(scene, 2)}>−</button>
       <button type="button" aria-label="Tilt the view, or look straight down" onClick={() => orbit(scene, { pitch: tilted() ? TOP_DOWN : TILTED })}>
@@ -52,6 +53,9 @@ export default function GlobeControls({ scene, reducedMotion }) {
       </button>
       <button type="button" aria-label="North up" onClick={() => orbit(scene, { heading: 0 })}>N</button>
       <button type="button" aria-label="Show the whole Earth" onClick={home}>⌂</button>
+      <button type="button" aria-label="Place names" aria-pressed={namesShown} title="Place names and borders" onClick={onToggleNames}>
+        Aa
+      </button>
     </div>
   );
 }

@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   GLOBE_IMAGERY_URL,
-  GLOBE_LABELS_URL,
   boxRing,
   cameraBox,
   densify,
@@ -13,9 +12,8 @@ import {
 } from "../services/globe.js";
 
 describe("the globe's data", () => {
-  it("spreads its imagery and place names over Esri's two tile hosts", () => {
+  it("spreads its imagery over Esri's two tile hosts", () => {
     expect(GLOBE_IMAGERY_URL).toMatch(/^https:\/\/\{s\}\.arcgisonline\.com\/.*World_Imagery/);
-    expect(GLOBE_LABELS_URL).toMatch(/^https:\/\/\{s\}\.arcgisonline\.com\/.*World_Boundaries_and_Places/);
   });
 
   it("makes a marker per place, coloured like the 2D map's", () => {

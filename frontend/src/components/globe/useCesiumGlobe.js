@@ -6,6 +6,7 @@ import {
   CesiumWidget,
   Color,
   Credit,
+  CreditDisplay,
   EllipsoidTerrainProvider,
   ImageryLayer,
   KeyboardEventModifier,
@@ -15,31 +16,41 @@ import {
 } from "cesium";
 import "cesium/Build/Cesium/Widgets/widgets.css";
 
-import { GLOBE_HOME, GLOBE_IMAGERY_URL, GLOBE_LABELS_URL, TILE_SUBDOMAINS } from "../../services/globe.js";
+import { GLOBE_HOME, GLOBE_IMAGERY_URL, TILE_SUBDOMAINS } from "../../services/globe.js";
 import { useStableCallback } from "../../services/useStableCallback.js";
+import { addTurnAndZoom } from "./turnAndZoom.js";
+
+// No Cesium logo in the credits: it is only required with Cesium ion's data,
+// and the globe uses none (Esri imagery, a smooth ellipsoid, Natural Earth names).
+CreditDisplay.cesiumCredit = undefined;
 
 const esriLayer = (url, credit) =>
   new ImageryLayer(new UrlTemplateImageryProvider({ url, subdomains: TILE_SUBDOMAINS, maximumLevel: 18, credit: new Credit(credit) }));
 
 /**
  * Google Earth-style mouse controls: drag to spin the globe (freely, over
- * the poles too), scroll or right-drag to zoom, and Shift-, Ctrl- or
- * middle-drag to tilt towards the horizon. Alt-drag looks around.
+ * the poles too) and scroll to zoom. Right-drag turns (sideways) and zooms
+ * (up and down) about the middle of the view (turnAndZoom.js). Middle-,
+ * Shift- or Ctrl-drag tilts (up and down) and turns (sideways) about it.
+ * Alt-drag looks around. Returns a cleanup.
  */
 function setUpControls(widget) {
   const controls = widget.scene.screenSpaceCameraController;
+  controls.zoomEventTypes = [CameraEventType.WHEEL, CameraEventType.PINCH];
   controls.tiltEventTypes = [
     CameraEventType.MIDDLE_DRAG,
     CameraEventType.PINCH,
     { eventType: CameraEventType.LEFT_DRAG, modifier: KeyboardEventModifier.SHIFT },
     { eventType: CameraEventType.LEFT_DRAG, modifier: KeyboardEventModifier.CTRL },
-    { eventType: CameraEventType.RIGHT_DRAG, modifier: KeyboardEventModifier.CTRL },
   ];
   controls.lookEventTypes = [{ eventType: CameraEventType.LEFT_DRAG, modifier: KeyboardEventModifier.ALT }];
   controls.minimumZoomDistance = 80;
   controls.maximumZoomDistance = 6e7;
   // No fixed north: the globe turns any way the drag goes, as in Google Earth.
   widget.camera.constrainedAxis = undefined;
+  // Right-drag turns and zooms, so the browser's menu doesn't open on the globe.
+  widget.canvas.addEventListener("contextmenu", (e) => e.preventDefault());
+  return addTurnAndZoom(widget.scene);
 }
 
 /**
@@ -55,8 +66,9 @@ function tuneLoading(globe) {
   globe.showGroundAtmosphere = true;
   // Ground whose tiles haven't arrived yet is a dark ocean blue, not Cesium's bright default.
   globe.baseColor = Color.fromCssColorString("#0a1a2f");
-  // Markers and lines on the far side of the Earth are hidden by it.
-  globe.depthTestAgainstTerrain = true;
+  // Markers, names and lines sit on top of the ground (not half sunk into it
+  // where the Earth curves away off-centre); the far side still hides them.
+  globe.depthTestAgainstTerrain = false;
 }
 
 function createGlobe(container) {
@@ -71,16 +83,14 @@ function createGlobe(container) {
     maximumRenderTimeChange: Infinity,
     msaaSamples: 4,
   });
-  const labels = esriLayer(GLOBE_LABELS_URL, "Labels © Esri");
-  widget.imageryLayers.add(labels);
-  setUpControls(widget);
+  const removeControls = setUpControls(widget);
   tuneLoading(widget.scene.globe);
   widget.camera.setView({ destination: Cartesian3.fromDegrees(GLOBE_HOME.lon, GLOBE_HOME.lat, GLOBE_HOME.height) });
-  return { widget, labels };
+  return { widget, removeControls };
 }
 
 /**
- * The Cesium globe in `containerRef` ({widget, labels}, null until made).
+ * The Cesium globe in `containerRef` ({widget, removeControls}, null until made).
  * Calls `onUnavailable` where the browser can't draw it (no WebGL).
  */
 export function useCesiumGlobe(containerRef, onUnavailable) {
@@ -97,6 +107,7 @@ export function useCesiumGlobe(containerRef, onUnavailable) {
     setGlobe(made);
     return () => {
       setGlobe(null);
+      made.removeControls();
       if (!made.widget.isDestroyed()) made.widget.destroy();
     };
   }, [containerRef, unavailable]);
