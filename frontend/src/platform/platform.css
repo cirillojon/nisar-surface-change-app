@@ -1566,20 +1566,14 @@ h3:hover > .pf-anchor,
 }
 
 /* ── Command palette ── */
-.pf-palette-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 3200;
-  display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  padding: 12vh 16px 16px;
-  background: rgb(10 12 16 / 45%);
-}
+/* A native modal <dialog> in the top layer, near the top of the page. */
 .pf-palette {
-  width: min(640px, 100%);
+  width: min(640px, calc(100% - 32px));
+  max-width: none;
   max-height: 70vh;
-  display: flex;
+  margin: 12vh auto auto;
+  padding: 0;
+  color: var(--pf-ink);
   flex-direction: column;
   background: var(--pf-surface);
   border: 1px solid var(--pf-line);
@@ -1603,7 +1597,13 @@ h3:hover > .pf-anchor,
   padding: 6px;
   overflow-y: auto;
 }
-.pf-palette-list button {
+.pf-palette[open] {
+  display: flex;
+}
+.pf-palette::backdrop {
+  background: rgb(10 12 16 / 45%);
+}
+.pf-palette-list [role="option"] {
   width: 100%;
   display: grid;
   gap: 2px;
@@ -1616,7 +1616,7 @@ h3:hover > .pf-anchor,
   color: var(--pf-ink);
   cursor: pointer;
 }
-.pf-palette-list [aria-selected="true"] button {
+.pf-palette-list [aria-selected="true"] {
   background: var(--pf-brand-soft);
 }
 .pf-palette-title {

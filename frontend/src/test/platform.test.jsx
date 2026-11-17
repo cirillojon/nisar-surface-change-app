@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "./render.jsx";
 import { MemoryRouter } from "react-router-dom";
 import { describe, expect, it, vi } from "vitest";
 
@@ -8,9 +8,33 @@ import * as docs from "../platform/docs/content.js";
 import { TABS, allPages, findPage } from "../platform/docs/nav.js";
 import Markdown from "../platform/assistant/Markdown.jsx";
 import { AssistantProvider } from "../platform/assistant/assistantStore.jsx";
+import CommandPalette from "../platform/CommandPalette.jsx";
 import TopBar from "../platform/TopBar.jsx";
 import { workspaceHref } from "../platform/workspaceContext.js";
 import * as api from "../services/api.js";
+
+describe("<CommandPalette />", () => {
+  it("keeps what was typed when the pages' full text arrives", async () => {
+    let finish;
+    const load = vi.spyOn(docs, "loadAllRaw").mockReturnValue(new Promise((resolve) => { finish = resolve; }));
+    try {
+      render(
+        <MemoryRouter>
+          <AssistantProvider>
+            <CommandPalette open onClose={() => {}} />
+          </AssistantProvider>
+        </MemoryRouter>,
+      );
+      const field = screen.getByRole("combobox", { name: "Search" });
+      fireEvent.change(field, { target: { value: "polarization" } });
+      await act(async () => finish([]));
+      expect(field).toHaveValue("polarization");
+      expect(load).toHaveBeenCalledOnce();
+    } finally {
+      vi.restoreAllMocks();
+    }
+  });
+});
 
 describe("<TopBar />", () => {
   it("marks the current workspace without an opening arrow and keeps global actions usable", () => {

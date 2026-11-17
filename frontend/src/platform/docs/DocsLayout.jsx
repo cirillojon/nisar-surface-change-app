@@ -6,7 +6,7 @@ import McpTools from "../api/McpTools.jsx";
 import { useAssistant } from "../assistant/assistantStore.jsx";
 import { AI_ENABLED } from "../features.js";
 import { loadPage } from "./content.js";
-import { mdxComponents } from "./mdx.jsx";
+import { mdxComponents } from "./mdxComponents.js";
 import { findPage, findTab, firstPageHref } from "./nav.js";
 
 const TITLE = "NISAR Surface Change Explorer";
@@ -83,6 +83,16 @@ function PageBody({ tabId, page }) {
   );
 }
 
+/** Headings with a unique key each: a repeated id gets a count after it. */
+function tocEntries(headings) {
+  const seen = new Map();
+  return headings.map((h) => {
+    const n = seen.get(h.id) ?? 0;
+    seen.set(h.id, n + 1);
+    return { ...h, key: n ? `${h.id}~${n}` : h.id };
+  });
+}
+
 export default function DocsLayout() {
   const { tabId, slug } = useParams();
   const tab = findTab(tabId);
@@ -152,8 +162,8 @@ export default function DocsLayout() {
             <p className="pf-toc-title">On this page</p>
             <ul>
               {/* Two embedded files can share a heading (e.g. "Frontend"), so ids can repeat. */}
-              {headings.map((h, i) => (
-                <li key={`${i}-${h.id}`} className={`pf-toc-l${h.level}${active === h.id ? " is-active" : ""}`}>
+              {tocEntries(headings).map((h) => (
+                <li key={h.key} className={`pf-toc-l${h.level}${active === h.id ? " is-active" : ""}`}>
                   <a href={`#${h.id}`}>{h.text}</a>
                 </li>
               ))}

@@ -39,168 +39,74 @@ api.interceptors.response.use(
 );
 
 /* ------------------------------------------------------------------
- * Tiny in-memory cache + in-flight dedupe
- *   - prevents duplicate parallel requests for the same key
- *   - serves cached responses for `ttlMs` after success
+ * Endpoints: one request each. Caching, de-duplication and retries are
+ * the query cache's (services/queries.js, services/queryClient.js).
  * ------------------------------------------------------------------*/
-const cache = new Map(); // key -> { value, expiresAt }
-const inflight = new Map(); // key -> Promise
+const get = (path, config) => api.get(path, config).then((r) => r.data);
 
-async function cached(key, ttlMs, fetcher) {
-  const now = Date.now();
-  const hit = cache.get(key);
-  if (hit && hit.expiresAt > now) return hit.value;
-  if (inflight.has(key)) return inflight.get(key);
+export const fetchHealth = () => get("/api/health");
 
-  const p = (async () => {
-    try {
-      const value = await fetcher();
-      cache.set(key, { value, expiresAt: now + ttlMs });
-      return value;
-    } finally {
-      inflight.delete(key);
-    }
-  })();
-  inflight.set(key, p);
-  return p;
-}
-
-export function invalidateCache(prefix = "") {
-  if (!prefix) {
-    cache.clear();
-    return;
-  }
-  for (const k of cache.keys()) {
-    if (k.startsWith(prefix)) cache.delete(k);
-  }
-}
-
-/* ------------------------------------------------------------------
- * Endpoints
- * ------------------------------------------------------------------*/
-export const fetchHealth = () => api.get("/api/health").then((r) => r.data);
-
-const TEN_MINUTES = 10 * 60 * 1000;
 // Longer than the backend's own NASA timeouts, so its error message wins.
 const NISAR_TIMEOUT_MS = 40 * 1000;
+// Rendering a new SME2 pass reads NISAR data on the backend (5-20 s).
+const SME2_TIMEOUT_MS = 90 * 1000;
 
-export const fetchChangeTypes = () =>
-  cached("change-types", TEN_MINUTES, async () => {
-    const r = await api.get("/api/change-types");
-    return r.data.change_types;
-  });
+export const fetchChangeTypes = () => get("/api/change-types").then((d) => d.change_types);
 
-export const fetchProducts = () =>
-  cached("nisar-products", TEN_MINUTES, async () => {
-    const r = await api.get("/api/nisar/products");
-    return r.data.products;
-  });
+export const fetchProducts = () => get("/api/nisar/products").then((d) => d.products);
 
-export const fetchSites = () =>
-  cached("sites", 30 * 1000, async () => {
-    const r = await api.get("/api/sites", { params: { limit: 500 } });
-    return r.data.sites;
-  });
+export const fetchSites = () => get("/api/sites", { params: { limit: 500 } }).then((d) => d.sites);
 
-export const fetchSite = (siteId) =>
-  cached(`site:${siteId}`, 30 * 1000, async () => {
-    const r = await api.get(`/api/sites/${siteId}`);
-    return r.data;
-  });
+export const fetchSite = (siteId) => get(`/api/sites/${siteId}`);
 
 /**
  * A site's NISAR story: its series, moments computed from it, related
  * series on the same dates and, for open water, the shared footprint.
  * `{ available: false }` when none is set up.
  */
-export const fetchSiteChain = (siteId) =>
-  cached(`site-chain:${siteId}`, TEN_MINUTES, async () => {
-    const r = await api.get(`/api/sites/${siteId}/chain`);
-    return r.data;
-  });
+export const fetchSiteChain = (siteId) => get(`/api/sites/${siteId}/chain`);
 
 /** Daily rain at the centre of a drawn area (`bbox` as a comma string). */
 export const fetchAreaContext = (bbox, start, end) =>
-  cached(`area-context:${bbox}:${start}:${end}`, TEN_MINUTES, async () => {
-    const r = await api.get("/api/area-context", {
-      params: { bbox, start, end },
-      timeout: 30 * 1000,
-    });
-    return r.data;
-  });
+  get("/api/area-context", { params: { bbox, start, end }, timeout: 30 * 1000 });
+
+/**
+ * How many granules of each product cover a box: { GCOV: 15, GUNW: 0, ... }
+ * (null for a product whose search failed).
+ */
+export const fetchCoverage = ({ bbox, start, end }) =>
+  get("/api/nisar/coverage", { params: { bbox: bbox.join(","), start, end }, timeout: NISAR_TIMEOUT_MS })
+    .then((d) => d.products);
 
 /**
  * Search NASA CMR (via our backend) for NISAR granules.
  * bbox: [minLon, minLat, maxLon, maxLat]; start/end: "YYYY-MM-DD".
  * Resolves to { product, hits, granules, start, end }.
  */
-/**
- * How many granules of each product cover a box: { GCOV: 15, GUNW: 0, ... }
- * (null for a product whose search failed).
- */
-export const fetchCoverage = ({ bbox, start, end }) =>
-  cached(`coverage:${bbox.join(",")}:${start}:${end}`, 5 * 60 * 1000, async () => {
-    const r = await api.get("/api/nisar/coverage", {
-      params: { bbox: bbox.join(","), start, end },
-      timeout: NISAR_TIMEOUT_MS,
-    });
-    return r.data.products;
+export const searchGranules = ({ bbox, product = "GCOV", start, end, limit = 20 }) =>
+  get("/api/nisar/granules", {
+    params: { bbox: bbox.join(","), product, start, end, limit },
+    timeout: NISAR_TIMEOUT_MS,
   });
-
-export const searchGranules = ({
-  bbox,
-  product = "GCOV",
-  start,
-  end,
-  limit = 20,
-}) => {
-  const key = `granules:${product}:${bbox.join(",")}:${start}:${end}:${limit}`;
-  return cached(key, 5 * 60 * 1000, async () => {
-    const r = await api.get("/api/nisar/granules", {
-      params: { bbox: bbox.join(","), product, start, end, limit },
-      timeout: NISAR_TIMEOUT_MS,
-    });
-    return r.data;
-  });
-};
 
 /**
  * Map bounds [minLon, minLat, maxLon, maxLat] of a granule's browse image
  * (larger than its footprint). Rejects when they can't be resolved.
  */
 export const fetchBrowseBounds = (kmlUrl) =>
-  cached(`browse-bounds:${kmlUrl}`, TEN_MINUTES, async () => {
-    const r = await api.get("/api/nisar/browse-bounds", {
-      params: { kml: kmlUrl },
-      timeout: NISAR_TIMEOUT_MS,
-    });
-    return r.data.bbox;
-  });
+  get("/api/nisar/browse-bounds", { params: { kml: kmlUrl }, timeout: NISAR_TIMEOUT_MS }).then((d) => d.bbox);
 
 /** Land-change gallery: { sites, method, db_range, generated_at }. */
-export const fetchLandChange = () =>
-  cached("landchange", TEN_MINUTES, async () => {
-    const r = await api.get("/api/landchange");
-    return r.data;
-  });
+export const fetchLandChange = () => get("/api/landchange");
 
 /**
  * Start (or find) the height-profile job for a line ([[lon, lat], ...]).
  * Resolves to { id, state }; poll fetchProfile(id) until state is
  * "done" (with `result`) or "error" (with `error`).
  */
-export const startProfile = async (line) => {
-  const r = await api.post("/api/nisar/profiles", { line });
-  return r.data;
-};
+export const startProfile = (line) => api.post("/api/nisar/profiles", { line }).then((r) => r.data);
 
-export const fetchProfile = async (id) => {
-  const r = await api.get(`/api/nisar/profiles/${id}`);
-  return r.data;
-};
-
-// Rendering a new SME2 pass reads NISAR data on the backend (5-20 s).
-const SME2_TIMEOUT_MS = 90 * 1000;
+export const fetchProfile = (id) => get(`/api/nisar/profiles/${id}`);
 
 /**
  * One SME2 granule rendered over `bbox`: { date, quality, values,
@@ -208,65 +114,24 @@ const SME2_TIMEOUT_MS = 90 * 1000;
  * backend-relative; pass them through `assetUrl`).
  */
 export const fetchSme2Scene = ({ granule, bbox }) =>
-  cached(`sme2:${granule}:${bbox.join(",")}`, TEN_MINUTES, async () => {
-    const r = await api.get("/api/nisar/sme2/scene", {
-      params: { granule, bbox: bbox.join(",") },
-      timeout: SME2_TIMEOUT_MS,
-    });
-    return r.data;
-  });
-
-/* Re-export retry helper for components that want optimistic flows */
-export async function retry(fn, { tries = 3, delayMs = 600 } = {}) {
-  let lastErr;
-  for (let i = 0; i < tries; i++) {
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (err?.status && err.status < 500 && err.status !== 429) throw err;
-      await new Promise((r) => setTimeout(r, delayMs * (i + 1)));
-    }
-  }
-  throw lastErr;
-}
+  get("/api/nisar/sme2/scene", { params: { granule, bbox: bbox.join(",") }, timeout: SME2_TIMEOUT_MS });
 
 /* ------------------------------------------------------------------
  * Stories, findings and the coverage check (the workspace's modes)
  * ------------------------------------------------------------------*/
 
 /** Themes and every story's summary. */
-export const fetchStories = () =>
-  cached("stories", TEN_MINUTES, async () => {
-    const r = await api.get("/api/stories");
-    return r.data;
-  });
+export const fetchStories = () => get("/api/stories");
 
 /** One story: question, moments, hypotheses, limits and future uses. */
-export const fetchStory = (slug) =>
-  cached(`story:${slug}`, TEN_MINUTES, async () => {
-    const r = await api.get(`/api/stories/${encodeURIComponent(slug)}`);
-    return r.data;
-  });
+export const fetchStory = (slug) => get(`/api/stories/${encodeURIComponent(slug)}`);
 
 /** One moment of a story as a finding card (`moment` null = the key moment). */
 export const fetchFinding = (slug, moment = null) =>
-  cached(`finding:${slug}:${moment ?? ""}`, TEN_MINUTES, async () => {
-    const r = await api.get(`/api/findings/${encodeURIComponent(slug)}`, {
-      params: moment == null ? {} : { moment },
-    });
-    return r.data;
-  });
+  get(`/api/findings/${encodeURIComponent(slug)}`, { params: moment == null ? {} : { moment } });
 
 /** Which NISAR products cover a box, how often, on which frames. */
-export const fetchCoverageCheck = (bbox) =>
-  cached(`coverage-check:${bbox}`, TEN_MINUTES, async () => {
-    const r = await api.get("/api/coverage-check", {
-      params: { bbox },
-      timeout: 60 * 1000,
-    });
-    return r.data;
-  });
+export const fetchCoverageCheck = (bbox) => get("/api/coverage-check", { params: { bbox }, timeout: 60 * 1000 });
 
 /** Absolute URL of a backend path, for links people copy or download. */
 export const absoluteApiUrl = (path) => {

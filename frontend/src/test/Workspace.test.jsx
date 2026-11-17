@@ -1,4 +1,5 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { QueryClientProvider } from "@tanstack/react-query";
+import { act, fireEvent, render, screen, waitFor, within } from "./render.jsx";
 import { Link, MemoryRouter, useLocation, useNavigate } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -6,6 +7,7 @@ vi.mock("../services/api.js", async (importOriginal) => ({
   ...(await importOriginal()),
   assetUrl: (path) => path,
   fetchChangeTypes: vi.fn(),
+  fetchFinding: vi.fn(),
   fetchLandChange: vi.fn(),
   fetchProducts: vi.fn(),
   fetchSite: vi.fn(),
@@ -29,14 +31,15 @@ vi.mock("../components/ScenePlayer.jsx", () => ({
   default: ({ scenes, index }) => <p data-testid="player">{scenes[index]?.date}</p>,
 }));
 vi.mock("../components/LandPlayer.jsx", () => ({
-  default: ({ site }) => <p data-testid="player">{site.slug}</p>,
+  default: ({ player }) => <p data-testid="player">{player.site.slug}</p>,
 }));
 vi.mock("../components/FindingCard.jsx", () => ({
   default: ({ slug, moment }) => <article aria-label="Evidence card">{`${slug}/${moment ?? ""}`}</article>,
 }));
 
 import SitePending from "../components/SitePending.jsx";
-import { fetchChangeTypes, fetchLandChange, fetchProducts, fetchSite, fetchSites, fetchStories, fetchStory } from "../services/api.js";
+import { fetchChangeTypes, fetchFinding, fetchLandChange, fetchProducts, fetchSite, fetchSites, fetchStories, fetchStory } from "../services/api.js";
+import { testQueryClient as createQueryClient } from "./render.jsx";
 import { TOUR_STORAGE_KEY } from "../services/tour.js";
 import WorkspaceApp from "../workspace/WorkspaceApp.jsx";
 import {
@@ -47,6 +50,7 @@ import {
   modeFrom,
   panelView,
   parseFinding,
+  readWorkspaceUrl,
   workspaceParams,
 } from "../workspace/navigation.js";
 
@@ -64,6 +68,15 @@ describe("the navigation model", () => {
     expect(panelView({ mode: "stories", ...place, findingOpen: true })).toBe("finding");
     // A drawn area, or a place without a story, has nothing to show in Stories.
     expect(panelView({ mode: "stories", hasSelection: true })).toBe("stories");
+  });
+
+  it("reads what a workspace link asks for", () => {
+    expect(readWorkspaceUrl("mode=stories&site=sylhet&date=2026-07-14&finding=sylhet:2&demo=1")).toEqual({
+      mode: "stories", site: "sylhet", date: "2026-07-14", place: null, finding: "sylhet:2", demo: true,
+    });
+    expect(readWorkspaceUrl(new URLSearchParams("place=etna&site="))).toEqual({
+      mode: null, site: null, date: null, place: "etna", finding: null, demo: false,
+    });
   });
 
   it("writes a link that reopens the same view", () => {
@@ -209,14 +222,17 @@ describe("<WorkspaceApp />", () => {
     const { pathname, search } = useLocation();
     return <output data-testid="url">{pathname + search}</output>;
   }
+  // A fresh query cache per test, so no test sees another's answers.
   const open = (url = "/workspace") =>
     render(
-      <MemoryRouter initialEntries={[url]}>
-        <Link to="/workspace">Top bar: Workspace</Link>
-        <WorkspaceApp />
-        <Where />
-        <Back />
-      </MemoryRouter>,
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={[url]}>
+          <Link to="/workspace">Top bar: Workspace</Link>
+          <WorkspaceApp />
+          <Where />
+          <Back />
+        </MemoryRouter>
+      </QueryClientProvider>,
     );
   // The address follows the selection in an effect, just after the view changes.
   const urlIs = (expected) => waitFor(() => expect(screen.getByTestId("url").textContent).toBe(expected));
@@ -237,6 +253,12 @@ describe("<WorkspaceApp />", () => {
     fetchLandChange.mockResolvedValue({ db_range: [-30, 5], sites: [KILAUEA] });
     fetchStories.mockResolvedValue({ themes: [{ id: "water", label: "Water" }], stories: [SUMMARY] });
     fetchStory.mockResolvedValue(STORY);
+    fetchFinding.mockImplementation((slug, moment) => Promise.resolve({
+      story: { slug, source: "site", title: "Okavango" },
+      site: { slug },
+      moment,
+      claim: { end: "2026-03-09" },
+    }));
     fetchSite.mockImplementation((id) => Promise.resolve(loaded(SITES.find((s) => s.id === id))));
   });
   afterEach(() => {
@@ -295,9 +317,23 @@ describe("<WorkspaceApp />", () => {
     expect(screen.queryByTestId("player")).toBeNull();
 
     await act(async () => answer[2](loaded(SITES[1])));
-    expect(screen.getByRole("article", { name: "Okavango Delta" })).not.toHaveAttribute("aria-busy");
+    // The query cache passes the answer on in its next tick.
+    await waitFor(() => expect(screen.getByRole("article", { name: "Okavango Delta" })).not.toHaveAttribute("aria-busy"));
     expect(screen.getByTestId("player")).toHaveTextContent("2026-03-21");
     await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-21");
+  });
+
+  it("says when the backend can't be reached", async () => {
+    fetchSites.mockRejectedValueOnce({ message: "Network error" });
+    open("/workspace?mode=investigate");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the backend: Network error");
+  });
+
+  it("keeps a linked site and date in the address when the site list can't be loaded", async () => {
+    fetchSites.mockRejectedValueOnce({ message: "Network error" });
+    open("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-09");
+    expect(await screen.findByRole("alert")).toHaveTextContent("Can't reach the backend");
+    await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-09");
   });
 
   it("says why a site couldn't load, and loads it on another try", async () => {
@@ -394,6 +430,45 @@ describe("<WorkspaceApp />", () => {
     expect(screen.queryByTestId("player")).toBeNull();
   });
 
+  it("goes back from one site to the one before with Back, and forward again", async () => {
+    function Forward() {
+      const navigate = useNavigate();
+      return <button type="button" onClick={() => navigate(1)}>Browser forward</button>;
+    }
+    render(
+      <QueryClientProvider client={createQueryClient()}>
+        <MemoryRouter initialEntries={["/workspace?mode=investigate"]}>
+          <WorkspaceApp />
+          <Where />
+          <Back />
+          <Forward />
+        </MemoryRouter>
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole("button", { name: /Punjab/ }));
+    await urlIs("/workspace?mode=investigate&site=punjab-crop-cycles&date=2026-03-21");
+    fireEvent.click(screen.getByRole("button", { name: "Okavango marker" }));
+    await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-21");
+    // Back to an address the workspace wrote itself is still a navigation.
+    fireEvent.click(screen.getByRole("button", { name: "Browser back" }));
+    await waitFor(() => expect(title()).toHaveTextContent("Punjab"));
+    expect(map()).toHaveAttribute("data-site", "1");
+    await urlIs("/workspace?mode=investigate&site=punjab-crop-cycles&date=2026-03-21");
+    fireEvent.click(screen.getByRole("button", { name: "Browser forward" }));
+    await waitFor(() => expect(title()).toHaveTextContent("Okavango Delta"));
+  });
+
+  it("keeps a linked site and date in the address while its passes load", async () => {
+    let answer;
+    fetchSite.mockImplementation(() => new Promise((resolve) => { answer = resolve; }));
+    open("/workspace?site=okavango-flood-pulse&date=2026-03-09");
+    await waitFor(() => expect(title()).toHaveTextContent("Okavango Delta"));
+    await urlIs("/workspace?mode=stories&site=okavango-flood-pulse&date=2026-03-09");
+    await act(async () => answer(loaded(SITES[1])));
+    expect(await screen.findByTestId("player")).toHaveTextContent("2026-03-09");
+    await urlIs("/workspace?mode=stories&site=okavango-flood-pulse&date=2026-03-09");
+  });
+
   it("opens the list, not an empty place, from a link to a place with nothing visible", async () => {
     fetchLandChange.mockResolvedValue({
       db_range: [-30, 5],
@@ -403,6 +478,14 @@ describe("<WorkspaceApp />", () => {
     expect(await screen.findByRole("region", { name: "Before & after" })).toBeVisible();
     expect(title()).toHaveClass("visually-hidden");
     expect(map()).toHaveAttribute("data-place", "");
+  });
+
+  it("puts an evidence card's place and pass on the map when it opens", async () => {
+    open("/workspace?mode=stories&finding=okavango-flood-pulse:1");
+    expect(await screen.findByRole("article", { name: "Evidence card" })).toHaveTextContent("okavango-flood-pulse/1");
+    await waitFor(() => expect(map()).toHaveAttribute("data-site", "2"));
+    expect(await screen.findByTestId("player")).toHaveTextContent("2026-03-09");
+    expect(fetchFinding).toHaveBeenCalledWith("okavango-flood-pulse", 1);
   });
 
   it("has no Findings tab, and opens old Findings links where their content now lives", async () => {

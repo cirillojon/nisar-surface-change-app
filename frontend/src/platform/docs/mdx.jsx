@@ -1,9 +1,10 @@
 /* Components available inside every docs MDX page (no import needed). */
-import { Children, isValidElement, useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Children, isValidElement } from "react";
 import { Link } from "react-router-dom";
 
 import { NisarIllustration, SarDiagram } from "../../components/tour/Illustrations.jsx";
-import { fetchLandChange, fetchSites, fetchStories } from "../../services/api.js";
+import { landChangeQuery, sitesQuery, storiesQuery } from "../../services/queries.js";
 import { STATUS_LABEL } from "../../services/landchange.js";
 import { useAssistant } from "../assistant/assistantStore.jsx";
 import { TryIt } from "../api/Endpoint.jsx";
@@ -21,19 +22,24 @@ function slugify(node) {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
-function heading(Tag) {
-  return function Heading({ children, ...props }) {
-    const id = props.id ?? slugify(children);
-    return (
-      <Tag id={id} {...props}>
-        {children}
-        <a className="pf-anchor" href={`#${id}`} aria-label="Link to this section">#</a>
-      </Tag>
-    );
-  };
+/** A heading with an id and a # link to it. */
+function Heading({ as: Tag, children, ...props }) {
+  const id = props.id ?? slugify(children);
+  return (
+    <Tag id={id} {...props}>
+      {children}
+      <a className="pf-anchor" href={`#${id}`} aria-label="Link to this section">#</a>
+    </Tag>
+  );
+}
+export function H2(props) {
+  return <Heading as="h2" {...props} />;
+}
+export function H3(props) {
+  return <Heading as="h3" {...props} />;
 }
 
-function SmartLink({ href = "", children, ...props }) {
+export function SmartLink({ href = "", children, ...props }) {
   // A link to a switched-off AI page reads as plain text.
   if (isAiHref(href)) return <>{children}</>;
   // Repo docs link to each other as relative .md files: send those to GitHub.
@@ -52,7 +58,7 @@ function SmartLink({ href = "", children, ...props }) {
   return <a href={href} {...props}>{children}</a>;
 }
 
-function Pre({ children }) {
+export function Pre({ children }) {
   const child = Children.only(children);
   const className = child?.props?.className ?? "";
   const lang = className.replace("language-", "") || "text";
@@ -60,7 +66,7 @@ function Pre({ children }) {
   return <CodeBlock code={code} language={lang} />;
 }
 
-function Table(props) {
+export function Table(props) {
   return (
     // Focusable so keyboard users can scroll wide tables.
     // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex
@@ -140,12 +146,9 @@ export function ApiTry({ op }) {
 
 /** Live table of study sites from /api/sites. */
 export function SiteTable() {
-  const [sites, setSites] = useState(null);
-  useEffect(() => {
-    fetchSites().then(setSites).catch(() => setSites([]));
-  }, []);
+  const { data: sites, isError } = useQuery(sitesQuery());
+  if (isError || sites?.length === 0) return <Callout type="warn">Couldn’t load the sites. Is the backend running?</Callout>;
   if (!sites) return <p className="pf-muted" role="status">Loading sites…</p>;
-  if (!sites.length) return <Callout type="warn">Couldn’t load the sites. Is the backend running?</Callout>;
   return (
     <Table>
       <thead><tr><th>Site</th><th>Change</th><th>Product</th><th>Passes</th><th>Record</th><th /></tr></thead>
@@ -167,12 +170,9 @@ export function SiteTable() {
 
 /** Live list of the land-change gallery from /api/landchange. */
 export function LandChangeTable() {
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    fetchLandChange().then(setData).catch(() => setData({ sites: [] }));
-  }, []);
+  const { data, isError } = useQuery(landChangeQuery());
+  if (isError || data?.sites?.length === 0) return <Callout type="warn">Couldn’t load the gallery. Is the backend running?</Callout>;
   if (!data) return <p className="pf-muted" role="status">Loading the gallery…</p>;
-  if (!data.sites?.length) return <Callout type="warn">Couldn’t load the gallery. Is the backend running?</Callout>;
   return (
     <Table>
       <thead><tr><th>Place</th><th>Kind</th><th>Region</th><th>What happened</th><th>In NISAR so far</th><th>Passes</th></tr></thead>
@@ -192,20 +192,12 @@ export function LandChangeTable() {
   );
 }
 
-function useStories() {
-  const [data, setData] = useState(null);
-  useEffect(() => {
-    fetchStories().then(setData).catch(() => setData({ stories: [], themes: [] }));
-  }, []);
-  return data;
-}
-
 /** Live list of the workspace's stories from /api/stories (optionally one theme). */
 export function StoryTable({ theme }) {
-  const data = useStories();
+  const { data, isError } = useQuery(storiesQuery());
+  const rows = (data?.stories ?? []).filter((s) => !theme || s.theme === theme);
+  if (isError || (data && !rows.length)) return <Callout type="warn">Couldn’t load the stories. Is the backend running?</Callout>;
   if (!data) return <p className="pf-muted" role="status">Loading stories…</p>;
-  const rows = data.stories.filter((s) => !theme || s.theme === theme);
-  if (!rows.length) return <Callout type="warn">Couldn’t load the stories. Is the backend running?</Callout>;
   const label = Object.fromEntries((data.themes ?? []).map((t) => [t.id, t.label]));
   return (
     <Table>
@@ -225,23 +217,3 @@ export function StoryTable({ theme }) {
     </Table>
   );
 }
-
-// eslint-disable-next-line react-refresh/only-export-components -- the MDX component map
-export const mdxComponents = {
-  h2: heading("h2"),
-  h3: heading("h3"),
-  a: SmartLink,
-  pre: Pre,
-  table: Table,
-  Art,
-  Callout,
-  Cards,
-  Card,
-  OpenInWorkspace,
-  AskAI,
-  AIOnly,
-  ApiTry,
-  SiteTable,
-  LandChangeTable,
-  StoryTable,
-};

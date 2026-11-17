@@ -5,7 +5,9 @@
  * gcov_rgb in app/nisar_render.py). Their channels still hold the two
  * polarisations, so a single-polarisation or open-water layer is drawn from
  * the colour image in the browser: no new data and no extra downloads. */
-import { useCallback, useEffect, useMemo, useReducer } from "react";
+import { useCallback, useMemo } from "react";
+
+import { useQueuedQueries } from "./useQueuedQueries.js";
 
 // Matches STRETCH_DB in app/nisar_render.py (the colour image's fixed stretch).
 export const HH_RANGE_DB = [-20, 0];
@@ -156,37 +158,34 @@ export function layerUrl(url, layer, { grey = false } = {}) {
   return cache.get(keyOf(url, layer, grey))?.url ?? url;
 }
 
+// Layer images drawn at once (each decodes and repaints a whole image).
+const LAYER_CONCURRENCY = 2;
+
+/** Drawing `layer` from the colour image at `url`, as a query (null if it can't be drawn). */
+const layerQuery = (url, layer, grey) => ({
+  queryKey: ["image-layer", url, layer, grey],
+  queryFn: () => ensureLayer(url, layer, { grey }),
+  staleTime: Infinity,
+  retry: false,
+});
+
 /**
  * A function that maps a colour image's URL to the selected layer's image
  * (the colour image until the layer is drawn). `items` are
- * `{ url, grey }` for every image the view may show, the first wanted first.
+ * `{ url, grey }` for every image the view may show, the first wanted first;
+ * they are drawn a couple at a time, in that order.
  */
 export function useLayerMapper(layer, items) {
-  const [version, bump] = useReducer((n) => n + 1, 0);
-  const signature = JSON.stringify(items.map((it) => [it.url, Boolean(it.grey)]));
-  useEffect(() => {
-    if (!layer || layer === "colour") return undefined;
-    let alive = true;
-    const queue = JSON.parse(signature);
-    const next = async () => {
-      while (alive && queue.length) {
-        const [url, grey] = queue.shift();
-        await ensureLayer(url, layer, { grey });
-        if (alive) bump();
-      }
-    };
-    next();
-    next();
-    return () => {
-      alive = false;
-    };
-  }, [layer, signature]);
-  const greyOf = useMemo(() => new Map(items.map((it) => [it.url, Boolean(it.grey)])), [signature]); // eslint-disable-line react-hooks/exhaustive-deps
-  // `version` is the dependency that makes the mapper change as images finish.
-  return useCallback(
-    (url) => layerUrl(url, layer, { grey: greyOf.get(url) ?? false }),
-    [layer, greyOf, version], // eslint-disable-line react-hooks/exhaustive-deps
+  const drawn = layer && layer !== "colour";
+  const results = useQueuedQueries(
+    drawn ? items.map((it) => layerQuery(it.url, layer, Boolean(it.grey))) : [],
+    LAYER_CONCURRENCY,
   );
+  // Each image's drawn URL once ready, as a string so the mapper only
+  // changes when an image finishes (not with every new `items` array).
+  const pairs = JSON.stringify(drawn ? items.map((it, i) => [it.url, results[i]?.data ?? null]) : []);
+  const byUrl = useMemo(() => new Map(JSON.parse(pairs)), [pairs]);
+  return useCallback((url) => byUrl.get(url) || url, [byUrl]);
 }
 
 /** Legend for a layer: { ramp, text } ('colour' uses `colourText`). */

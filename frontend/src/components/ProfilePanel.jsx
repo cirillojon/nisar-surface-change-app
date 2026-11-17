@@ -1,10 +1,10 @@
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
-import { fetchProfile, startProfile } from "../services/api.js";
+import { profileJobQuery, profileQuery } from "../services/queries.js";
 import SpaceTimeChart from "./SpaceTimeChart.jsx";
 import XYChart from "./XYChart.jsx";
 
-const POLL_MS = 2000;
 const PLAY_MS = 600;
 const ELEVATION = "#a3a3a3";
 const MOTION = "#38bdf8";
@@ -272,43 +272,27 @@ function Result({ result }) {
 }
 
 /**
+ * The backend's height-profile job for a line: started (or found) once, then
+ * asked how it is doing until it is done or failed (services/queries.js).
+ */
+function useProfileJob(line) {
+  const start = useQuery(profileJobQuery(line));
+  const status = useQuery(profileQuery(start.data?.id ?? null));
+  const job = status.data ?? start.data ?? null;
+  let error = null;
+  if (start.error) error = start.error.message || "Couldn't start the profile";
+  else if (status.error) error = status.error.message || "Lost track of the profile job";
+  else if (job?.state === "error") error = job.error;
+  return { job, error };
+}
+
+/**
  * Height profile along a drawn line: terrain elevation plus NISAR's
  * measured change over its full record (space-time diagram, date slider,
  * rate). Starts a backend job and polls it.
  */
 export default function ProfilePanel({ line, onBack }) {
-  const [job, setJob] = useState(null);
-  const [error, setError] = useState(null);
-  const key = JSON.stringify(line);
-
-  useEffect(() => {
-    let cancelled = false;
-    let timer = null;
-    const poll = async (id) => {
-      try {
-        const status = await fetchProfile(id);
-        if (cancelled) return;
-        setJob(status);
-        if (status.state === "error") setError(status.error);
-        else if (status.state !== "done") timer = setTimeout(() => poll(id), POLL_MS);
-      } catch (err) {
-        if (!cancelled) setError(err?.message || "Lost track of the profile job");
-      }
-    };
-    setJob(null);
-    setError(null);
-    startProfile(JSON.parse(key))
-      .then((status) => {
-        if (cancelled) return;
-        setJob(status);
-        poll(status.id);
-      })
-      .catch((err) => !cancelled && setError(err?.message || "Couldn't start the profile"));
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [key]);
+  const { job, error } = useProfileJob(line);
 
   return (
     <article className="panel detail" aria-label="Height profile">

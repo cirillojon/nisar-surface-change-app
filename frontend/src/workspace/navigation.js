@@ -51,6 +51,23 @@ export function panelView({ mode, hasStory = false, hasSelection = false, findin
 }
 
 /**
+ * What a workspace URL asks for: its tab, a site (slug or id) on a date, a
+ * gallery place, an evidence card, demo mode. Absent parameters are null.
+ */
+export function readWorkspaceUrl(searchParams) {
+  const params = new URLSearchParams(searchParams);
+  const get = (key) => params.get(key) || null;
+  return {
+    mode: get("mode"),
+    site: get("site"),
+    date: get("date"),
+    place: get("place"),
+    finding: get("finding"),
+    demo: params.has("demo"),
+  };
+}
+
+/**
  * The workspace's query parameters for a selection:
  * `?mode=…` plus `&site=…&date=…` or `&place=…`, and `&finding=…` in Stories.
  */

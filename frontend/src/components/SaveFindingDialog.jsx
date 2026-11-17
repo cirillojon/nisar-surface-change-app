@@ -16,11 +16,16 @@ export default function SaveFindingDialog({ draft, stories = [], onSave, onCance
   const dialogRef = useRef(null);
   const titleRef = useRef(null);
 
+  // A native modal dialog: the page behind it is inert and focus stays inside.
   useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog.open) dialog.showModal();
     titleRef.current?.focus();
     titleRef.current?.select();
+    return () => dialog.close();
   }, []);
 
+  // Escape cancels here before any page shortcut (the tour's, say) sees it.
   useEffect(() => {
     const onKey = (event) => {
       if (event.key === "Escape") {
@@ -54,16 +59,15 @@ export default function SaveFindingDialog({ draft, stories = [], onSave, onCance
   ].filter(([, value]) => value);
 
   return (
-    <div className="save-backdrop">
-      <form
-        className="save-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="save-dialog-title"
-        ref={dialogRef}
-        onSubmit={submit}
-        data-tour="save-dialog"
-      >
+    <dialog
+      ref={dialogRef}
+      className="save-dialog-host"
+      aria-labelledby="save-dialog-title"
+      aria-modal="true"
+      // The browser's own Escape handling would close it behind React's back.
+      onCancel={(event) => event.preventDefault()}
+    >
+      <form className="save-dialog" onSubmit={submit} data-tour="save-dialog">
         <h2 id="save-dialog-title">Save to My findings</h2>
         <label className="save-field">
           <span>Title</span>
@@ -114,6 +118,6 @@ export default function SaveFindingDialog({ draft, stories = [], onSave, onCance
           <button type="submit" className="btn btn-primary" data-tour="save-submit">Save</button>
         </div>
       </form>
-    </div>
+    </dialog>
   );
 }

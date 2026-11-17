@@ -1,8 +1,10 @@
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "./render.jsx";
+import { useEffect, useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import LandChangePanel from "../components/LandChangePanel.jsx";
 import LandPlayer from "../components/LandPlayer.jsx";
+import { useLandPlayer } from "../components/land/useLandPlayer.js";
 import PlacesList from "../components/PlacesList.jsx";
 import { boxBlur, changeMap, createChangeMaps, toDb } from "../services/landchange.js";
 import { PLAY_MS } from "../services/usePlayback.js";
@@ -212,16 +214,53 @@ describe("<LandChangePanel />", () => {
   });
 });
 
+/**
+ * A stand-in for the workspace around the player: it keeps the place's dates,
+ * layer and shift as WorkspaceApp does, and reports the image the workspace
+ * would put on the map (`onOverlay`).
+ */
+const DB_RANGE = [-30, 5];
+
+function LandHarness({ site: place, open = true, layer: chosenLayer = null, onLayerChange, onOverlay = () => {}, loadLayer, toDataUrl }) {
+  const [dates, setDates] = useState(null);
+  const [ownLayer, setOwnLayer] = useState(null);
+  const [removeShift, setRemoveShift] = useState(true);
+  const land = useLandPlayer({
+    site: open ? place : null,
+    dbRange: DB_RANGE,
+    dates,
+    layer: chosenLayer ?? ownLayer,
+    removeShift,
+    setDates,
+    ...(loadLayer && { loadLayer }),
+    ...(toDataUrl && { toDataUrl }),
+  });
+  useEffect(() => onOverlay(land.overlay), [land.overlay, onOverlay]);
+  if (!land.site) return null;
+  return (
+    <LandPlayer
+      player={land}
+      opacity={0.85}
+      onOpacityChange={() => {}}
+      onLayerChange={(id) => {
+        setOwnLayer(id);
+        onLayerChange?.(id);
+      }}
+      onRemoveShiftChange={setRemoveShift}
+    />
+  );
+}
+
 describe("<LandPlayer />", () => {
   const layer = (v) => ({ values: Uint8Array.from([v, v, v, v]), width: 2, height: 2 });
-  const props = { site, dbRange: [-30, 5], opacity: 0.85, onOpacityChange: () => {} };
+  const props = { site };
   const url = (date) => `/api/scenes/landchange/kilauea/${date}.webp`;
   const pickLayer = (id) =>
     fireEvent.change(screen.getByRole("combobox", { name: "Image layer" }), { target: { value: id } });
 
   it("opens on the suggested pair and puts the slider's pass on the map", () => {
     const onOverlay = vi.fn();
-    render(<LandPlayer {...props} onOverlay={onOverlay} />);
+    render(<LandHarness {...props} onOverlay={onOverlay} />);
     expect(screen.getByText("2026-11-10", { selector: "strong" })).toBeInTheDocument();
     expect(screen.getByText("pass 3 of 3")).toBeInTheDocument();
     expect(onOverlay).toHaveBeenLastCalledWith({ url: url("2026-11-10"), bbox: site.bbox });
@@ -233,7 +272,7 @@ describe("<LandPlayer />", () => {
     const loadLayer = vi.fn((u) => Promise.resolve(layer(u.includes("2025-11-03") ? 100 : 158)));
     const toDataUrl = vi.fn(() => "data:image/png;base64,CHANGE");
     const onOverlay = vi.fn();
-    render(<LandPlayer {...props} onOverlay={onOverlay} loadLayer={loadLayer} toDataUrl={toDataUrl} />);
+    render(<LandHarness {...props} onOverlay={onOverlay} loadLayer={loadLayer} toDataUrl={toDataUrl} />);
     pickLayer("change");
     expect(screen.getByRole("combobox", { name: "Change since" })).toHaveValue("0");
     // Everything brightened alike, so with the area-wide shift removed nothing is left.
@@ -260,7 +299,7 @@ describe("<LandPlayer />", () => {
       let built = 0;
       const toDataUrl = vi.fn(() => `data:image/png;base64,MAP${(built += 1)}`);
       const onOverlay = vi.fn();
-      render(<LandPlayer {...props} onOverlay={onOverlay} loadLayer={loadLayer} toDataUrl={toDataUrl} />);
+      render(<LandHarness {...props} onOverlay={onOverlay} loadLayer={loadLayer} toDataUrl={toDataUrl} />);
       fireEvent.change(screen.getByRole("slider", { name: "Scene date" }), { target: { value: "1" } });
       pickLayer("change");
       // Until the first map exists, the pass's own image stays on the map.
@@ -292,7 +331,7 @@ describe("<LandPlayer />", () => {
 
   it("says why when a change map can't be built, and keeps the image on the map", async () => {
     const onOverlay = vi.fn();
-    render(<LandPlayer {...props} onOverlay={onOverlay} loadLayer={() => Promise.reject(new Error("no canvas"))} />);
+    render(<LandHarness {...props} onOverlay={onOverlay} loadLayer={() => Promise.reject(new Error("no canvas"))} />);
     pickLayer("change");
     expect(await screen.findByText(/Couldn't build the change map/)).toBeInTheDocument();
     expect(onOverlay).toHaveBeenLastCalledWith({ url: url("2026-11-10"), bbox: site.bbox });
@@ -301,18 +340,18 @@ describe("<LandPlayer />", () => {
   it("starts in HH where some passes have no HV, and follows a layer chosen elsewhere", () => {
     const partial = { ...site, passes: site.passes.map((p, i) => ({ ...p, polarizations: i === 0 ? "HH" : "HH+HV" })) };
     const onLayerChange = vi.fn();
-    const { rerender } = render(<LandPlayer {...props} site={partial} onOverlay={() => {}} onLayerChange={onLayerChange} />);
+    const { rerender } = render(<LandHarness site={partial} onLayerChange={onLayerChange} />);
     expect(screen.getByRole("combobox", { name: "Image layer" })).toHaveValue("hh");
     pickLayer("colour");
     expect(onLayerChange).toHaveBeenCalledWith("colour");
-    rerender(<LandPlayer {...props} site={partial} onOverlay={() => {}} layer="colour" onLayerChange={onLayerChange} />);
+    rerender(<LandHarness site={partial} layer="colour" onLayerChange={onLayerChange} />);
     expect(screen.getByText("Grey frames are passes where only HH was collected.")).toBeInTheDocument();
   });
 
-  it("clears the map overlay when closed", () => {
+  it("takes its image off the map when the place closes", () => {
     const onOverlay = vi.fn();
-    const { unmount } = render(<LandPlayer {...props} onOverlay={onOverlay} />);
-    unmount();
+    const { rerender } = render(<LandHarness {...props} onOverlay={onOverlay} />);
+    rerender(<LandHarness {...props} open={false} onOverlay={onOverlay} />);
     expect(onOverlay).toHaveBeenLastCalledWith(null);
   });
 });

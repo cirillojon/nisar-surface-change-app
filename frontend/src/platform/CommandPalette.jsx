@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 
 import { useAssistant } from "./assistant/assistantStore.jsx";
 import { loadAllRaw } from "./docs/content.js";
+import { useStableCallback } from "../services/useStableCallback.js";
 import { allPages } from "./docs/nav.js";
 import { AI_ENABLED } from "./features.js";
 
@@ -25,14 +26,29 @@ export default function CommandPalette({ open, onClose }) {
   const { ask } = useAssistant();
   const pages = useMemo(() => allPages(), []);
 
+  // Each opening starts empty, with the field focused.
   useEffect(() => {
-    if (!open) return;
+    if (!open) return undefined;
     setQuery("");
     setCursor(0);
-    setTimeout(() => inputRef.current?.focus(), 0);
-    if (!corpus) {
-      loadAllRaw().then((rows) => setCorpus(Object.fromEntries(rows.map((r) => [r.key, plain(r.text)]))));
-    }
+    const timer = setTimeout(() => inputRef.current?.focus(), 0);
+    return () => clearTimeout(timer);
+  }, [open]);
+
+  // The pages' full text, loaded on first open (titles are searchable before
+  // it arrives, and if it can't load). Kept apart from the effect above, so
+  // its arrival doesn't clear what has been typed meanwhile.
+  useEffect(() => {
+    if (!open || corpus) return undefined;
+    let cancelled = false;
+    loadAllRaw()
+      .then((rows) => {
+        if (!cancelled) setCorpus(Object.fromEntries(rows.map((r) => [r.key, plain(r.text)])));
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
   }, [open, corpus]);
 
   const results = useMemo(() => {
@@ -83,51 +99,113 @@ export default function CommandPalette({ open, onClose }) {
   };
   const askItem = AI_ENABLED && query.trim() ? { key: "ask", title: `Ask AI: “${query.trim()}”`, section: "Assistant", ask: query.trim() } : null;
   const items = askItem ? [...results, askItem] : results;
-
   return (
-    <div
-      className="pf-palette-backdrop"
-      role="presentation"
-      onMouseDown={(e) => {
-        if (e.target === e.currentTarget) onClose();
+    <PaletteDialog onClose={onClose}>
+      <PaletteSearch
+        inputRef={inputRef}
+        query={query}
+        items={items}
+        cursor={cursor}
+        setCursor={setCursor}
+        onQuery={(value) => {
+          setQuery(value);
+          setCursor(0);
+        }}
+        onGo={go}
+        onClose={onClose}
+      />
+    </PaletteDialog>
+  );
+}
+
+const optionId = (item) => `palette-option-${item.key}`;
+
+/**
+ * The palette as a native modal dialog: the page behind is inert, focus stays
+ * in it, and Escape (or a click on the backdrop) closes it.
+ */
+function PaletteDialog({ onClose: close, children }) {
+  const dialogRef = useRef(null);
+  // Stable, so a new onClose from the page doesn't close and reopen the dialog.
+  const onClose = useStableCallback(close);
+  useEffect(() => {
+    const dialog = dialogRef.current;
+    if (!dialog.open) dialog.showModal();
+    // A click on the backdrop lands on the dialog itself (a pointer shortcut; Escape is the keyboard's).
+    const onDown = (event) => {
+      if (event.target === dialog) onClose();
+    };
+    dialog.addEventListener("mousedown", onDown);
+    return () => {
+      dialog.removeEventListener("mousedown", onDown);
+      dialog.close();
+    };
+  }, [onClose]);
+  return (
+    <dialog
+      ref={dialogRef}
+      className="pf-palette"
+      aria-label="Search the docs"
+      aria-modal="true"
+      onCancel={(event) => {
+        event.preventDefault();
+        onClose();
       }}
     >
-      <div className="pf-palette" role="dialog" aria-modal="true" aria-label="Search the docs">
-        <input
-          ref={inputRef}
-          className="pf-palette-input"
-          placeholder="Search docs, concepts, endpoints…"
-          value={query}
-          onChange={(e) => {
-            setQuery(e.target.value);
-            setCursor(0);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Escape") onClose();
-            else if (e.key === "ArrowDown") {
-              e.preventDefault();
-              setCursor((c) => Math.min(c + 1, items.length - 1));
-            } else if (e.key === "ArrowUp") {
-              e.preventDefault();
-              setCursor((c) => Math.max(c - 1, 0));
-            } else if (e.key === "Enter" && items[cursor]) go(items[cursor]);
-          }}
-          aria-label="Search"
-        />
-        <ul className="pf-palette-list" role="listbox">
-          {items.map((r, i) => (
-            <li key={r.key} role="option" aria-selected={i === cursor}>
-              <button type="button" onMouseEnter={() => setCursor(i)} onClick={() => go(r)}>
-                <span className="pf-palette-title">{r.title}</span>
-                <span className="pf-palette-section">{r.section}</span>
-                {r.snippet && <span className="pf-palette-snippet">…{r.snippet}…</span>}
-              </button>
-            </li>
-          ))}
-          {items.length === 0 && <li className="pf-muted pf-palette-empty">No matches.</li>}
-        </ul>
-        <p className="pf-palette-foot"><kbd>↑↓</kbd> to move · <kbd>Enter</kbd> to open · <kbd>Esc</kbd> to close</p>
-      </div>
-    </div>
+      {children}
+    </dialog>
+  );
+}
+
+/** The search field (a combobox) and its results (a listbox it points into). */
+function PaletteSearch({ inputRef, query, items, cursor, setCursor, onQuery, onGo, onClose }) {
+  const active = items[cursor];
+  const onKeyDown = (e) => {
+    if (e.key === "Escape") onClose();
+    else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setCursor((c) => Math.min(c + 1, items.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setCursor((c) => Math.max(c - 1, 0));
+    } else if (e.key === "Enter" && active) onGo(active);
+  };
+  return (
+    <>
+      <input
+        ref={inputRef}
+        className="pf-palette-input"
+        placeholder="Search docs, concepts, endpoints…"
+        value={query}
+        onChange={(e) => onQuery(e.target.value)}
+        onKeyDown={onKeyDown}
+        role="combobox"
+        aria-label="Search"
+        aria-expanded={items.length > 0}
+        aria-controls="palette-results"
+        aria-activedescendant={active ? optionId(active) : undefined}
+        aria-autocomplete="list"
+      />
+      <ul id="palette-results" className="pf-palette-list" role="listbox" aria-label="Results">
+        {items.map((r, i) => (
+          <li
+            key={r.key}
+            id={optionId(r)}
+            role="option"
+            tabIndex={-1}
+            aria-selected={i === cursor}
+            onMouseEnter={() => setCursor(i)}
+            onClick={() => onGo(r)}
+            onKeyDown={(e) => e.key === "Enter" && onGo(r)}
+          >
+            <span className="pf-palette-title">{r.title}</span>
+            <span className="pf-palette-section">{r.section}</span>
+            {r.snippet && <span className="pf-palette-snippet">…{r.snippet}…</span>}
+          </li>
+        ))}
+        {items.length === 0 && <li className="pf-muted pf-palette-empty">No matches.</li>}
+      </ul>
+      <p className="pf-palette-foot"><kbd>↑↓</kbd> to move · <kbd>Enter</kbd> to open · <kbd>Esc</kbd> to close</p>
+    </>
   );
 }

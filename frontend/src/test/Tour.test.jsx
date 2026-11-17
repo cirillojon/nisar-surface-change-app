@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { act, fireEvent, render, screen, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, within } from "./render.jsx";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import Tour from "../components/tour/Tour.jsx";
@@ -426,6 +426,16 @@ describe("<Tour />", () => {
     } finally {
       vi.unstubAllGlobals();
     }
+  });
+
+  it("leaves the header's End tour button clickable through the shade", () => {
+    const place = onPage('<button type="button" class="tour-button">End tour</button>', "button");
+    place(900, 70);
+    render(<Tour state={idle} actions={actions()} onEnd={() => {}} />);
+    act(() => vi.advanceTimersByTime(100));
+    // Clipped out of the shade (and the glass), so the click reaches the button.
+    expect(screen.getByTestId("tour-shade").getAttribute("clip-path")).toMatch(/^url/);
+    expect(document.querySelector(".tour-dim clipPath path").getAttribute("d")).toContain("M900 70H1000V100H900Z");
   });
 
   it("shields the page from stray clicks and nudges the bubble instead", () => {

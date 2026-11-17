@@ -1,14 +1,16 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "./render.jsx";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../services/api.js", () => ({
   fetchBrowseBounds: vi.fn(),
   fetchSme2Scene: vi.fn(),
+  searchGranules: vi.fn(),
+  fetchCoverage: vi.fn(() => new Promise(() => {})),
   assetUrl: (path) => path,
 }));
 
-import DataExplorer from "../components/DataExplorer.jsx";
-import { fetchBrowseBounds, fetchSme2Scene } from "../services/api.js";
+import { fetchBrowseBounds, fetchSme2Scene, searchGranules } from "../services/api.js";
+import { ExplorerHarness } from "./catalogHarness.jsx";
 
 const BBOX = [0, 0, 2, 2];
 const ALL = [
@@ -46,15 +48,22 @@ const sme2 = (id, day, footprint) => ({
 
 const lastLayers = (fn) => fn.mock.calls.at(-1)[0];
 
-const props = (overrides = {}) => ({
-  product: "GCOV",
-  granules: [l2("old", "2026-10-01", ALL), l2("new", "2026-10-13", WEST)],
-  bbox: BBOX,
-  opacity: 0.85,
-  onOpacityChange: () => {},
-  onMapLayers: vi.fn(),
-  ...overrides,
-});
+// The explorer over a search that answers with `granules` (as `product`).
+const mount = ({ product = "GCOV", granules = [l2("old", "2026-10-01", ALL), l2("new", "2026-10-13", WEST)], dateRange, ...rest } = {}) => {
+  searchGranules.mockResolvedValue({ hits: granules.length, granules, product });
+  const onMapLayers = vi.fn();
+  const onAreaSeries = vi.fn();
+  const props = {
+    bbox: BBOX,
+    defaultProduct: product,
+    initialSearch: { product, start: dateRange?.start ?? "2026-01-01", end: dateRange?.end ?? "2026-12-31" },
+    onMapLayers,
+    onAreaSeries,
+    ...rest,
+  };
+  const view = render(<ExplorerHarness {...props} />);
+  return { ...view, onMapLayers, onAreaSeries, props };
+};
 
 describe("<DataExplorer /> sharp imagery", () => {
   const imagery = {
@@ -71,11 +80,10 @@ describe("<DataExplorer /> sharp imagery", () => {
 
   it("shows the sharp pass images in the area, with the layer picker", async () => {
     fetchBrowseBounds.mockReset();
-    const p = props({ imagery, dateRange: { start: "2026-09-01", end: "2026-09-20" } });
-    render(<DataExplorer {...p} />);
+    const { onMapLayers } = mount({ imagery, granules: [], dateRange: { start: "2026-09-01", end: "2026-09-20" } });
 
-    await waitFor(() => expect(p.onMapLayers).toHaveBeenCalled());
-    const tile = lastLayers(p.onMapLayers).tiles[0];
+    await waitFor(() => expect(lastLayers(onMapLayers)?.tiles).toHaveLength(1));
+    const tile = lastLayers(onMapLayers).tiles[0];
     expect(tile.url).toBe("/api/scenes/landchange/kilauea-tour/2026-09-13.webp");
     expect(tile.bounds).toEqual(imagery.bbox);
     // Only the passes inside the date range, and no browse-image lookups.
@@ -88,9 +96,9 @@ describe("<DataExplorer /> sharp imagery", () => {
     ]);
   });
 
-  it("ignores the sharp imagery for other products", () => {
-    const p = props({ imagery, product: "GUNW" });
-    render(<DataExplorer {...p} />);
+  it("ignores the sharp imagery for other products", async () => {
+    mount({ imagery, product: "GUNW" });
+    await screen.findByText(/pass 2 of 2/i);
     expect(screen.queryByRole("combobox", { name: "Image layer" })).toBeNull();
   });
 });
@@ -103,10 +111,9 @@ describe("<DataExplorer /> time slider", () => {
   });
 
   it("starts on the newest date and draws its images clipped to the area", async () => {
-    const p = props();
-    render(<DataExplorer {...p} />);
-    await waitFor(() => expect(lastLayers(p.onMapLayers).tiles).toHaveLength(1));
-    const { tiles, outlines, opacity } = lastLayers(p.onMapLayers);
+    const { onMapLayers } = mount();
+    await waitFor(() => expect(lastLayers(onMapLayers)?.tiles).toHaveLength(1));
+    const { tiles, outlines, opacity } = lastLayers(onMapLayers);
     expect(tiles[0].url).toBe("https://browse.test/new.png");
     expect(tiles[0].bounds).toEqual([-1.2, -1.2, 3.2, 3.2]);
     // Clip = footprint ∩ area: the west half of the box.
@@ -121,22 +128,15 @@ describe("<DataExplorer /> time slider", () => {
   });
 
   it("scrubs to another date", async () => {
-    const p = props();
-    render(<DataExplorer {...p} />);
-    await waitFor(() => expect(lastLayers(p.onMapLayers).tiles).toHaveLength(1));
-    fireEvent.change(screen.getByRole("slider", { name: /scene date/i }), {
-      target: { value: "0" },
-    });
-    await waitFor(() =>
-      expect(lastLayers(p.onMapLayers).tiles[0].url).toBe(
-        "https://browse.test/old.png",
-      ),
-    );
+    const { onMapLayers } = mount();
+    await waitFor(() => expect(lastLayers(onMapLayers)?.tiles).toHaveLength(1));
+    fireEvent.change(screen.getByRole("slider", { name: /scene date/i }), { target: { value: "0" } });
+    await waitFor(() => expect(lastLayers(onMapLayers).tiles[0].url).toBe("https://browse.test/old.png"));
   });
 
   it("places the catalog timeline below the map and removes it in mosaic mode", async () => {
     const timelineHost = document.createElement("div");
-    const { container } = render(<DataExplorer {...props()} timelineHost={timelineHost} />);
+    const { container } = mount({ timelineHost });
     await waitFor(() => expect(within(timelineHost).getByRole("slider", { name: "Scene date" }))
       .toHaveAttribute("aria-valuetext", "2026-10-13"));
     expect(container.querySelector('[aria-label="Scene date"]')).toBeNull();
@@ -151,26 +151,24 @@ describe("<DataExplorer /> time slider", () => {
 
   it("falls back to the footprint when exact bounds are unavailable", async () => {
     fetchBrowseBounds.mockRejectedValue({ status: 502 });
-    const p = props();
-    render(<DataExplorer {...p} />);
+    const { onMapLayers } = mount();
     expect(await screen.findByText(/placed approximately/i)).toBeInTheDocument();
-    expect(lastLayers(p.onMapLayers).tiles[0].bounds).toEqual([-1, -1, 3, 3]);
+    expect(lastLayers(onMapLayers).tiles[0].bounds).toEqual([-1, -1, 3, 3]);
   });
 
   it("jumps to a date picked in the granule list", async () => {
-    const p = props();
-    const { rerender } = render(<DataExplorer {...p} />);
+    mount({ pick: { id: "old", date: "2026-10-01" } });
     await screen.findByText(/pass 2 of 2/i);
-    rerender(<DataExplorer {...p} focus={{ id: "old", date: "2026-10-01" }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Pick from the list" }));
     expect(await screen.findByText(/pass 1 of 2/i)).toBeInTheDocument();
   });
 
-  it("clears the map when closed", async () => {
-    const p = props();
-    const { unmount } = render(<DataExplorer {...p} />);
+  it("clears the map when the catalog closes", async () => {
+    const { onMapLayers, props, rerender } = mount();
     await screen.findByText(/pass 2 of 2/i);
-    unmount();
-    expect(lastLayers(p.onMapLayers)).toBeNull();
+    expect(lastLayers(onMapLayers)).not.toBeNull();
+    rerender(<ExplorerHarness {...props} open={false} />);
+    expect(lastLayers(onMapLayers)).toBeNull();
   });
 });
 
@@ -181,43 +179,30 @@ describe("<DataExplorer /> mosaic", () => {
   });
 
   it("tiles the area newest first and outlines each date", async () => {
-    const p = props();
-    render(<DataExplorer {...p} />);
-    fireEvent.click(screen.getByRole("button", { name: /mosaic/i }));
-    await waitFor(() => expect(lastLayers(p.onMapLayers).tiles).toHaveLength(2));
-    const { tiles, outlines } = lastLayers(p.onMapLayers);
+    const { onMapLayers } = mount();
+    fireEvent.click(await screen.findByRole("button", { name: /mosaic/i }));
+    await waitFor(() => expect(lastLayers(onMapLayers).tiles).toHaveLength(2));
+    const { tiles, outlines } = lastLayers(onMapLayers);
     // Oldest drawn first so the newest is on top.
-    expect(tiles.map((t) => t.url)).toEqual([
-      "https://browse.test/old.png",
-      "https://browse.test/new.png",
-    ]);
-    expect(outlines.map((o) => o.label)).toEqual([
-      "2026-10-13 · 50% of the area",
-      "2026-10-01 · 50% of the area",
-    ]);
+    expect(tiles.map((t) => t.url)).toEqual(["https://browse.test/old.png", "https://browse.test/new.png"]);
+    expect(outlines.map((o) => o.label)).toEqual(["2026-10-13 · 50% of the area", "2026-10-01 · 50% of the area"]);
     expect(outlines[0].color).not.toBe(outlines[1].color);
     expect(screen.getByText("100%")).toBeInTheDocument();
     expect(screen.queryByText(/no GCOV data/i)).not.toBeInTheDocument();
   });
 
-  it("says how much of the area is still empty", () => {
-    render(
-      <DataExplorer
-        {...props({ granules: [l2("new", "2026-10-13", WEST)] })}
-      />,
-    );
-    fireEvent.click(screen.getByRole("button", { name: /mosaic/i }));
+  it("says how much of the area is still empty", async () => {
+    mount({ granules: [l2("new", "2026-10-13", WEST)] });
+    fireEvent.click(await screen.findByRole("button", { name: /mosaic/i }));
     expect(screen.getByText(/has no GCOV data in these dates/i)).toBeInTheDocument();
   });
 
   it("opens a date from the legend in the time slider", async () => {
-    render(<DataExplorer {...props()} />);
-    fireEvent.click(screen.getByRole("button", { name: /mosaic/i }));
+    mount();
+    fireEvent.click(await screen.findByRole("button", { name: /mosaic/i }));
     fireEvent.click(screen.getByRole("button", { name: /2026-10-01/ }));
     expect(await screen.findByText(/pass 1 of 2/i)).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /time slider/i }),
-    ).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByRole("button", { name: /time slider/i })).toHaveAttribute("aria-pressed", "true");
   });
 });
 
@@ -239,34 +224,17 @@ describe("<DataExplorer /> SME2", () => {
     );
   });
 
-  const sme2Props = () =>
-    props({
-      product: "SME2",
-      granules: [sme2("old", "2026-10-01", ALL), sme2("new", "2026-10-13", WEST)],
-    });
+  const sme2Granules = () => [sme2("old", "2026-10-01", ALL), sme2("new", "2026-10-13", WEST)];
 
   it("renders passes on the backend and toggles soil moisture", async () => {
-    const p = sme2Props();
-    const onAreaSeries = vi.fn();
-    render(<DataExplorer {...p} onAreaSeries={onAreaSeries} />);
-    await waitFor(() =>
-      expect(lastLayers(p.onMapLayers).tiles[0]?.url).toBe(
-        "/bs/NISAR_L3_PR_SME2_001_010_A_020_new.webp",
-      ),
-    );
+    const { onMapLayers, onAreaSeries } = mount({ product: "SME2", granules: sme2Granules() });
+    await waitFor(() => expect(lastLayers(onMapLayers)?.tiles[0]?.url).toBe("/bs/NISAR_L3_PR_SME2_001_010_A_020_new.webp"));
     // The newest (shown) pass is requested first.
-    expect(fetchSme2Scene.mock.calls[0][0]).toEqual({
-      granule: "NISAR_L3_PR_SME2_001_010_A_020_new",
-      bbox: BBOX,
-    });
+    expect(fetchSme2Scene.mock.calls[0][0]).toEqual({ granule: "NISAR_L3_PR_SME2_001_010_A_020_new", bbox: BBOX });
     fireEvent.change(screen.getByRole("combobox", { name: "Image layer" }), { target: { value: "soil_moisture" } });
-    await waitFor(() =>
-      expect(lastLayers(p.onMapLayers).tiles[0].url).toBe(
-        "/sm/NISAR_L3_PR_SME2_001_010_A_020_new.webp",
-      ),
-    );
+    await waitFor(() => expect(lastLayers(onMapLayers).tiles[0].url).toBe("/sm/NISAR_L3_PR_SME2_001_010_A_020_new.webp"));
     expect(await screen.findByText(/Measured values/)).toBeInTheDocument();
-    expect(onAreaSeries).toHaveBeenLastCalledWith({
+    await waitFor(() => expect(onAreaSeries).toHaveBeenLastCalledWith({
       date: "2026-10-13",
       mode: "time",
       product: "SME2",
@@ -275,34 +243,32 @@ describe("<DataExplorer /> SME2", () => {
         points: expect.arrayContaining([{ date: "2026-10-13", value: 0.3 }]),
       }),
       dates: ["2026-10-01", "2026-10-13"],
-    });
+    }));
   });
 
   it("stops after a missing login and explains it", async () => {
     fetchSme2Scene.mockReset();
-    fetchSme2Scene.mockRejectedValue({
-      status: 503,
-      message: "Showing SME2 needs a NASA Earthdata Login",
-    });
-    render(<DataExplorer {...sme2Props()} />);
+    fetchSme2Scene.mockRejectedValue({ status: 503, message: "Showing SME2 needs a NASA Earthdata Login" });
+    mount({ product: "SME2", granules: sme2Granules() });
     expect(await screen.findByText(/needs a NASA Earthdata Login/)).toBeInTheDocument();
-    // Two workers each tried once, then stopped.
+    // Two at a time tried once, then stopped.
     expect(fetchSme2Scene.mock.calls.length).toBeLessThanOrEqual(2);
   });
 
   it("places whole-frame images by their bounds and clips them to the area", async () => {
-    const p = sme2Props();
-    render(<DataExplorer {...p} bbox={[0, 0, 2, 2]} />);
-    await waitFor(() => expect(lastLayers(p.onMapLayers).tiles).toHaveLength(1));
-    const tile = lastLayers(p.onMapLayers).tiles[0];
+    const { onMapLayers } = mount({ product: "SME2", granules: sme2Granules(), bbox: [0, 0, 2, 2] });
+    await waitFor(() => expect(lastLayers(onMapLayers)?.tiles).toHaveLength(1));
+    const tile = lastLayers(onMapLayers).tiles[0];
     expect(tile.bounds).toEqual([-1.5, -1.5, 3.5, 3.5]);
     const lons = tile.clip[0][0].map(([lon]) => lon);
     expect(Math.min(...lons)).toBeCloseTo(0);
     expect(Math.max(...lons)).toBeCloseTo(1);
   });
 
-  it("explores areas of any size", () => {
-    render(<DataExplorer {...sme2Props()} bbox={[-125, 45, -116, 49]} />);
+  it("explores areas of any size", async () => {
+    mount({ product: "SME2", granules: sme2Granules(), bbox: [-125, 45, -116, 49] });
+    // The explorer opens on any area (here one the passes don't reach), with no size limit.
+    await screen.findByText(/No SME2 data covers this area/);
     expect(screen.queryByText(/per side/)).not.toBeInTheDocument();
   });
 });

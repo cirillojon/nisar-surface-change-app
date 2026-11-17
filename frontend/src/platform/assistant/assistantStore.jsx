@@ -1,7 +1,7 @@
 /* Assistant state shared by the top bar, the drawer and "Ask AI" buttons.
  * The conversation lives here (not in the drawer) so it survives the
  * drawer closing and route changes. */
-import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
+import { createContext, useCallback, useContext, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "react-router-dom";
 
 import { API_BASE } from "../../services/api.js";
@@ -43,8 +43,11 @@ export function AssistantProvider({ children }) {
   const [draft, setDraft] = useState("");
   const abortRef = useRef(null);
   const location = useLocation();
+  // The page the assistant is asked from, read when a reply arrives.
   const locationRef = useRef(location);
-  locationRef.current = location;
+  useLayoutEffect(() => {
+    locationRef.current = location;
+  });
 
   const send = useCallback(async (text) => {
     const content = text.trim();

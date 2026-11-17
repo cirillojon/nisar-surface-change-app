@@ -36,75 +36,126 @@ function inline(text, keyBase = "i") {
   return out;
 }
 
-function table(lines, key) {
-  const rows = lines.map((l) => l.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim()));
-  const [head, , ...body] = rows;
+const CELLS = (line) => line.trim().replace(/^\||\|$/g, "").split("|").map((c) => c.trim());
+const IS_LIST = /^\s*([-*]|\d+\.)\s+/;
+const IS_TABLE_ROW = /^\s*\|.*\|\s*$/;
+const IS_HEADING = /^#{1,4}\s/;
+const STARTS_BLOCK = /^(```|#{1,4}\s|\s*([-*]|\d+\.)\s+|\s*\|)/;
+
+/** Lines from `i` while `test` holds. */
+function takeWhile(lines, i, test) {
+  const taken = [];
+  while (i + taken.length < lines.length && test(lines[i + taken.length])) taken.push(lines[i + taken.length]);
+  return taken;
+}
+
+/* Each reader takes the block starting at line `i`: [block, lines used], or null if it isn't one. */
+function readCode(lines, i) {
+  if (!lines[i].startsWith("```")) return null;
+  const body = takeWhile(lines, i + 1, (l) => !l.startsWith("```"));
+  return [{ type: "code", lang: lines[i].slice(3).trim() || "text", code: body.join("\n") }, body.length + 2];
+}
+
+function readHeading(lines, i) {
+  if (!IS_HEADING.test(lines[i])) return null;
+  const hashes = lines[i].match(/^#+/)?.[0].length ?? 1;
+  return [{ type: "heading", level: Math.min(hashes + 2, 6), text: lines[i].replace(/^#+\s/, "") }, 1];
+}
+
+function readTable(lines, i) {
+  if (!IS_TABLE_ROW.test(lines[i]) || !/^\s*\|?\s*:?-+/.test(lines[i + 1] ?? "")) return null;
+  const rows = takeWhile(lines, i, (l) => IS_TABLE_ROW.test(l));
+  const [head = [], , ...body] = rows.map(CELLS);
+  return [{ type: "table", head, body }, rows.length];
+}
+
+function readList(lines, i) {
+  if (!IS_LIST.test(lines[i])) return null;
+  const items = takeWhile(lines, i, (l) => IS_LIST.test(l));
+  return [{ type: "list", ordered: /^\s*\d+\./.test(lines[i]), items: items.map((l) => l.replace(IS_LIST, "")) }, items.length];
+}
+
+function readParagraph(lines, i) {
+  const para = takeWhile(lines, i, (l) => l.trim() && !STARTS_BLOCK.test(l));
+  // A line that starts like a block but isn't one is a paragraph of its own.
+  const taken = para.length ? para : [lines[i]];
+  return [{ type: "paragraph", lines: taken }, taken.length];
+}
+
+const READERS = [readCode, readHeading, readTable, readList];
+
+/**
+ * The text as blocks (code, heading, table, list, paragraph). Each block
+ * and row gets an id as it is read, so React keys stay tied to the parsed
+ * text rather than to positions in arrays.
+ */
+function parseBlocks(text) {
+  const lines = text.split("\n");
+  const blocks = [];
+  let i = 0;
+  while (i < lines.length) {
+    if (!lines[i].trim()) {
+      i += 1;
+      continue;
+    }
+    const [block, used] = READERS.map((read) => read(lines, i)).find(Boolean) ?? readParagraph(lines, i);
+    blocks.push({ ...block, id: `b${i}` });
+    i += used;
+  }
+  return blocks;
+}
+
+const withIds = (items, prefix) => items.map((value, n) => ({ value, id: `${prefix}-${n}` }));
+
+function Table({ block }) {
+  const head = withIds(block.head, `${block.id}h`);
+  const body = withIds(block.body, `${block.id}r`).map((row) => ({ ...row, cells: withIds(row.value, row.id) }));
   return (
-    <div className="pf-table-wrap" key={key}>
+    <div className="pf-table-wrap">
       <table>
-        <thead><tr>{head.map((c, i) => <th key={i}>{inline(c, `${key}h${i}`)}</th>)}</tr></thead>
-        <tbody>{body.map((r, ri) => <tr key={ri}>{r.map((c, i) => <td key={i}>{inline(c, `${key}${ri}-${i}`)}</td>)}</tr>)}</tbody>
+        <thead><tr>{head.map((c) => <th key={c.id}>{inline(c.value, c.id)}</th>)}</tr></thead>
+        <tbody>
+          {body.map((row) => (
+            <tr key={row.id}>{row.cells.map((c) => <td key={c.id}>{inline(c.value, c.id)}</td>)}</tr>
+          ))}
+        </tbody>
       </table>
     </div>
   );
 }
 
-export default function Markdown({ text }) {
-  const lines = text.split("\n");
-  const blocks = [];
-  let i = 0;
-  let k = 0;
-  while (i < lines.length) {
-    const line = lines[i];
-    if (line.startsWith("```")) {
-      const lang = line.slice(3).trim();
-      const body = [];
-      i += 1;
-      while (i < lines.length && !lines[i].startsWith("```")) body.push(lines[i++]);
-      i += 1;
-      blocks.push(<CodeBlock key={k++} code={body.join("\n")} language={lang || "text"} dark />);
-      continue;
+function List({ block }) {
+  const Tag = block.ordered ? "ol" : "ul";
+  return <Tag>{withIds(block.items, block.id).map((it) => <li key={it.id}>{inline(it.value, it.id)}</li>)}</Tag>;
+}
+
+function Paragraph({ block }) {
+  return (
+    <p>
+      {withIds(block.lines, block.id).map((l, j) => (
+        <Fragment key={l.id}>{j > 0 && <br />}{inline(l.value, l.id)}</Fragment>
+      ))}
+    </p>
+  );
+}
+
+function Block({ block }) {
+  switch (block.type) {
+    case "code":
+      return <CodeBlock code={block.code} language={block.lang} dark />;
+    case "heading": {
+      const Tag = `h${block.level}`;
+      return <Tag>{inline(block.text, block.id)}</Tag>;
     }
-    if (/^#{1,4}\s/.test(line)) {
-      const level = Math.min(line.match(/^#+/)[0].length + 2, 6);
-      const Tag = `h${level}`;
-      blocks.push(<Tag key={k++}>{inline(line.replace(/^#+\s/, ""), `h${k}`)}</Tag>);
-      i += 1;
-      continue;
-    }
-    if (/^\s*\|.*\|\s*$/.test(line) && /^\s*\|?\s*:?-+/.test(lines[i + 1] ?? "")) {
-      const rows = [];
-      while (i < lines.length && /^\s*\|.*\|\s*$/.test(lines[i])) rows.push(lines[i++]);
-      blocks.push(table(rows, `t${k++}`));
-      continue;
-    }
-    if (/^\s*([-*]|\d+\.)\s+/.test(line)) {
-      const ordered = /^\s*\d+\./.test(line);
-      const items = [];
-      while (i < lines.length && /^\s*([-*]|\d+\.)\s+/.test(lines[i])) {
-        items.push(lines[i].replace(/^\s*([-*]|\d+\.)\s+/, ""));
-        i += 1;
-      }
-      const List = ordered ? "ol" : "ul";
-      blocks.push(<List key={k++}>{items.map((it, j) => <li key={j}>{inline(it, `l${k}-${j}`)}</li>)}</List>);
-      continue;
-    }
-    if (!line.trim()) {
-      i += 1;
-      continue;
-    }
-    const para = [];
-    while (i < lines.length && lines[i].trim() && !/^(```|#{1,4}\s|\s*([-*]|\d+\.)\s+|\s*\|)/.test(lines[i])) {
-      para.push(lines[i++]);
-    }
-    if (!para.length) {
-      para.push(lines[i++]);
-    }
-    blocks.push(
-      <p key={k++}>
-        {para.map((p, j) => <Fragment key={j}>{j > 0 && <br />}{inline(p, `p${k}-${j}`)}</Fragment>)}
-      </p>,
-    );
+    case "table":
+      return <Table block={block} />;
+    case "list":
+      return <List block={block} />;
+    default:
+      return <Paragraph block={block} />;
   }
-  return <div className="pf-md">{blocks}</div>;
+}
+
+export default function Markdown({ text }) {
+  return <div className="pf-md">{parseBlocks(text).map((block) => <Block key={block.id} block={block} />)}</div>;
 }
