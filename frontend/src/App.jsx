@@ -1,5 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
-import { Suspense, useEffect, useLayoutEffect, useState } from "react";
+import { Suspense, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import AssistantDrawer from "./platform/assistant/AssistantDrawer.jsx";
@@ -11,6 +11,7 @@ import DocsLayout from "./platform/docs/DocsLayout.jsx";
 import Footer from "./platform/Footer.jsx";
 import Home from "./platform/Home.jsx";
 import NotFound from "./platform/NotFound.jsx";
+import { watchScrollbars } from "./platform/scrollbars.js";
 import TopBar from "./platform/TopBar.jsx";
 import WorkspaceHost from "./platform/WorkspaceHost.jsx";
 import { isTyping, modalOpen } from "./services/keys.js";
@@ -18,13 +19,14 @@ import { createQueryClient } from "./services/queryClient.js";
 
 const TITLE = "NISAR Surface Change Explorer";
 
-function PageScroll() {
+function PageScroll({ scrollbars }) {
   const { pathname, hash } = useLocation();
   useLayoutEffect(() => {
     const anchor = hash && document.getElementById(hash.slice(1));
     if (anchor) anchor.scrollIntoView();
     else window.scrollTo({ top: 0 });
-  }, [pathname, hash]);
+    scrollbars.current?.resetViewport();
+  }, [pathname, hash, scrollbars]);
   return null;
 }
 
@@ -38,6 +40,7 @@ export default function App() {
   const [searchOpen, setSearchOpen] = useState(false);
   // Server data shared by the pages (one cache per app).
   const [queryClient] = useState(createQueryClient);
+  const scrollbars = useRef(null);
   const navigate = useNavigate();
 
   // Plain <a href="/docs/..."> links (in MDX, the spec, assistant replies)
@@ -91,6 +94,15 @@ export default function App() {
     else if (pathname === "/") document.title = TITLE;
   }, [inWorkspace, pathname]);
 
+  useLayoutEffect(() => {
+    const watcher = watchScrollbars();
+    scrollbars.current = watcher;
+    return () => {
+      watcher.stop();
+      scrollbars.current = null;
+    };
+  }, [pathname]);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AssistantProvider>
@@ -110,7 +122,7 @@ export default function App() {
                       <Route path="/brief/:slug" element={<BriefPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
-                    <PageScroll />
+                    <PageScroll scrollbars={scrollbars} />
                   </Suspense>
                   <Footer />
                 </div>

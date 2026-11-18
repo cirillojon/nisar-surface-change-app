@@ -62,17 +62,10 @@
 }
 
 html {
-  scrollbar-color: color-mix(in srgb, var(--scrollbar-thumb) 32%, transparent) transparent;
   scrollbar-gutter: stable;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  :where(.sidebar:hover .sidebar-scroll, .workspace:hover, .chain-body:hover, .chain-about-body:hover, .scene-comparison-body:hover) {
-    scrollbar-color: var(--scrollbar-thumb) transparent;
-  }
-}
-
-:where(.sidebar-scroll, .workspace, .chain-body, .chain-about-body, .scene-comparison-body):is(:focus-visible, :has(:focus-visible)) {
+:where([data-scrollbar-active]) {
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 

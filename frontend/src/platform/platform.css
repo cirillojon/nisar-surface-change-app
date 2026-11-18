@@ -31,7 +31,6 @@ html[data-mode="docs"] body {
 @media (width > 760px) {
   html[data-mode="workspace"] {
     overflow-y: hidden;
-    scrollbar-gutter: auto;
   }
 }
 
