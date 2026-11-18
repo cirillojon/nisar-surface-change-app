@@ -14,6 +14,9 @@
   opacity: var(--hero-earth-presence, 1);
   visibility: var(--hero-earth-visibility, visible);
 }
+.pf-home[data-compact-descent] .pf-hero-earth {
+  transform: translateY(var(--hero-earth-offset, 0px));
+}
 .pf-hero-earth-visual {
   --hero-earth-fade: clamp(128px, 16vw, 236px);
   --earth-edge: var(--hero-earth-edge, 0);

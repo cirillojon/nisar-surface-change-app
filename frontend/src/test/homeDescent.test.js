@@ -126,3 +126,40 @@ it("coalesces compact viewport resizes and repaints when the hero framing change
   vi.advanceTimersToNextFrame();
   expect(view.mock.lastCall[4]).toBe(0);
 });
+
+it("eases the globe upward without moving the section below it", () => {
+  const { scroll, coverage, track } = mountDescent(undefined, { height: 841, stickyTop: -105 });
+  const earth = track.querySelector(".pf-hero-earth");
+  const viewport = 841 - 105;
+  const distance = viewport * 1.06;
+  const hold = parseFloat(track.style.getPropertyValue("--hero-descent-hold"));
+  const overlap = parseFloat(coverage.style.getPropertyValue("--coverage-heading-overlap"));
+
+  expect(hold).toBeCloseTo(distance * 0.92);
+  expect(hold - overlap).toBeCloseTo(distance * 0.47 - viewport * 0.37);
+
+  scroll(420);
+  expect(parseFloat(earth.style.getPropertyValue("--hero-earth-offset"))).toBe(0);
+  scroll(460);
+  const easedLift = -parseFloat(earth.style.getPropertyValue("--hero-earth-offset"));
+  expect(easedLift).toBeGreaterThan(0);
+  expect(easedLift).toBeLessThan(12);
+  scroll(611);
+  expect(-parseFloat(earth.style.getPropertyValue("--hero-earth-offset"))).toBeCloseTo(611 - 105 - distance * 0.47, 1);
+});
+
+it("eases a small scroll step across frames and settles when it stops", () => {
+  const { scroll, view } = mountDescent();
+  scroll(260);
+  const startingZoom = view.mock.lastCall[0];
+  scroll(272);
+  const firstFrameZoom = view.mock.lastCall[0];
+  expect(firstFrameZoom).toBeGreaterThan(startingZoom);
+
+  vi.advanceTimersToNextFrame();
+  expect(view.mock.lastCall[0]).toBeGreaterThan(firstFrameZoom);
+  vi.advanceTimersByTime(160);
+  view.mockClear();
+  vi.advanceTimersByTime(160);
+  expect(view).not.toHaveBeenCalled();
+});

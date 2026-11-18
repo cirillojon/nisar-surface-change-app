@@ -348,6 +348,7 @@
 }
 
 .pf-coverage-preview {
+  --coverage-preview-fade: linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent);
   position: relative;
   width: calc(100% + 2 * var(--coverage-detail-inset));
   height: clamp(109px, 10vw, 138px);
@@ -355,7 +356,7 @@
   margin-block: 8px 4px;
   margin-inline: calc(-1 * var(--coverage-detail-inset));
   mask-image:
-    linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent),
+    var(--coverage-preview-fade),
     linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
   mask-composite: intersect;
 }
@@ -512,6 +513,8 @@
     box-shadow: none;
     scroll-margin-top: calc(var(--topbar-h) + 12px);
   }
+
+  .pf-coverage-preview { mask: var(--coverage-preview-fade); }
 
   .pf-coverage-detail:focus-visible {
     outline: 2px solid var(--coverage-accent);

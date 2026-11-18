@@ -1,14 +1,25 @@
 const clamp = (value) => Math.max(0, Math.min(1, value));
 
 export const COMPACT_DESCENT_QUERY = "(max-width: 780px), (max-width: 959px) and (max-height: 540px)";
-const COMPACT_HOLD_FRACTION = 0.47;
+const COMPACT_LIFT_START = 0.47;
+const COMPACT_LIFT_EASE = 0.06;
 const COMPACT_FADE_END = 0.92;
 const SCROLL_OVERSCAN = 64;
+const SCROLL_EASE_MS = 32;
+const MAX_SCROLL_LAG = 8;
 const VIEWPORT_SETTLE_MS = 120;
 
 function easeBetween(progress, start, end) {
   const t = clamp((progress - start) / (end - start));
   return t * t * (3 - 2 * t);
+}
+
+function globeLift(progress, distance) {
+  const offset = progress - COMPACT_LIFT_START;
+  if (offset <= -COMPACT_LIFT_EASE) return 0;
+  if (offset >= COMPACT_LIFT_EASE) return offset * distance;
+  const eased = (offset + COMPACT_LIFT_EASE) ** 2 / (4 * COMPACT_LIFT_EASE);
+  return eased * distance;
 }
 
 export function bindHomeDescent(hero, onViewChange) {
@@ -20,11 +31,14 @@ export function bindHomeDescent(hero, onViewChange) {
   if (!earth || !coverage || !reducedMotion) return () => {};
   const compactLayout = window.matchMedia(COMPACT_DESCENT_QUERY);
   const touch = window.matchMedia("(any-pointer: coarse)");
+  const heroCopy = hero.querySelector(".pf-hero-text") ?? hero;
+  const radarField = hero.querySelector(".pf-hero-field") ?? hero;
 
   const styled = new Map();
   let frame = 0;
   let viewportTimer = 0;
   let previousProgress;
+  let previousPaintTime = 0;
   let compact;
   let compactLead = 0;
   let startY = 0;
@@ -78,11 +92,13 @@ export function bindHomeDescent(hero, onViewChange) {
   }
 
   function setPresence({ globe, sky, copy, entry }) {
+    const skyLayer = compact ? radarField : hero;
+    const copyLayer = compact ? heroCopy : hero;
     setStyle(earth, "--hero-earth-presence", globe.toFixed(3));
-    setStyle(hero, "--hero-sky-presence", sky.toFixed(3));
-    setStyle(hero, "--hero-tile-visibility", sky > 0 ? "visible" : "hidden");
-    setStyle(hero, "--hero-copy-presence", copy.toFixed(3));
-    setStyle(hero, "--hero-copy-pointer-events", copy > 0 ? "auto" : "none");
+    setStyle(skyLayer, "--hero-sky-presence", sky.toFixed(3));
+    setStyle(skyLayer, "--hero-tile-visibility", sky > 0 ? "visible" : "hidden");
+    setStyle(copyLayer, "--hero-copy-presence", copy.toFixed(3));
+    setStyle(copyLayer, "--hero-copy-pointer-events", copy > 0 ? "auto" : "none");
     setStyle(coverage, "--coverage-entry", entry.toFixed(3));
     setStyle(coverage, "--coverage-entry-pointer-events", entry > 0 ? "auto" : "none");
   }
@@ -98,6 +114,8 @@ export function bindHomeDescent(hero, onViewChange) {
     const entry = easeBetween(progress, 0.41, 0.61);
     setPresence({ globe, sky, copy, entry });
     setStyle(hero, "--hero-backdrop-presence", (1 - easeBetween(progress, 0.26, 0.61)).toFixed(3));
+    const lift = globeLift(progress, distance);
+    setStyle(earth, "--hero-earth-offset", `${(-lift).toFixed(2)}px`);
     const descending = progress > 0.025;
     if (descending !== earth.hasAttribute("data-descent")) {
       earth.toggleAttribute("data-descent", descending);
@@ -106,9 +124,9 @@ export function bindHomeDescent(hero, onViewChange) {
     // The poster uses the same focal point if WebGL is unavailable.
     if (earth.querySelector(".pf-hero-earth-poster-view")) setStyle(earth, "--hero-earth-zoom", zoom.toFixed(3));
 
-    // The sticky canvas rests at -compactLead, then scrolls out of view. Keep
-    // a margin drawn above the viewport for native scrolling between frames.
-    const hiddenTop = compactLead + Math.max(0, (progress - COMPACT_HOLD_FRACTION) * distance);
+    // The hero stays pinned through the fade. Clip only the hidden part of
+    // the translated canvas, with room for native scrolling between frames.
+    const hiddenTop = compactLead + lift;
     const overscan = Math.max(SCROLL_OVERSCAN, scrollStep * 2);
     const clipTop = descending ? Math.floor(Math.max(0, hiddenTop - overscan)) : 0;
     onViewChange(zoom, alignment, globe > 0, now, clipTop);
@@ -142,17 +160,26 @@ export function bindHomeDescent(hero, onViewChange) {
   function paint(now) {
     frame = 0;
     if (reducedMotion.matches) return;
-    const progress = Math.min(compact ? COMPACT_FADE_END : 1, clamp((window.scrollY - startY) / distance));
+    const target = Math.min(compact ? COMPACT_FADE_END : 1, clamp((window.scrollY - startY) / distance));
+    const scrollStep = Math.abs(target - (previousProgress ?? target)) * distance;
+    let progress = target;
+    if (compact && target > 0 && target < 0.61 && scrollStep > 0.75 && scrollStep <= 24) {
+      // Ease small, uneven scroll steps on the approach. Use the scroll
+      // position directly for quick swipes and high-cost close-up frames.
+      const remaining = clamp(1 - (now - previousPaintTime) / SCROLL_EASE_MS);
+      const lag = Math.min(MAX_SCROLL_LAG, scrollStep * remaining * (1 - easeBetween(target, 0.44, 0.61)));
+      progress -= Math.sign(target - previousProgress) * lag / distance;
+    }
     if (progress === previousProgress && terrainFadeStart === null) return;
     const revealBlend = compact || !touch.matches ? 1 : !terrainReady ? 0
       : terrainFadeStart === null ? 1 : easeBetween(now - terrainFadeStart, 0, 180);
     if (revealBlend === 1) terrainFadeStart = null;
-    const scrollStep = Math.abs(progress - (previousProgress ?? progress)) * distance;
     previousProgress = progress;
+    previousPaintTime = now;
 
     if (compact) paintCompact(progress, now, scrollStep);
     else paintWide(progress, revealBlend);
-    if (terrainFadeStart !== null) schedulePaint();
+    if (terrainFadeStart !== null || progress !== target) schedulePaint();
   }
 
   function schedulePaint() {
@@ -202,8 +229,10 @@ export function bindHomeDescent(hero, onViewChange) {
       startY += compactLead;
       const viewport = height - compactLead;
       distance = Math.max(520, Math.min(1040, viewport * 1.06));
-      setStyle(track, "--hero-descent-hold", `${distance * COMPACT_HOLD_FRACTION}px`);
-      setStyle(coverage, "--coverage-heading-overlap", `${Math.min(340, viewport * 0.37)}px`);
+      setStyle(track, "--hero-descent-hold", `${distance * COMPACT_FADE_END}px`);
+      // Offset the longer hold so the heading still enters at the same scroll position.
+      const extraHold = distance * (COMPACT_FADE_END - COMPACT_LIFT_START);
+      setStyle(coverage, "--coverage-heading-overlap", `${Math.min(340, viewport * 0.37) + extraHold}px`);
     } else {
       const viewport = Math.min(window.innerHeight, height);
       const landscapeTouch = touch.matches && window.innerWidth > window.innerHeight;
