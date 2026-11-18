@@ -31,6 +31,124 @@ function Legend({ product, imageRange, ramp, text }) {
   );
 }
 
+/** A chosen "before" pass beside the slider's pass. */
+function PairedPasses({ scenes, scene, beforeIndex, onBeforeChange, imageUrl, dateLabel }) {
+  const beforeScene = scenes[beforeIndex];
+  return (
+    <div className="compare">
+      <figure>
+        <img src={imageUrl(assetUrl(beforeScene.image_url))} alt={`Site on ${beforeScene.date}`} />
+        <figcaption>
+          <select value={beforeIndex} onChange={(e) => onBeforeChange(Number(e.target.value))} aria-label="Before date">
+            {scenes.map((s, i) => (
+              <option key={s.date} value={i}>
+                {s.date}
+                {dateLabel?.(s) ?? ""}
+              </option>
+            ))}
+          </select>
+        </figcaption>
+      </figure>
+      <figure>
+        <img src={imageUrl(assetUrl(scene.image_url))} alt={`Site on ${scene.date}`} />
+        <figcaption className="small">{scene.date} (slider)</figcaption>
+      </figure>
+    </div>
+  );
+}
+
+/** Play/pause and the date slider, with the tour's marked frames on it. */
+function PlayControls({ index, last, date, playing, setPlaying, onIndexChange, guide }) {
+  const show = (i) => {
+    setPlaying(false);
+    onIndexChange(i);
+  };
+  return (
+    <div className="scene-controls">
+      <button type="button" className="btn btn-secondary btn-small" onClick={() => setPlaying((p) => !p)} aria-pressed={playing}>
+        {playing ? "❚❚ Pause" : "▶ Play"}
+      </button>
+      <span className="scene-slider">
+        <input
+          type="range"
+          min={0}
+          max={last}
+          value={index}
+          aria-label="Scene date"
+          aria-valuetext={date}
+          onChange={(e) => show(Number(e.target.value))}
+        />
+        {guide?.map((g) => (
+          <button
+            key={g.index}
+            type="button"
+            className="scene-guide"
+            style={{ "--f": last > 0 ? g.index / last : 0 }}
+            title={`Show ${g.label}`}
+            aria-label={`Show ${g.label}`}
+            onClick={() => show(g.index)}
+          />
+        ))}
+      </span>
+    </div>
+  );
+}
+
+/**
+ * The "before" pass (the parent's, when it keeps one) and whether the docked
+ * comparison is open. A new `comparison` (from a story or a link) picks its
+ * "before" pass and opens the comparison.
+ */
+function useBeforePass({ comparison, before, onBeforeChange, docked }) {
+  const [ownBefore, setOwnBefore] = useState(comparison?.before ?? 0);
+  const [comparisonOpen, setComparisonOpen] = useState(!docked || Boolean(comparison));
+  const [shownComparison, setShownComparison] = useState(comparison);
+  if (comparison !== shownComparison) {
+    setShownComparison(comparison);
+    if (comparison) {
+      setOwnBefore(comparison.before ?? 0);
+      setComparisonOpen(true);
+    }
+  }
+  return { beforeIndex: before ?? ownBefore, setBeforeIndex: onBeforeChange ?? setOwnBefore, comparisonOpen, setComparisonOpen };
+}
+
+/** The pass's date, quality and place in the series. */
+function SceneCaption({ scene, index, count }) {
+  return (
+    <div className="scene-caption">
+      <strong>{scene.date}</strong>
+      {scene.quality && <span className={`badge badge-${scene.quality}`}>{scene.quality}</span>}
+      <span className="muted small">
+        pass {index + 1} of {count}
+      </span>
+    </div>
+  );
+}
+
+/** The before/after pair: under a heading, or (docked under the map) in a Compare panel with the legend. */
+function Comparison({ docked, open, onOpenChange, legend, children }) {
+  if (!docked) {
+    return (
+      <>
+        <h3>Before / after</h3>
+        {children}
+      </>
+    );
+  }
+  return (
+    <details className="scene-comparison" open={open} onToggle={(event) => onOpenChange(event.currentTarget.open)}>
+      <summary aria-label="Compare passes and view legend">Compare</summary>
+      {open && (
+        <div className="scene-comparison-body">
+          {legend}
+          {children}
+        </div>
+      )}
+    </details>
+  );
+}
+
 /**
  * Steps through a place's NISAR passes. The selected pass is drawn on the
  * map by the parent; this holds the controls plus a before/after pair.
@@ -75,15 +193,7 @@ export default function ScenePlayer({
   // each a yellow line that shows its frame when clicked.
   guide = null,
 }) {
-  const [ownBefore, setOwnBefore] = useState(comparison?.before ?? 0);
-  const beforeIndex = before ?? ownBefore;
-  const setBeforeIndex = onBeforeChange ?? setOwnBefore;
-  const [comparisonOpen, setComparisonOpen] = useState(!docked || Boolean(comparison));
-  useEffect(() => {
-    if (!comparison) return;
-    setOwnBefore(comparison.before ?? 0);
-    setComparisonOpen(true);
-  }, [comparison]);
+  const { beforeIndex, setBeforeIndex, comparisonOpen, setComparisonOpen } = useBeforePass({ comparison, before, onBeforeChange, docked });
   const last = scenes.length - 1;
   const [playing, setPlaying] = usePlayback({
     count: scenes.length,
@@ -104,86 +214,37 @@ export default function ScenePlayer({
 
   if (!scenes.length) return null;
   const scene = scenes[index] ?? scenes[last];
-  const beforeScene = scenes[Math.min(beforeIndex, last)];
 
   const pairedPasses = (
-    <div className="compare">
-      <figure>
-        <img src={imageUrl(assetUrl(beforeScene.image_url))} alt={`Site on ${beforeScene.date}`} />
-        <figcaption>
-          <select
-            value={Math.min(beforeIndex, last)}
-            onChange={(e) => setBeforeIndex(Number(e.target.value))}
-            aria-label="Before date"
-          >
-            {scenes.map((s, i) => (
-              <option key={s.date} value={i}>
-                {s.date}
-                {dateLabel?.(s) ?? ""}
-              </option>
-            ))}
-          </select>
-        </figcaption>
-      </figure>
-      <figure>
-        <img src={imageUrl(assetUrl(scene.image_url))} alt={`Site on ${scene.date}`} />
-        <figcaption className="small">{scene.date} (slider)</figcaption>
-      </figure>
-    </div>
+    <PairedPasses
+      scenes={scenes}
+      scene={scene}
+      beforeIndex={Math.min(beforeIndex, last)}
+      onBeforeChange={setBeforeIndex}
+      imageUrl={imageUrl}
+      dateLabel={dateLabel}
+    />
+  );
+  const legendBlock = (
+    <>
+      <Legend product={product} imageRange={imageRange} ramp={ramp} text={legend} />
+      {legendExtra}
+    </>
   );
   return (
     <section className={docked ? "scenes scenes-docked" : "panel scenes"} aria-label="NISAR images">
       <h3 className={docked ? "visually-hidden" : undefined}>{title}</h3>
       <div className="scene-player">
-        <div className="scene-caption">
-          <strong>{scene.date}</strong>
-          {scene.quality && (
-            <span className={`badge badge-${scene.quality}`}>
-              {scene.quality}
-            </span>
-          )}
-          <span className="muted small">
-            pass {index + 1} of {scenes.length}
-          </span>
-        </div>
-        <div className="scene-controls">
-          <button
-            type="button"
-            className="btn btn-secondary btn-small"
-            onClick={() => setPlaying((p) => !p)}
-            aria-pressed={playing}
-          >
-            {playing ? "❚❚ Pause" : "▶ Play"}
-          </button>
-          <span className="scene-slider">
-            <input
-              type="range"
-              min={0}
-              max={last}
-              value={index}
-              aria-label="Scene date"
-              aria-valuetext={scene.date}
-              onChange={(e) => {
-                setPlaying(false);
-                onIndexChange(Number(e.target.value));
-              }}
-            />
-            {guide?.map((g) => (
-              <button
-                key={g.index}
-                type="button"
-                className="scene-guide"
-                style={{ "--f": last > 0 ? g.index / last : 0 }}
-                title={`Show ${g.label}`}
-                aria-label={`Show ${g.label}`}
-                onClick={() => {
-                  setPlaying(false);
-                  onIndexChange(g.index);
-                }}
-              />
-            ))}
-          </span>
-        </div>
+        <SceneCaption scene={scene} index={index} count={scenes.length} />
+        <PlayControls
+          index={index}
+          last={last}
+          date={scene.date}
+          playing={playing}
+          setPlaying={setPlaying}
+          onIndexChange={onIndexChange}
+          guide={guide}
+        />
         <LayerSelect layers={layers} value={layer} onChange={onLayerChange} />
         <label className="small opacity">
           <span>{docked ? "Opacity" : "Map overlay opacity"}</span>
@@ -197,33 +258,12 @@ export default function ScenePlayer({
             onChange={(e) => onOpacityChange(Number(e.target.value))}
           />
         </label>
-        {!docked && (
-          <Legend product={product} imageRange={imageRange} ramp={ramp} text={legend} />
-        )}
-        {!docked && legendExtra}
+        {!docked && legendBlock}
         {note && <div className="scene-note small">{note}</div>}
       </div>
-      {docked ? (
-        <details
-          className="scene-comparison"
-          open={comparisonOpen}
-          onToggle={(event) => setComparisonOpen(event.currentTarget.open)}
-        >
-          <summary aria-label="Compare passes and view legend">Compare</summary>
-          {comparisonOpen && (
-            <div className="scene-comparison-body">
-              <Legend product={product} imageRange={imageRange} ramp={ramp} text={legend} />
-              {legendExtra}
-              {pairedPasses}
-            </div>
-          )}
-        </details>
-      ) : (
-        <>
-          <h3>Before / after</h3>
-          {pairedPasses}
-        </>
-      )}
+      <Comparison docked={docked} open={comparisonOpen} onOpenChange={setComparisonOpen} legend={legendBlock}>
+        {pairedPasses}
+      </Comparison>
     </section>
   );
 }

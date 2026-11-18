@@ -371,9 +371,13 @@ function useSiteImages(ws) {
   const { comparison: request, siteLayer, setSiteLayer } = ws.sel;
   const comparison = useMemo(() => matchComparison(request, site?.scenes), [request, site]);
   const linkedLayer = siteLayers?.find(({ id, disabled }) => !disabled && id === comparison?.layer)?.id;
-  useEffect(() => {
-    if (linkedLayer) setSiteLayer(linkedLayer);
-  }, [comparison, linkedLayer, setSiteLayer]);
+  // A linked comparison that names a layer shows it, once per comparison
+  // (the passes it matches arrive after the link is read).
+  const [layerFor, setLayerFor] = useState(null);
+  if (linkedLayer && comparison !== layerFor) {
+    setLayerFor(comparison);
+    setSiteLayer(linkedLayer);
+  }
   const mapSiteUrl = useLayerMapper(siteLayers ? siteLayer : "colour", items);
   return { siteLayers, mapSiteUrl, comparison };
 }

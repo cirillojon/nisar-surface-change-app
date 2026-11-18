@@ -4,6 +4,7 @@ import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { assetUrl } from "../services/api.js";
 import { siteQuery, sitesQuery } from "../services/queries.js";
+import { useStableCallback } from "../services/useStableCallback.js";
 import { useRadarMotion } from "./useRadarMotion.js";
 import { workspaceHref } from "./workspaceContext.js";
 
@@ -35,15 +36,8 @@ function RadarTile({ id, directory, date, place, name, detail }) {
   );
 }
 
-export default function HeroObservatory() {
-  const field = useRef(null);
-  const figure = useRef(null);
-  const sceneLabel = useId();
-  useRadarMotion(field);
-  const [selectedIndex, setSelectedIndex] = useState(null);
-  const [frame, setFrame] = useState(null);
-  const [playing, setPlaying] = useState(false);
-  const [visible, setVisible] = useState(false);
+/** The Sylhet record (fetched once the hero is on screen): its imaged passes and open water per date. */
+function useHeroSite(visible) {
   const sites = useQuery({ ...sitesQuery(), enabled: visible });
   const siteId = sites.data?.find((row) => row.slug === HERO_SITE)?.id;
   const passes = useQuery({ ...siteQuery(siteId ?? null), enabled: visible && siteId != null });
@@ -53,15 +47,16 @@ export default function HeroObservatory() {
   const water = useMemo(() => Object.fromEntries((site?.observations ?? [])
     .filter((observation) => observation.metric === "water_pct")
     .map((observation) => [observation.observed_on, observation.value])), [site]);
-  const openingIndex = scenes.findIndex((pass) => pass.date === OPENING_PASS);
-  const index = selectedIndex ?? (openingIndex < 0 ? Math.floor(scenes.length / 2) : openingIndex);
-  const scene = scenes[frame?.index];
-  const showPlayback = frame !== null && scenes.length > 1;
-  const frameReady = frame?.index === index;
-  const pct = scene ? water[scene.date] : null;
-  const imagePositions = frameReady ? [index] : [frame?.index, index];
-  const unavailable = failed || (site !== null && scenes.length === 0) || frame?.failed;
+  return { site, scenes, water, failed };
+}
 
+/**
+ * Whether the hero is on screen in a visible tab (`figure`); stops playback
+ * (`onReduceMotion`) when the viewer asks for reduced motion.
+ */
+function useHeroVisibility(figure, onReduceMotion) {
+  const [visible, setVisible] = useState(false);
+  const reduceMotion = useStableCallback(onReduceMotion);
   useEffect(() => {
     let inView = false;
     const update = () => setVisible(inView && !document.hidden);
@@ -69,14 +64,80 @@ export default function HeroObservatory() {
     observer.observe(figure.current);
     document.addEventListener("visibilitychange", update);
     const preference = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const onPreference = () => { if (preference.matches) setPlaying(false); };
+    const onPreference = () => { if (preference.matches) reduceMotion(); };
     preference.addEventListener("change", onPreference);
     return () => {
       observer.disconnect();
       document.removeEventListener("visibilitychange", update);
       preference.removeEventListener("change", onPreference);
     };
-  }, []);
+  }, [figure, reduceMotion]);
+  return visible;
+}
+
+/** The pass on show, with the next one loading underneath until it can replace it. */
+function HeroFrame({ scenes, frame, positions, description, onFrame }) {
+  return (
+    <div className="pf-hero-tile-media pf-hero-frame">
+      {positions.map((position) => {
+        const pass = scenes[position];
+        const displayed = position === frame?.index;
+        if (!pass || (displayed && frame.failed)) return null;
+        return (
+          <img key={pass.date} src={assetUrl(pass.image_url)}
+            alt={displayed ? description : ""}
+            className={displayed ? "is-on" : ""}
+            onLoad={displayed ? undefined : () => onFrame({ index: position, failed: false })}
+            onError={displayed ? undefined : () => onFrame({ index: position, failed: true })} />
+        );
+      })}
+    </div>
+  );
+}
+
+/** The pass's date and open water (or why there is none), and the time-lapse button. */
+function HeroCaption({ labelId, scene, pct, unavailable, showPlayback, playing, onTogglePlay, count }) {
+  const PlaybackIcon = playing ? Pause : Play;
+  return (
+    <figcaption className="pf-hero-tile-label">
+      <span id={labelId}>
+        <strong>Sylhet haor basin</strong>
+        {scene ? (
+          <small role={unavailable ? "status" : undefined}>
+            <time dateTime={scene.date}>{shortDate.format(new Date(scene.date))}</time>
+            {unavailable ? " · Image unavailable" : pct != null && ` · ${pct.toFixed(1)}% open water`}
+          </small>
+        ) : (
+          <small role="status">{unavailable ? "Radar image unavailable" : "Loading radar imagery…"}</small>
+        )}
+      </span>
+      {showPlayback ? (
+        <button type="button" className="pf-hero-play" onClick={onTogglePlay}
+          aria-label={playing ? "Pause radar time-lapse" : `Play all ${count} radar passes`}>
+          <PlaybackIcon size={15} aria-hidden="true" />
+        </button>
+      ) : <ArrowUpRight size={14} aria-hidden="true" />}
+    </figcaption>
+  );
+}
+
+export default function HeroObservatory() {
+  const field = useRef(null);
+  const figure = useRef(null);
+  const sceneLabel = useId();
+  useRadarMotion(field);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [frame, setFrame] = useState(null);
+  const [playing, setPlaying] = useState(false);
+  const visible = useHeroVisibility(figure, () => setPlaying(false));
+  const { site, scenes, water, failed } = useHeroSite(visible);
+  const openingIndex = scenes.findIndex((pass) => pass.date === OPENING_PASS);
+  const index = selectedIndex ?? (openingIndex < 0 ? Math.floor(scenes.length / 2) : openingIndex);
+  const scene = scenes[frame?.index];
+  const showPlayback = frame !== null && scenes.length > 1;
+  const frameReady = frame?.index === index;
+  const pct = scene ? water[scene.date] : null;
+  const unavailable = failed || (site !== null && scenes.length === 0) || frame?.failed;
 
   useEffect(() => {
     if (!playing || !visible || !showPlayback || !frameReady) return undefined;
@@ -87,47 +148,17 @@ export default function HeroObservatory() {
   const imageDescription = scene
     ? `NISAR radar image of ${site.name} on ${scene.date}${pct != null ? `, ${pct.toFixed(1)} percent open water` : ""}`
     : "";
-  const PlaybackIcon = playing ? Pause : Play;
 
   return (
     <div ref={field} className="pf-hero-field" onDragStart={(event) => event.preventDefault()}>
       {RADAR_TILES.map((tile) => <RadarTile key={tile.id} {...tile} />)}
       <figure ref={figure} className="pf-hero-tile pf-hero-tile-sylhet">
-        <div className="pf-hero-tile-media pf-hero-frame">
-          {imagePositions.map((position) => {
-            const pass = scenes[position];
-            const displayed = position === frame?.index;
-            if (!pass || (displayed && frame.failed)) return null;
-            return (
-              <img key={pass.date} src={assetUrl(pass.image_url)}
-                alt={displayed ? imageDescription : ""}
-                className={displayed ? "is-on" : ""}
-                onLoad={displayed ? undefined : () => setFrame({ index: position, failed: false })}
-                onError={displayed ? undefined : () => setFrame({ index: position, failed: true })} />
-            );
-          })}
-        </div>
+        <HeroFrame scenes={scenes} frame={frame} positions={frameReady ? [index] : [frame?.index, index]}
+          description={imageDescription} onFrame={setFrame} />
         <Link className="pf-hero-tile-link" aria-labelledby={sceneLabel}
           to={workspaceHref({ mode: "stories", site: HERO_SITE, date: scene?.date })} />
-        <figcaption className="pf-hero-tile-label">
-          <span id={sceneLabel}>
-            <strong>Sylhet haor basin</strong>
-            {scene ? (
-              <small role={unavailable ? "status" : undefined}>
-                <time dateTime={scene.date}>{shortDate.format(new Date(scene.date))}</time>
-                {unavailable ? " · Image unavailable" : pct != null && ` · ${pct.toFixed(1)}% open water`}
-              </small>
-            ) : (
-              <small role="status">{unavailable ? "Radar image unavailable" : "Loading radar imagery…"}</small>
-            )}
-          </span>
-          {showPlayback ? (
-            <button type="button" className="pf-hero-play" onClick={() => setPlaying((value) => !value)}
-              aria-label={playing ? "Pause radar time-lapse" : `Play all ${scenes.length} radar passes`}>
-              <PlaybackIcon size={15} aria-hidden="true" />
-            </button>
-          ) : <ArrowUpRight size={14} aria-hidden="true" />}
-        </figcaption>
+        <HeroCaption labelId={sceneLabel} scene={scene} pct={pct} unavailable={unavailable}
+          showPlayback={showPlayback} playing={playing} onTogglePlay={() => setPlaying((value) => !value)} count={scenes.length} />
       </figure>
     </div>
   );
