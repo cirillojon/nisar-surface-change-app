@@ -11,6 +11,7 @@ const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigat
 
 export default function TopBar({ inWorkspace, onSearch }) {
   const { pathname } = useLocation();
+  const onHome = pathname === "/";
   const { open, toggle } = useAssistant();
   const [menuOpen, setMenuOpen] = useState(false);
   const menuButtonRef = useRef(null);
@@ -26,9 +27,50 @@ export default function TopBar({ inWorkspace, onSearch }) {
       closeMenu();
     }
   };
+  const workspaceLabel = <>{!inWorkspace && <span className="pf-ws-open">Open </span>}Workspace</>;
+  const actions = (
+    <div className="pf-topbar-actions">
+      <button
+        type="button"
+        className="btn pf-search-btn"
+        aria-label="Search documentation"
+        title="Search documentation"
+        onClick={(event) => { closeMenu(); onSearch?.(event); }}
+        onKeyDown={onMenuKeyDown}
+      >
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>
+        <span className="pf-search-label">Search docs</span>
+        <kbd aria-hidden="true">{isMac ? "⌘" : "Ctrl"} K</kbd>
+      </button>
+      {AI_ENABLED && (
+        <button
+          type="button"
+          className="btn pf-ask-btn"
+          aria-label="Ask AI"
+          aria-pressed={open}
+          aria-controls="pf-assistant"
+          onClick={() => { closeMenu(); toggle(); }}
+          onKeyDown={onMenuKeyDown}
+        >
+          <span aria-hidden="true">✦</span> <span className="pf-ask-label">Ask AI</span>
+        </button>
+      )}
+      <Link
+        to="/workspace"
+        className="btn pf-workspace-btn"
+        aria-label={inWorkspace ? undefined : "Open Workspace"}
+        aria-current={inWorkspace ? "page" : undefined}
+        onClick={closeMenu}
+        onKeyDown={onMenuKeyDown}
+      >
+        {onHome ? <span>{workspaceLabel}</span> : workspaceLabel}
+        {!inWorkspace && <span className="pf-ws-open" aria-hidden="true">→</span>}
+      </Link>
+    </div>
+  );
 
   return (
-    <header className="pf-topbar">
+    <header className={onHome ? "pf-topbar pf-topbar-home" : "pf-topbar"}>
       <div className="pf-topbar-row">
         <Link to="/" className="pf-brand" aria-label="NISAR Surface Change Explorer, home">
           <Logo />
@@ -48,74 +90,50 @@ export default function TopBar({ inWorkspace, onSearch }) {
             className="btn pf-nav-toggle"
             aria-label="Site menu"
             aria-expanded={menuOpen}
-            aria-controls="pf-site-navigation"
+            aria-controls={onHome ? "pf-home-nav-panel" : "pf-site-navigation"}
             onClick={() => setMenuOpen((current) => !current)}
             onKeyDown={onMenuKeyDown}
           >
             <Icon name="menu" size={18} />
             <span>Menu</span>
           </button>
-          <nav id="pf-site-navigation" className="pf-tabs" aria-label="Main navigation" data-open={menuOpen}>
-            <NavLink
-              to="/"
-              end
-              className={({ isActive }) => `pf-tab${isActive ? " is-active" : ""}`}
-              onClick={closeMenu}
-              onKeyDown={onMenuKeyDown}
-            >
-              Home
-            </NavLink>
-            {TABS.map((tab) => {
-              const href = firstPageHref(tab);
-              const active = pathname.startsWith(`/docs/${tab.id}`);
-              const preload = () => {
-                void loadPage(tab.id, tab.sections[0].pages[0].slug).catch(() => {});
-              };
-              return (
-                <NavLink
-                  key={tab.id}
-                  to={href}
-                  className={`pf-tab${active ? " is-active" : ""}`}
-                  aria-current={active ? "true" : undefined}
-                  onPointerEnter={preload}
-                  onFocus={preload}
-                  onClick={closeMenu}
-                  onKeyDown={onMenuKeyDown}
-                >
-                  {tab.label}
-                </NavLink>
-              );
-            })}
-          </nav>
+          <div className="pf-nav-panel" id={onHome ? "pf-home-nav-panel" : undefined} data-open={menuOpen}>
+            <nav id="pf-site-navigation" className="pf-tabs" aria-label="Main navigation" data-open={menuOpen}>
+              <NavLink
+                to="/"
+                end
+                className={({ isActive }) => `pf-tab${isActive ? " is-active" : ""}`}
+                onClick={closeMenu}
+                onKeyDown={onMenuKeyDown}
+              >
+                Home
+              </NavLink>
+              {TABS.map((tab) => {
+                const href = firstPageHref(tab);
+                const active = pathname.startsWith(`/docs/${tab.id}`);
+                const preload = () => {
+                  void loadPage(tab.id, tab.sections[0].pages[0].slug).catch(() => {});
+                };
+                return (
+                  <NavLink
+                    key={tab.id}
+                    to={href}
+                    className={`pf-tab${active ? " is-active" : ""}`}
+                    aria-current={active ? "true" : undefined}
+                    onPointerEnter={preload}
+                    onFocus={preload}
+                    onClick={closeMenu}
+                    onKeyDown={onMenuKeyDown}
+                  >
+                    {tab.label}
+                  </NavLink>
+                );
+              })}
+            </nav>
+            {onHome && actions}
+          </div>
         </div>
-        <div className="pf-topbar-actions">
-          <button type="button" className="btn pf-search-btn" aria-label="Search documentation" title="Search documentation" onClick={onSearch}>
-            <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="8.5" cy="8.5" r="5.5" /><path d="m13 13 4 4" /></svg>
-            <span className="pf-search-label">Search docs</span>
-            <kbd aria-hidden="true">{isMac ? "⌘" : "Ctrl"} K</kbd>
-          </button>
-          {AI_ENABLED && (
-            <button
-              type="button"
-              className="btn pf-ask-btn"
-              aria-label="Ask AI"
-              aria-pressed={open}
-              aria-controls="pf-assistant"
-              onClick={toggle}
-            >
-              <span aria-hidden="true">✦</span> <span className="pf-ask-label">Ask AI</span>
-            </button>
-          )}
-          <Link
-            to="/workspace"
-            className="btn pf-workspace-btn"
-            aria-label={inWorkspace ? undefined : "Open Workspace"}
-            aria-current={inWorkspace ? "page" : undefined}
-          >
-            {!inWorkspace && <span className="pf-ws-open">Open </span>}Workspace
-            {!inWorkspace && <span className="pf-ws-open" aria-hidden="true">→</span>}
-          </Link>
-        </div>
+        {!onHome && actions}
       </div>
     </header>
   );

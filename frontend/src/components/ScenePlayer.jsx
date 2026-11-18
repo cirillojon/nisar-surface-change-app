@@ -60,6 +60,7 @@ export default function ScenePlayer({
   // change map is drawn between it and the slider's pass).
   before = null,
   onBeforeChange = null,
+  comparison = null,
   // (i) => promise that resolves when frame i can be drawn, for frames that
   // are computed rather than downloaded. Playback waits on it.
   ready = null,
@@ -74,10 +75,15 @@ export default function ScenePlayer({
   // each a yellow line that shows its frame when clicked.
   guide = null,
 }) {
-  const [ownBefore, setOwnBefore] = useState(0);
+  const [ownBefore, setOwnBefore] = useState(comparison?.before ?? 0);
   const beforeIndex = before ?? ownBefore;
   const setBeforeIndex = onBeforeChange ?? setOwnBefore;
-  const [comparisonOpen, setComparisonOpen] = useState(!docked);
+  const [comparisonOpen, setComparisonOpen] = useState(!docked || Boolean(comparison));
+  useEffect(() => {
+    if (!comparison) return;
+    setOwnBefore(comparison.before ?? 0);
+    setComparisonOpen(true);
+  }, [comparison]);
   const last = scenes.length - 1;
   const [playing, setPlaying] = usePlayback({
     count: scenes.length,
@@ -100,7 +106,7 @@ export default function ScenePlayer({
   const scene = scenes[index] ?? scenes[last];
   const beforeScene = scenes[Math.min(beforeIndex, last)];
 
-  const comparison = (
+  const pairedPasses = (
     <div className="compare">
       <figure>
         <img src={imageUrl(assetUrl(beforeScene.image_url))} alt={`Site on ${beforeScene.date}`} />
@@ -200,6 +206,7 @@ export default function ScenePlayer({
       {docked ? (
         <details
           className="scene-comparison"
+          open={comparisonOpen}
           onToggle={(event) => setComparisonOpen(event.currentTarget.open)}
         >
           <summary aria-label="Compare passes and view legend">Compare</summary>
@@ -207,14 +214,14 @@ export default function ScenePlayer({
             <div className="scene-comparison-body">
               <Legend product={product} imageRange={imageRange} ramp={ramp} text={legend} />
               {legendExtra}
-              {comparison}
+              {pairedPasses}
             </div>
           )}
         </details>
       ) : (
         <>
           <h3>Before / after</h3>
-          {comparison}
+          {pairedPasses}
         </>
       )}
     </section>

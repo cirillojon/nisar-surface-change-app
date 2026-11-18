@@ -1,0 +1,455 @@
+{
+  "version": 2,
+  "coordinateSystem": "Equirectangular, 2:1, Greenwich center, north up; longitude -180..180, latitude 90..-90",
+  "artDirection": "Supplied Asia-Centered Earth Horizon reference",
+  "software": "Built-in image_gen; Sharp for encoding and spherical boundary conditioning",
+  "sources": [
+    {
+      "name": "albedo",
+      "path": "source/art-direction-v2/albedo-final.png",
+      "colorSpace": "sRGB",
+      "role": "Surface color; no clouds or lights",
+      "credit": "AI-assisted adaptation of Solar System Scope maps and the supplied visual reference; see SOURCES.md",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "sha256": "45e18d78a32806115cbdcc11953e307ceddb9bb62fcee609a6505ff4145628f6",
+      "variants": [
+        {
+          "path": "/earth/world-v2/albedo-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 1827056,
+          "sha256": "7a8308c88b5d594b43578ef2b0435007b9d8b9e27b5892421accdac2b35043c1",
+          "sourceUpscaled": true,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/albedo-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 4537236,
+          "sha256": "81bdc3fa6cd616694a915939f0301d3ea1de5c557d4b29694bdb6f04e998598f",
+          "sourceUpscaled": true,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "clouds",
+      "path": "source/art-direction-v2/clouds.png",
+      "colorSpace": "linear",
+      "role": "Cloud opacity: black clear, white opaque",
+      "scalar": true,
+      "credit": "AI-assisted adaptation of Solar System Scope maps and the supplied visual reference; see SOURCES.md",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "sha256": "de570a428c2c43ed6860196147eceae5c8deda32f05e13ab57e12015dc3106d8",
+      "variants": [
+        {
+          "path": "/earth/world-v2/clouds-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 1127224,
+          "sha256": "2109f41cb72f13a2770066979084e78c47c833c3e88da100962a6e614c7a643e",
+          "sourceUpscaled": true,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/clouds-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 3042160,
+          "sha256": "805d1cfc6fcacd4ef172c9aba1d67e77c1817de7c0eb1295fdeafca24dcc38cc",
+          "sourceUpscaled": true,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "lights",
+      "path": "source/art-direction-v2/lights.png",
+      "colorSpace": "sRGB",
+      "role": "Warm city/coast emission; black unlit",
+      "credit": "AI-assisted adaptation of Solar System Scope maps and the supplied visual reference; see SOURCES.md",
+      "sourceWidth": 1774,
+      "sourceHeight": 887,
+      "sha256": "342f0a617e631bad2ad33bfe1e33122cfd9c21cff408b633baa86285a90c3b81",
+      "variants": [
+        {
+          "path": "/earth/world-v2/lights-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 811906,
+          "sha256": "280aed66bc07e4839aa51ebc420a184cbf40afa58ab6c6376526b5afd1d0ee4d",
+          "sourceUpscaled": true,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/lights-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 1974674,
+          "sha256": "833775ef195deea24a34ea433259d99ca756daac31ba28e7fb2273377f2eb48a",
+          "sourceUpscaled": true,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "normal",
+      "path": "source/8k_earth_normal_map.tif",
+      "colorSpace": "linear",
+      "role": "Tangent-space terrain normal (OpenGL convention)",
+      "sourceUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_normal_map.tif",
+      "credit": "Solar System Scope (CC BY 4.0), adapted",
+      "sourceWidth": 8192,
+      "sourceHeight": 4096,
+      "sha256": "79d6dbbde340c653f435f5a012c026a9bed94bdcfd9714e77885f4cba046635a",
+      "variants": [
+        {
+          "path": "/earth/world-v2/normal-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 302404,
+          "sha256": "44665282fb3d807418fce60160d089a477dd2cd3840d21107b8d4f32640879a9",
+          "sourceUpscaled": false,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/normal-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 1476176,
+          "sha256": "7f8c707101ecf607d7d2ad95ecbf5fc8f442d512f0bf8a44bcd88229aade556e",
+          "sourceUpscaled": false,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "water",
+      "path": "source/8k_earth_specular_map.tif",
+      "colorSpace": "linear",
+      "role": "Ocean mask: white water, black land",
+      "scalar": true,
+      "sourceUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_specular_map.tif",
+      "credit": "Solar System Scope (CC BY 4.0), adapted",
+      "sourceWidth": 8192,
+      "sourceHeight": 4096,
+      "sha256": "194e67ef7f14dd50b402a1a6f8c7ed55810e16515b95f7736091951efe8dc3fb",
+      "variants": [
+        {
+          "path": "/earth/world-v2/water-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 167644,
+          "sha256": "e1d1e14267d1fb9afa2f143c6767f6a4ae84cae4804be5e77b13a727fd10653f",
+          "sourceUpscaled": false,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/water-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 401000,
+          "sha256": "a686ef1f89294f952e6923e2868a8645a57930ca388a8fbb1aef758e8baee97f",
+          "sourceUpscaled": false,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "roughness",
+      "path": "source/8k_earth_specular_map.tif",
+      "colorSpace": "linear",
+      "role": "Perceptual roughness: ocean 0.125, land 0.90",
+      "scalar": true,
+      "roughness": true,
+      "sourceUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_specular_map.tif",
+      "credit": "Solar System Scope (CC BY 4.0), adapted",
+      "sourceWidth": 8192,
+      "sourceHeight": 4096,
+      "sha256": "194e67ef7f14dd50b402a1a6f8c7ed55810e16515b95f7736091951efe8dc3fb",
+      "variants": [
+        {
+          "path": "/earth/world-v2/roughness-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 159628,
+          "sha256": "74dd6aa1a300e6d9b5491006cd85d1b0cbd70c9cff63367bc404f7bc01228f9e",
+          "sourceUpscaled": false,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/roughness-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 381098,
+          "sha256": "02ac39c515068c5cf2d784e1cd030c2db3200b785463ccf9209b035ae4bc6fdf",
+          "sourceUpscaled": false,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "detail",
+      "path": "source/8k_earth_daymap.jpg",
+      "colorSpace": "sRGB",
+      "role": "High-resolution surface detail; shader transfers the authored broad RGB color field onto this map",
+      "sourceUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_daymap.jpg",
+      "credit": "Solar System Scope (CC BY 4.0), adapted",
+      "sourceWidth": 8192,
+      "sourceHeight": 4096,
+      "sha256": "88ab060b6e7d241cfc590c69f528fab2b3247b738d40124cb590999a6fe44abc",
+      "variants": [
+        {
+          "path": "/earth/world-v2/detail-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 918642,
+          "sha256": "85a488cd0dc5c002a2e4eef65267e7838112885c660cd1f9adc8852170513acb",
+          "sourceUpscaled": false,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/detail-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 3298346,
+          "sha256": "01d284080e101a5670109e7661e28138f22ca886ce0af8b46c8e25c010f1d9df",
+          "sourceUpscaled": false,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "cloud-detail",
+      "path": "source/8k_earth_clouds.jpg",
+      "colorSpace": "linear",
+      "role": "High-resolution cloud microstructure; modulates the authored density map",
+      "scalar": true,
+      "sourceUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_clouds.jpg",
+      "credit": "Solar System Scope (CC BY 4.0), adapted",
+      "sourceWidth": 8192,
+      "sourceHeight": 4096,
+      "sha256": "c792eca228989d36ebb45d3ea6ff1198be5e21a25d70d2fbcb2124ffd14ba7f5",
+      "variants": [
+        {
+          "path": "/earth/world-v2/cloud-detail-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 1137050,
+          "sha256": "52b8652fb078f51936e39ca4a6947b11366a88557a14a6d3c9dce3b82b7ef28a",
+          "sourceUpscaled": false,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/cloud-detail-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 4544982,
+          "sha256": "b00be0877cf94c6123499e6d8387abdb534d0c1f3287413d08dbac55bb7ab84b",
+          "sourceUpscaled": false,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "light-detail",
+      "path": "source/8k_earth_nightmap.jpg",
+      "colorSpace": "sRGB",
+      "role": "High-resolution city light detail; combines with the authored coastal emission field",
+      "sourceUrl": "https://www.solarsystemscope.com/textures/download/8k_earth_nightmap.jpg",
+      "credit": "Solar System Scope (CC BY 4.0), adapted",
+      "sourceWidth": 8192,
+      "sourceHeight": 4096,
+      "sha256": "9894e83a585a22c1c425e7ca4f987a9ba625bf08ecee45d3c9dcacae3c2ad5f7",
+      "variants": [
+        {
+          "path": "/earth/world-v2/light-detail-2048.webp",
+          "width": 2048,
+          "height": 1024,
+          "bytes": 594592,
+          "sha256": "e9677a416bf3b659a57a241045cbe4689ce8c497997bc60887e0c36ddf825fb7",
+          "sourceUpscaled": false,
+          "seamStripPixels": 12,
+          "polarRows": 3,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        },
+        {
+          "path": "/earth/world-v2/light-detail-4096.webp",
+          "width": 4096,
+          "height": 2048,
+          "bytes": 1905714,
+          "sha256": "b21c6394ec79b1255513778b198709126cda653594806fdbebe59db464c3558a",
+          "sourceUpscaled": false,
+          "seamStripPixels": 25,
+          "polarRows": 6,
+          "conditionedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          },
+          "encodedEdges": {
+            "edgeMeanDifference": 0,
+            "edgeMaxDifference": 0
+          }
+        }
+      ]
+    }
+  ],
+  "runtimePackBytes": {
+    "2048": 7046146,
+    "4096": 21561386
+  }
+}

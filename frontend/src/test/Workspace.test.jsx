@@ -44,10 +44,15 @@ vi.mock("../components/ImpactChain.jsx", () => ({
   default: ({ siteId }) => <div data-testid="charts" data-site={siteId ?? ""} />,
 }));
 vi.mock("../components/ScenePlayer.jsx", () => ({
-  default: ({ scenes, index }) => <p data-testid="player">{scenes[index]?.date}</p>,
+  default: ({ scenes, index, comparison }) => (
+    <p data-testid="player" data-before={scenes[comparison?.before]?.date}>{scenes[index]?.date}</p>
+  ),
 }));
 vi.mock("../components/LandPlayer.jsx", () => ({
-  default: ({ player }) => <p data-testid="player">{player.site.slug}</p>,
+  default: ({ player, comparison }) => (
+    <p data-testid="player" data-before={comparison ? player.compared.from : undefined}
+      data-after={player.compared.to} data-layer={player.layer}>{player.site.slug}</p>
+  ),
 }));
 vi.mock("../components/FindingCard.jsx", () => ({
   default: ({ slug, moment }) => <article aria-label="Evidence card">{`${slug}/${moment ?? ""}`}</article>,
@@ -89,10 +94,10 @@ describe("the navigation model", () => {
 
   it("reads what a workspace link asks for", () => {
     expect(readWorkspaceUrl("mode=stories&site=sylhet&date=2026-07-14&finding=sylhet:2&demo=1")).toEqual({
-      mode: "stories", site: "sylhet", date: "2026-07-14", place: null, finding: "sylhet:2", demo: true,
+      mode: "stories", site: "sylhet", date: "2026-07-14", place: null, comparison: null, finding: "sylhet:2", demo: true,
     });
     expect(readWorkspaceUrl(new URLSearchParams("place=etna&site="))).toEqual({
-      mode: null, site: null, date: null, place: "etna", finding: null, demo: false,
+      mode: null, site: null, date: null, place: "etna", comparison: null, finding: null, demo: false,
     });
   });
 
@@ -240,11 +245,12 @@ describe("<WorkspaceApp />", () => {
     return <output data-testid="url">{pathname + search}</output>;
   }
   // A fresh query cache per test, so no test sees another's answers.
-  const open = (url = "/workspace") =>
+  const open = (url = "/workspace", comparisonLink = null) =>
     render(
       <QueryClientProvider client={createQueryClient()}>
         <MemoryRouter initialEntries={[url]}>
           <Link to="/workspace">Top bar: Workspace</Link>
+          {comparisonLink && <Link to={comparisonLink}>Open radar comparison</Link>}
           <WorkspaceApp />
           <Where />
           <Back />
@@ -256,6 +262,38 @@ describe("<WorkspaceApp />", () => {
   const title = () => screen.getByRole("heading", { level: 1 });
   const map = () => screen.getByTestId("map");
   const panel = () => document.getElementById("workspace-panel");
+
+  it("keeps a new comparison link while the previous study site is still loaded", async () => {
+    const linked = "/workspace?mode=stories&site=okavango-flood-pulse&compare=2026-03-09%2C2026-03-21";
+    open("/workspace?mode=stories&site=punjab-crop-cycles&date=2026-03-09", linked);
+    expect(await screen.findByTestId("player")).toHaveTextContent("2026-03-09");
+    let finish;
+    fetchSite.mockImplementationOnce(() => new Promise((resolve) => { finish = resolve; }));
+    fireEvent.click(screen.getByRole("link", { name: "Open radar comparison" }));
+    await waitFor(() => expect(finish).toBeTypeOf("function"));
+    await urlIs(linked);
+    await act(async () => finish(loaded(SITES[1])));
+    await waitFor(() => expect(screen.getByTestId("player")).toHaveAttribute("data-before", "2026-03-09"));
+    expect(screen.getByTestId("player")).toHaveTextContent("2026-03-21");
+    await urlIs(linked);
+  });
+
+  it("restores both gallery dates and the layer requested by a comparison link", async () => {
+    fetchLandChange.mockResolvedValueOnce({
+      db_range: [-30, 5],
+      sites: [{ ...KILAUEA, passes: [
+        ...KILAUEA.passes,
+        { date: "2026-11-10", image_url: "/kilauea/2026-11-10.webp" },
+      ] }],
+    });
+    const linked = "/workspace?mode=stories&place=kilauea&compare=2025-11-03%2C2026-11-10%2Chh";
+    open(linked);
+    const player = await screen.findByTestId("player");
+    expect(player).toHaveAttribute("data-before", "2025-11-03");
+    expect(player).toHaveAttribute("data-after", "2026-11-10");
+    expect(player).toHaveAttribute("data-layer", "hh");
+    await urlIs(linked);
+  });
 
   const scrollTo = Element.prototype.scrollTo;
   beforeEach(() => {

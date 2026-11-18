@@ -1,24 +1,32 @@
-import { ArrowDownToLine, BookOpen, CodeXml, Compass, Database, Images, Radar, Sprout, WavesHorizontal, Wheat } from "lucide-react";
+import { ArrowUpRight } from "lucide-react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 
 import HeroObservatory from "./HeroObservatory.jsx";
+import HeroEarth from "./HeroEarth.jsx";
+import HomeCoverage from "./HomeCoverage.jsx";
 import { useAssistant } from "./assistant/assistantStore.jsx";
 import { TABS, firstPageHref } from "./docs/nav.js";
 import { AI_ENABLED } from "./features.js";
-import { workspaceHref } from "./workspaceContext.js";
+import getStartedArt from "./media/docs-get-started.webp";
+import radarScienceArt from "./media/docs-radar-science.webp";
+import dataMethodsArt from "./media/docs-data-methods-complete.webp";
+import developersArt from "./media/docs-developers.webp";
 
-const CHANGES = [
-  { icon: WavesHorizontal, title: "Floods & wetlands", body: "Open water in Bangladesh's haors: 53% of the box in July, 14% by November.", site: "sylhet-haor-floods" },
-  { icon: Wheat, title: "Crops & farming", body: "HV backscatter over Punjab's fields peaks in March and again in September.", site: "punjab-crop-cycles" },
-  { icon: ArrowDownToLine, title: "Ground motion", body: "Mexico City: about 20 cm away from the satellite in a year, as sinking ground would read.", site: "mexico-city-subsidence" },
-  { icon: Sprout, title: "Irrigated fields", body: "Circular fields in the Columbia Basin darken from August to October.", site: "columbia-basin-crops" },
-];
-
-const DOC_ICONS = {
-  "get-started": Compass,
-  science: Radar,
-  data: Database,
-  developers: CodeXml,
+const DOC_CARDS = {
+  "get-started": {
+    art: { src: getStartedArt, width: 574, height: 344 },
+  },
+  science: {
+    art: { src: radarScienceArt, width: 1400, height: 555 },
+  },
+  data: {
+    art: { src: dataMethodsArt, width: 800, height: 579 },
+  },
+  developers: {
+    art: { src: developersArt, width: 1234, height: 824 },
+    title: "For Developers",
+  },
 };
 
 const QUESTIONS = [
@@ -29,58 +37,55 @@ const QUESTIONS = [
 
 export default function Home() {
   const { ask } = useAssistant();
+  const [landing, setLanding] = useState(null);
 
   return (
     <div className="pf-home">
-      <section className="pf-hero">
-        <div className="pf-hero-text">
-          <h1>Watch Earth’s surface change through NISAR’s radar.</h1>
-          <p className="pf-hero-lede">
-            Track floods, crops, ground motion, lava, and ice across the globe, even through clouds and darkness.
-          </p>
-          <div className="pf-hero-ctas">
-            <Link to="/workspace" className="pf-btn pf-btn-primary">Open the Workspace →</Link>
-            <Link to="/docs/get-started/what-is-nisar" className="pf-btn pf-btn-secondary">What is NISAR?</Link>
-            {AI_ENABLED && (
-              <button type="button" className="pf-btn pf-btn-ghost" onClick={() => ask()}>
-                <span aria-hidden="true">✦</span> Ask AI
-              </button>
-            )}
+      <div className="pf-hero-track">
+        <section className="pf-hero">
+          <div className="pf-hero-text">
+            <h1>Watch Earth’s surface change through NISAR’s radar.</h1>
+            <p className="pf-hero-lede">
+              Track floods, crops, ground motion, lava, and ice across the globe, even through clouds and darkness.
+            </p>
+            <div className="pf-hero-ctas">
+              <Link to="/workspace" className="pf-btn pf-btn-primary">Open the Workspace →</Link>
+              <Link to="/docs/get-started/what-is-nisar" className="pf-btn pf-btn-secondary">What is NISAR?</Link>
+              {AI_ENABLED && (
+                <button type="button" className="pf-btn pf-btn-ghost" onClick={() => ask()}>
+                  <span aria-hidden="true">✦</span> Ask AI
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-        <HeroObservatory />
-      </section>
+          <HeroObservatory />
+          <HeroEarth landing={landing} />
+        </section>
+      </div>
 
-      <section className="pf-home-section">
-        <h2>What NISAR sees</h2>
-        <p className="pf-home-sub">Each opens in the map.</p>
-        <div className="pf-changes">
-          {CHANGES.map(({ icon: CardIcon, title, body, site }) => (
-            <Link key={title} to={workspaceHref({ mode: "stories", site })} className="pf-change">
-              <CardIcon size={22} strokeWidth={1.75} aria-hidden="true" />
-              <span className="pf-change-title">{title}</span>
-              <span className="pf-change-body">{body}</span>
-            </Link>
-          ))}
-          <Link to="/docs/data/study-sites#land-change-gallery" className="pf-change pf-change-more">
-            <Images size={22} strokeWidth={1.75} aria-hidden="true" />
-            <span className="pf-change-title">+ the land-change gallery</span>
-            <span className="pf-change-body">Eruptions, glaciers, floods and landslides, graded by how clearly NISAR shows them.</span>
-          </Link>
-        </div>
-      </section>
+      <HomeCoverage onLandingChange={setLanding} />
 
-      <section className="pf-home-section">
-        <h2>Read the docs</h2>
+      <section className="pf-home-section pf-home-docs" id="read-the-docs" aria-labelledby="pf-home-docs-title">
+        <h2 id="pf-home-docs-title">Read the docs</h2>
         <p className="pf-home-sub">The science, the data and the limits behind the map.</p>
-        <div className="pf-audiences">
+        <div className="pf-home-docs-grid">
           {TABS.map((tab) => {
-            const CardIcon = DOC_ICONS[tab.id] ?? BookOpen;
+            const { art, title = tab.label } = DOC_CARDS[tab.id] ?? {};
+            const titleId = `pf-doc-card-${tab.id}-title`;
+            const descriptionId = `pf-doc-card-${tab.id}-description`;
             return (
-              <Link key={tab.id} to={firstPageHref(tab)} className="pf-card pf-audience">
-                <span className="pf-card-icon"><CardIcon size={20} strokeWidth={1.75} aria-hidden="true" /></span>
-                <span className="pf-card-title">{tab.label} <span aria-hidden="true">→</span></span>
-                <span className="pf-card-body">{tab.blurb}</span>
+              <Link key={tab.id} to={firstPageHref(tab)} className="pf-doc-card" data-topic={tab.id}
+                aria-labelledby={titleId} aria-describedby={descriptionId}>
+                <div className="pf-doc-card-copy">
+                  <h3 id={titleId}>{title}</h3>
+                  <p id={descriptionId}>{tab.blurb}</p>
+                </div>
+                <div className="pf-doc-card-art" aria-hidden="true">
+                  {art && <img {...art} alt="" loading="lazy" decoding="async" />}
+                </div>
+                <div className="pf-doc-card-footer" aria-hidden="true">
+                  <span className="pf-doc-card-arrow"><ArrowUpRight size={23} /></span>
+                </div>
               </Link>
             );
           })}

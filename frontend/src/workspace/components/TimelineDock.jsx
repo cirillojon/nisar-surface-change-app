@@ -14,6 +14,7 @@ export default function TimelineDock({
   opacity,
   onOpacityChange,
   colourLegend,
+  comparison,
   // A gallery place, or the tours' Kīlauea box played like one (useLandPlayer).
   land,
   landKey,
@@ -37,6 +38,7 @@ export default function TimelineDock({
       <LandPlayer
         key={landKey}
         player={land}
+        comparison={comparison}
         opacity={opacity}
         onOpacityChange={onOpacityChange}
         onLayerChange={onLandLayerChange}
@@ -52,6 +54,7 @@ export default function TimelineDock({
         scenes={site.scenes}
         index={sceneIndex}
         onIndexChange={onSceneIndexChange}
+        comparison={comparison}
         opacity={opacity}
         onOpacityChange={onOpacityChange}
         product={site.product}

@@ -7,7 +7,7 @@
 // they run, so they can use parts set up after them.
 
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 
 import { useLandPlayer } from "../components/land/useLandPlayer.js";
@@ -15,7 +15,7 @@ import { LANGTANG, SYLHET } from "../components/tour/steps.js";
 import { setWorkspaceContext } from "../platform/workspaceContext.js";
 import { assetUrl } from "../services/api.js";
 import { loadImage } from "../services/imageCache.js";
-import { useLayerMapper } from "../services/layers.js";
+import { LAYERS, useLayerMapper } from "../services/layers.js";
 import { useNotebook } from "../services/notebook.js";
 import { findingQuery } from "../services/queries.js";
 import { TOUR_BOX, TOUR_IMAGERY, TOUR_LINE, tourSeen } from "../services/tour.js";
@@ -28,6 +28,13 @@ import { useTour } from "./tour/useTour.js";
 import { useAreaCatalog } from "./useAreaCatalog.js";
 import { NARROW_LAYOUT, useWorkspaceActions } from "./useWorkspaceActions.js";
 import { catalogTargetOf, mapViewOf, selectionOf, siteImagesOf } from "./workspaceView.js";
+
+function matchComparison(comparison, passes) {
+  if (!comparison || !passes) return null;
+  const before = passes.findIndex((pass) => pass.date === comparison.from);
+  const after = passes.findIndex((pass) => pass.date === comparison.to);
+  return before >= 0 && after > before ? { ...comparison, before, after } : null;
+}
 
 /** Server data (data/queries.js): the catalog, the gallery and the stories, and lookups into them. */
 function useWorkspaceData() {
@@ -250,23 +257,42 @@ function followUrl(ws, request, { pop, home }) {
   if (pop && !request.site && !request.place && (v.selectedSiteId != null || v.landSlug)) act.clearDrawing();
   if (pop && !request.finding && ui.openFinding) ui.setOpenFinding(null);
   // A gallery place; only places with passes open (a "checked, nothing visible" place has no images).
-  if (request.place && request.place !== v.landSlug
-    && data.landChange?.sites.some((p) => p.slug === request.place && p.passes?.length)) {
-    act.selectLandChange(request.place);
-    showLinkedPlace(request.place);
+  const place = request.place && data.landChange?.sites.find((p) => p.slug === request.place && p.passes?.length);
+  if (place) {
+    if (place.slug !== v.landSlug) {
+      act.selectLandChange(place.slug);
+      showLinkedPlace(place.slug);
+    }
+    const comparison = matchComparison(request.comparison, place.passes);
+    sel.setComparison(comparison);
+    if (comparison) {
+      const { from, to, layer, before, after } = comparison;
+      sel.setLandDates({ from, to });
+      if (layer === "change") {
+        sel.setLandLayer(place.passes[before].hh_url && place.passes[after].hh_url ? "change" : "hh");
+      } else {
+        sel.setLandLayer(Object.hasOwn(LAYERS, layer) ? layer : null);
+      }
+    }
   }
   // A study site, by slug or id, on a date.
   const linked = request.site && data.sites.find((s) => s.slug === request.site || String(s.id) === request.site);
+  const date = request.comparison?.to ?? request.date;
   if (linked && linked.id === v.selectedSiteId) {
-    const index = request.date && v.site ? v.site.scenes?.findIndex((x) => x.date === request.date) ?? -1 : -1;
+    const index = date && v.site ? v.site.scenes?.findIndex((x) => x.date === date) ?? -1 : -1;
     if (index >= 0) sel.setSceneIndex(index);
-    else if (request.date && !v.site) sel.setPendingDate(request.date);
+    else if (date && !v.site) sel.setPendingDate(date);
+    if (request.comparison) {
+      sel.setKeepDate(true);
+      sel.setCatalogOpen(false);
+    }
   } else if (linked) {
     act.selectSite(linked.id);
-    sel.setPendingDate(request.date);
-    sel.setKeepDate(Boolean(request.date));
+    sel.setPendingDate(date);
+    sel.setKeepDate(Boolean(date));
     showLinkedPlace(linked.slug);
   }
+  if (linked) sel.setComparison(request.comparison);
   // ?demo=1 (the search menu's "Demo mode"); the URL then drops it.
   if (request.demo && !ws.tour.demo) ws.tour.startDemo();
 }
@@ -287,6 +313,7 @@ function useWorkspaceNavigation(ws) {
       date: v.site ? v.shownDate : sel.pendingDate,
       place: v.landSlug,
       finding: ui.openFinding,
+      comparison: v.site ? ws.images.comparison : sel.comparison,
     },
     onNavigate: (request, how) => followUrl(ws, request, how),
   });
@@ -340,8 +367,15 @@ function useWorkspaceEffects(ws) {
 /** A study site's pass on the map, in the image layer chosen. */
 function useSiteImages(ws) {
   const { siteLayers, items } = siteImagesOf(ws.v.site, ws.v.scene);
-  const mapSiteUrl = useLayerMapper(siteLayers ? ws.sel.siteLayer : "colour", items);
-  return { siteLayers, mapSiteUrl };
+  const { site } = ws.v;
+  const { comparison: request, siteLayer, setSiteLayer } = ws.sel;
+  const comparison = useMemo(() => matchComparison(request, site?.scenes), [request, site]);
+  const linkedLayer = siteLayers?.find(({ id, disabled }) => !disabled && id === comparison?.layer)?.id;
+  useEffect(() => {
+    if (linkedLayer) setSiteLayer(linkedLayer);
+  }, [comparison, linkedLayer, setSiteLayer]);
+  const mapSiteUrl = useLayerMapper(siteLayers ? siteLayer : "colour", items);
+  return { siteLayers, mapSiteUrl, comparison };
 }
 
 /**
