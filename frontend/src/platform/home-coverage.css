@@ -195,6 +195,26 @@
       black calc(var(--coverage-reveal-position, -30svh) + 12svh));
     mask-image: var(--coverage-photo-sides), var(--coverage-photo-top-bottom), var(--coverage-reveal);
   }
+
+  .pf-home[data-compact-descent] .pf-coverage-photos {
+    /* One continuous terrain layer across the handoff and section. The
+       fixed fade leaves the scroll to animate only opacity and scale. */
+    mask-image: linear-gradient(to bottom,
+      transparent,
+      black 128px,
+      black 32%,
+      rgb(0 0 0 / .64) 58%,
+      rgb(0 0 0 / .64) calc(100% - var(--coverage-exit-fade)),
+      transparent);
+    opacity: calc(.82 * var(--coverage-terrain-opacity, 0));
+  }
+  .pf-home[data-compact-descent] .pf-coverage-photo {
+    scale: var(--coverage-descent-scale, 1);
+    transform-origin: center 36%;
+  }
+  .pf-home[data-compact-descent] :is(.pf-coverage-sidebar, .pf-coverage-detail) {
+    transform: none;
+  }
 }
 
 .pf-coverage-photo {
@@ -384,10 +404,15 @@
 
 .pf-home-coverage .pf-coverage-workspace:focus-visible { outline-color: currentColor; }
 
-@media (hover: hover) {
+@media (hover: hover) and (pointer: fine) {
   .pf-coverage-tab:not([aria-selected="true"]):hover { background: #e4f1ff16; }
   .pf-coverage-workspace:hover { color: #fff; }
   .pf-coverage-gallery:hover { color: var(--coverage-text); text-decoration: underline; }
+}
+.pf-coverage-tab:active { background: color-mix(in srgb, var(--coverage-accent) 24%, #0b1521); }
+:is(.pf-coverage-workspace, .pf-coverage-gallery, .pf-coverage-details-link):active {
+  color: var(--coverage-text);
+  background: #2f3542;
 }
 
 @media (prefers-reduced-motion: no-preference) {
@@ -529,25 +554,13 @@
     align-items: end;
     justify-items: end;
     overflow: visible;
+    aspect-ratio: auto;
+    min-height: 42px;
   }
 
   .pf-coverage-photos {
     z-index: -1;
     inset-block-start: calc(-1 * var(--coverage-overlap));
-  }
-
-  .pf-coverage-sidebar {
-    position: relative;
-    isolation: isolate;
-  }
-
-  .pf-coverage-sidebar::before {
-    content: "";
-    position: absolute;
-    z-index: -1;
-    inset: -64px 0 0;
-    pointer-events: none;
-    background: linear-gradient(to bottom, transparent, #0d121ac4 64px, #0d121a99 75%, transparent);
   }
 
   .pf-coverage-scene figcaption {

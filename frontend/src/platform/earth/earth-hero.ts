@@ -98,10 +98,11 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   const initialPitch = pitch;
   const textures: THREE.Texture[] = [];
   const materials: THREE.ShaderMaterial[] = [];
-  const width = options.quality === 'low' || (options.quality !== 'high' && host.clientWidth < 700) ? 2048 : 4096;
+  const compact = options.quality === 'low' || (options.quality !== 'high' && host.clientWidth < 700);
+  const width = compact ? 2048 : 4096;
   const authored = options.textureSet !== 'original';
-  const geometry = new THREE.SphereGeometry(1, 160, 96);
-  const terrainGeometry = authored ? new THREE.SphereGeometry(1, width === 4096 ? 512 : 256, width === 4096 ? 256 : 128) : geometry;
+  const geometry = new THREE.SphereGeometry(1, compact ? 96 : 160, compact ? 64 : 96);
+  const terrainGeometry = authored ? new THREE.SphereGeometry(1, compact ? 192 : 512, compact ? 96 : 256) : geometry;
   const reliefScale = authored ? 0.009 : 0;
   terrainGeometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1 + reliefScale);
   const sun = new THREE.Vector3(-0.25, 0.93, 0.38).normalize();
@@ -201,7 +202,9 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     // Aim the study site near mid-screen after zooming around the lower hero focal point.
     const closeUpY = descentFocusY + (height * 0.36) / (radiusPx * 3.8);
     framedLatitude = Math.asin(THREE.MathUtils.clamp(closeUpY - position.position.y, -0.98, 0.98));
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, width < 700 ? 1.25 : 1.5));
+    // One render pixel per CSS pixel on compact screens leaves room for the
+    // extra shading as Earth fills the viewport during the descent.
+    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, compact ? 1 : 1.5));
     renderer.setSize(width, height);
     invalidate();
   }
@@ -473,7 +476,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
 
   return {
     ready, dispose, reset, setAutoRotate, setFinish, setDescentTarget,
-    setDescentView(zoom: number, alignment: number) {
+    setDescentView(zoom: number, alignment: number, now?: number) {
       if (camera.zoom === zoom && descentAlignment === alignment) return;
       if (camera.zoom === 1 || zoom === 1) {
         previousTime = 0;
@@ -483,10 +486,19 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       descentAlignment = alignment;
       if (zoom > 1) loadLandDetail();
       updateProjection();
-      invalidate();
+      if (now !== undefined && canRender()) {
+        // Scroll already scheduled this frame. Draw the camera update before
+        // paint so it stays in sync with the DOM fades.
+        if (frame) cancelAnimationFrame(frame);
+        render(now);
+      } else invalidate();
     },
     getState: () => ({ ...state }),
-    setSuspended(value: boolean) { suspended = value; visibility(); },
+    setSuspended(value: boolean) {
+      if (suspended === value) return;
+      suspended = value;
+      visibility();
+    },
     metrics: () => ({ ...state, frames, longitude, pitch, cloudSpin, quality: width, textureSet: authored ? 'authored' : 'original',
       mapResolutions: Object.fromEntries(layers.map(layer => [layer.key, layer.resolution])),
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
 import { heroGlobeLayout } from "./earth/hero-globe-layout.js";
-import { bindHomeDescent } from "./earth/home-descent.js";
+import { bindHomeDescent, COMPACT_DESCENT_QUERY } from "./earth/home-descent.js";
 import "./earth/hero-earth.css";
 
 const DESCENT_FOCUS = 0.92;
@@ -21,13 +21,15 @@ export default function HeroEarth({ landing }) {
     const element = host.current;
     element.style.setProperty("--earth-focus", `${DESCENT_FOCUS * 100}%`);
     let cancelled = false;
-    let descentZoom = 1;
-    let descentAlignment = 0;
+    let view = { zoom: 1, alignment: 0, visible: true };
+    const applyView = (instance, now) => {
+      instance.setSuspended(!view.visible);
+      instance.setDescentView(view.zoom, view.alignment, now);
+    };
     const hero = element.closest(".pf-hero");
-    const stopDescent = hero && bindHomeDescent(hero, (zoom, alignment) => {
-      descentZoom = zoom;
-      descentAlignment = alignment;
-      renderer.current?.setDescentView(zoom, alignment);
+    const stopDescent = hero && bindHomeDescent(hero, (zoom, alignment, visible, now) => {
+      view = { zoom, alignment, visible };
+      if (renderer.current) applyView(renderer.current, now);
     });
     const resize = () => {
       const { x, y, radius } = heroGlobeLayout(element.clientWidth, element.clientHeight);
@@ -45,6 +47,7 @@ export default function HeroEarth({ landing }) {
       const instance = createEarthHero(element, {
         assetBase: `${import.meta.env.BASE_URL}earth`,
         loadReference: false,
+        quality: window.matchMedia?.(COMPACT_DESCENT_QUERY)?.matches ? "low" : "auto",
         layout: heroGlobeLayout,
         descentFocus: DESCENT_FOCUS,
         descentTarget: target.current,
@@ -53,7 +56,7 @@ export default function HeroEarth({ landing }) {
         },
       });
       renderer.current = instance;
-      if (descentZoom > 1) instance.setDescentView(descentZoom, descentAlignment);
+      if (view.zoom > 1 || !view.visible) applyView(instance);
       await instance.ready;
     }).catch(() => { if (!cancelled) setUnavailable(true); });
 

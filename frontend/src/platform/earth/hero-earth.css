@@ -42,11 +42,21 @@
     var(--earth-center-x) calc(var(--earth-center-y) * var(--earth-zoom) + var(--earth-focus, 82%) * (1 - var(--earth-zoom)))
   );
 }
+.pf-hero-earth[data-descent] .pf-hero-earth-mount {
+  /* The globe is now part of the scroll scene. Keep the hit clip static
+     at the opening and let the expanded canvas slide past with the hero. */
+  clip-path: none;
+}
+.pf-hero-earth[data-descent] .earth-hero__canvas { pointer-events: none; }
 .pf-hero-earth .earth-hero__canvas {
   display: block;
   pointer-events: auto;
   cursor: grab;
-  touch-action: pan-y;
+  /* Horizontal dragging coexists with page scrolling and browser zoom. */
+  touch-action: pan-y pinch-zoom;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
 }
 .pf-hero-earth-mount:not([data-ready="true"]) .earth-hero__canvas { visibility: hidden; }
 .pf-hero-earth .earth-hero__canvas[data-dragging="true"] { cursor: grabbing; }
