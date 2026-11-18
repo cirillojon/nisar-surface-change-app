@@ -453,6 +453,22 @@ describe("<Tour />", () => {
     expect(screen.queryByText(/\d:\d\d/)).toBeNull();
   });
 
+  it("on a phone, Hide docks the bubble to a screen edge and Show puts it back", () => {
+    const original = window.matchMedia;
+    window.matchMedia = () => ({ matches: true, addEventListener() {}, removeEventListener() {} });
+    try {
+      render(<Tour state={idle} actions={actions()} onEnd={() => {}} />);
+      const dialog = screen.getByRole("dialog");
+      expect(dialog).not.toHaveAttribute("data-dock");
+      fireEvent.click(screen.getByRole("button", { name: /hide the tour text/i }));
+      expect(dialog).toHaveAttribute("data-dock", "bottom");
+      fireEvent.click(screen.getByRole("button", { name: /show the tour text/i }));
+      expect(dialog).not.toHaveAttribute("data-dock");
+    } finally {
+      window.matchMedia = original;
+    }
+  });
+
   it("names the pitch part on every step but the opening and the radar diagram", () => {
     render(<Tour state={idle} actions={actions()} onEnd={() => {}} />);
     const dialog = within(screen.getByRole("dialog"));
