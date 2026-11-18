@@ -354,19 +354,20 @@
   overflow: hidden;
   margin-block: 8px 4px;
   margin-inline: calc(-1 * var(--coverage-detail-inset));
+  mask-image:
+    linear-gradient(to bottom, transparent, #000 8%, #000 92%, transparent),
+    linear-gradient(to right, transparent, #000 6%, #000 94%, transparent);
+  mask-composite: intersect;
 }
 
 .pf-coverage-preview img {
+  /* The source art includes transparent padding. Fill that space within the existing preview height. */
   position: absolute;
-  inset: 0;
+  inset: -21% auto auto -5%;
   display: block;
-  width: 100%;
-  height: 100%;
+  width: 110%;
+  height: 142%;
   object-fit: contain;
-  mask-image:
-    linear-gradient(to bottom, transparent, #000 15%, #000 75%, transparent),
-    linear-gradient(to right, transparent, #000 15%, #000 85%, transparent);
-  mask-composite: intersect;
 }
 
 .pf-coverage-workspace {
@@ -387,7 +388,7 @@
 @media (hover: hover) and (pointer: fine) {
   .pf-coverage-tab:not([aria-selected="true"]):hover { background: #e4f1ff16; }
   .pf-coverage-workspace:hover { color: #fff; }
-  .pf-coverage-gallery:hover { color: var(--coverage-text); text-decoration: underline; }
+  :is(.pf-coverage-gallery, .pf-coverage-details-link):hover { color: var(--coverage-text); text-decoration: underline; }
 }
 .pf-coverage-tab:active { background: color-mix(in srgb, var(--coverage-accent) 24%, #0b1521); }
 :is(.pf-coverage-workspace, .pf-coverage-gallery, .pf-coverage-details-link):active {
@@ -454,7 +455,8 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    gap: 4px 6px;
+    justify-content: space-between;
+    gap: 4px 12px;
     margin-top: 12px;
   }
 
@@ -465,30 +467,17 @@
     gap: 7px;
     min-height: 44px;
     margin: 0;
-    padding-inline: 8px;
     border-radius: 8px;
-    font-size: 13px;
+    font-size: clamp(12px, 3.75vw, 13px);
     font-weight: 500;
     text-decoration: none;
+    text-underline-offset: 4px;
   }
 
-  .pf-coverage-details-link {
-    border: 1px solid color-mix(in srgb, var(--coverage-accent) 35%, transparent);
-    background: #10131be8;
-    color: var(--coverage-text);
-  }
-
-  .pf-coverage-details-link svg { color: var(--coverage-accent); }
-  .pf-coverage-gallery {
-    padding-inline: 5px;
-    color: var(--coverage-text);
-  }
+  .pf-coverage-details-link { color: var(--coverage-text); }
+  .pf-coverage-details-link svg { color: var(--coverage-accent); flex: none; }
   .pf-coverage-gallery-full { display: none; }
   .pf-coverage-gallery-short { display: inline; }
-
-  :is(.pf-coverage-details-link, .pf-coverage-gallery):active {
-    background: #2f3542;
-  }
 
   .pf-coverage-topic { display: block; }
 

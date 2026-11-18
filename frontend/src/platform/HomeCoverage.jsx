@@ -339,6 +339,18 @@ export default function HomeCoverage({ onLandingChange }) {
   const [focused, setFocused] = useState(null);
   const topic = TOPICS[selected];
 
+  function showObservation(event) {
+    if (event.detail === 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const detail = document.getElementById(event.currentTarget.hash.slice(1));
+    if (!detail) return;
+
+    event.preventDefault();
+    detail.focus({ preventScroll: true });
+    detail.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function moveFocus(event, current) {
     const count = TOPICS.length;
     let next;
@@ -389,8 +401,9 @@ export default function HomeCoverage({ onLandingChange }) {
           ))}
         </div>
         <div className="pf-coverage-actions">
-          <a className="pf-coverage-details-link" href="#pf-coverage-detail" aria-label={`View details for ${topic.title}`}>
-            View details <ArrowDown size={15} aria-hidden="true" />
+          <a className="pf-coverage-details-link" href="#pf-coverage-detail"
+            aria-label={`See observation for ${topic.title}`} onClick={showObservation}>
+            See observation <ArrowDown size={15} aria-hidden="true" />
           </a>
           <Link className="pf-coverage-gallery" to="/docs/data/study-sites#land-change-gallery">
             <span className="pf-coverage-gallery-full">Browse the land-change gallery</span>
