@@ -47,6 +47,7 @@ it("brings the heading over a moving globe without a full-screen terrain reveal"
   scroll(340);
   const earlierZoom = view.mock.lastCall[0];
   expect(view.mock.lastCall[2]).toBe(true);
+  expect(view.mock.lastCall[3]).toBeTypeOf("number");
   expect(parseFloat(coverage.style.getPropertyValue("--coverage-heading-overlap"))).toBeGreaterThan(0);
 
   const earth = track.querySelector(".pf-hero-earth");

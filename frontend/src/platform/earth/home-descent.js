@@ -81,12 +81,12 @@ export function bindHomeDescent(hero, onViewChange) {
     setStyle(coverage, "--coverage-entry-pointer-events", entry > 0 ? "auto" : "none");
   }
 
-  function paintCompact(progress) {
+  function paintCompact(progress, now) {
     // The topic heading enters over the live globe. The illustration stays
     // with the observation below, so there is no image swap at this boundary.
-    const zoom = 1 + 2.65 * easeBetween(progress, 0.025, 0.86);
-    const alignment = easeBetween(progress, 0.055, 0.64);
-    const globe = 1 - easeBetween(progress, 0.38, 0.88);
+    const zoom = 1 + 2.65 * easeBetween(progress, 0.055, 0.93);
+    const alignment = easeBetween(progress, 0.075, 0.67);
+    const globe = 1 - easeBetween(progress, 0.43, 0.92);
     const sky = 1 - easeBetween(progress, 0.04, 0.28);
     const copy = 1 - easeBetween(progress, 0.07, 0.31);
     const entry = easeBetween(progress, 0.41, 0.61);
@@ -96,7 +96,7 @@ export function bindHomeDescent(hero, onViewChange) {
     if (descending !== earth.hasAttribute("data-descent")) earth.toggleAttribute("data-descent", descending);
     // The poster uses the same focal point if WebGL is unavailable.
     if (earth.querySelector(".pf-hero-earth-poster-view")) setStyle(earth, "--hero-earth-zoom", zoom.toFixed(3));
-    onViewChange(zoom, alignment, globe > 0);
+    onViewChange(zoom, alignment, globe > 0, now);
   }
 
   function paintWide(progress, revealBlend) {
@@ -133,7 +133,7 @@ export function bindHomeDescent(hero, onViewChange) {
     if (revealBlend === 1) terrainFadeStart = null;
     previousProgress = progress;
 
-    if (compact) paintCompact(progress);
+    if (compact) paintCompact(progress, now);
     else paintWide(progress, revealBlend);
     if (terrainFadeStart !== null) schedulePaint();
   }
@@ -163,7 +163,7 @@ export function bindHomeDescent(hero, onViewChange) {
       startY += lead;
       const viewport = height - lead;
       distance = Math.max(520, Math.min(1040, viewport * 1.06));
-      setStyle(track, "--hero-descent-hold", `${distance * 0.45}px`);
+      setStyle(track, "--hero-descent-hold", `${distance * 0.47}px`);
       setStyle(coverage, "--coverage-heading-overlap", `${Math.min(340, viewport * 0.37)}px`);
     } else {
       const viewport = Math.min(window.innerHeight, height);

@@ -1,0 +1,10 @@
+{
+  "sourceWidth": 8192,
+  "sourceHeight": 4096,
+  "regions": {
+    "greenland": [1664, 0, 2816, 1152],
+    "south-asia": [5376, 768, 1280, 1216],
+    "hawaii": [0, 1024, 1152, 1024],
+    "mexico": [1344, 1024, 1152, 960]
+  }
+}

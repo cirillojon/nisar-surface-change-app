@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import regionalCrops from './regional-crops.json';
 import { vertex, surfaceFragment, compactSurfaceFragment, cloudFragment, atmosphereFragment } from './shaders';
 
 export type EarthHeroState = {
@@ -13,7 +14,7 @@ export type EarthHeroState = {
 type DescentTarget = {
   latitude: number;
   longitude: number;
-  region: keyof typeof regionalCrops;
+  region: keyof typeof regionalCrops.regions;
 };
 
 export type EarthHeroOptions = {
@@ -31,18 +32,11 @@ export type EarthHeroOptions = {
 
 export type EarthHero = ReturnType<typeof createEarthHero>;
 
-// Native 8192 × 4096 day-map crops in left, top, width, height order.
-const regionalCrops = {
-  greenland: [1664, 0, 2816, 1152],
-  'south-asia': [5376, 768, 1280, 1216],
-  hawaii: [0, 1024, 1152, 1024],
-  mexico: [1344, 1024, 1152, 960],
-};
-
 function detailBounds(region: DescentTarget['region']) {
-  const [left, top, width, height] = regionalCrops[region];
+  const { sourceWidth, sourceHeight, regions } = regionalCrops;
+  const [left, top, width, height] = regions[region];
   // UV coordinates run north from the bottom of the texture.
-  return new THREE.Vector4(left / 8192, 1 - (top + height) / 4096, width / 8192, height / 4096);
+  return new THREE.Vector4(left / sourceWidth, 1 - (top + height) / sourceHeight, width / sourceWidth, height / sourceHeight);
 }
 
 /** A complete globe with a fixed, cropped hero camera. No DOM work at import time. */
@@ -91,7 +85,6 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   let frame = 0;
   let frames = 0;
   let previousTime = 0;
-  let lastDraw = -Infinity;
   let longitude = THREE.MathUtils.degToRad(options.descentFocus === undefined ? 170 : 18);
   let pitch = THREE.MathUtils.degToRad(options.descentFocus === undefined ? -29 : 0);
   let cloudSpin = 0;
@@ -125,10 +118,6 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   function render(now: number) {
     frame = 0;
     if (!canRender()) { previousTime = 0; return; }
-    // Camera inputs coalesce while the phone scrolls. An active drag still
-    // gets a frame on each refresh for direct feedback.
-    if (compactSurface && !state.dragging && now - lastDraw < 30) { invalidate(); return; }
-    lastDraw = now;
     const dt = previousTime ? Math.min((now - previousTime) / 1000, 0.05) : 0;
     previousTime = now;
     const descentActive = camera.zoom > 1 || descentAlignment > 0;
@@ -209,10 +198,8 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     // Aim the study site near mid-screen after zooming around the lower hero focal point.
     const closeUpY = descentFocusY + (height * 0.36) / (radiusPx * 3.8);
     framedLatitude = Math.asin(THREE.MathUtils.clamp(closeUpY - position.position.y, -0.98, 0.98));
-    // One render pixel per CSS pixel on compact screens leaves room for the
-    // extra shading as Earth fills the viewport during the descent.
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, compact ? 1 : 1.5));
-    renderer.setSize(width, height);
+    const pixelRatio = Math.min(devicePixelRatio || 1, compact ? 1.25 : 1.5);
+    renderer.setDrawingBufferSize(width, height, pixelRatio);
     if (surface) surface.uniforms.uFrameHeight.value = canvas.height;
     invalidate();
   }
@@ -333,23 +320,24 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   // on the 8K-derived terrain/cloud detail instead of oversized color fields.
   const artWidth = Math.min(width, 2048);
   const layers = authored ? [
-    { key: 'day', file: 'world-v2/albedo', resolution: artWidth },
+    { key: 'day', file: compactSurface ? 'mobile/surface' : 'world-v2/albedo', resolution: artWidth },
     { key: 'night', file: 'world-v2/lights', resolution: artWidth },
-    { key: 'clouds', file: 'world-v2/clouds', resolution: artWidth },
+    { key: 'clouds', file: compactSurface ? 'mobile/clouds' : 'world-v2/clouds', resolution: artWidth },
     { key: 'water', file: 'world-v2/water', resolution: width },
     { key: 'normal', file: 'world-v2/normal', resolution: width },
     { key: 'height', file: 'relief/height', resolution: width },
-    { key: 'detail', file: 'world-v2/detail', resolution: width },
-    { key: 'cloudDetail', file: 'world-v2/cloud-detail', resolution: width },
   ] : ['day', 'night', 'clouds', 'water'].map(key => ({ key, file: key, resolution: width }));
   if (authored && !compactSurface) {
     layers.push(
+      { key: 'detail', file: 'world-v2/detail', resolution: width },
+      { key: 'cloudDetail', file: 'world-v2/cloud-detail', resolution: width },
       { key: 'roughness', file: 'world-v2/roughness', resolution: artWidth },
       { key: 'lightDetail', file: 'world-v2/light-detail', resolution: width },
     );
   }
   if (options.loadReference !== false) layers.push({ key: 'reference', file: 'reference', resolution: 1775 });
   const loader = new THREE.TextureLoader();
+  const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
   let landDetail: THREE.Texture | undefined;
   let requestedRegion: DescentTarget['region'] | undefined;
   let detailRequest = 0;
@@ -359,10 +347,12 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     if (!authored || !region || requestedRegion === region) return;
     requestedRegion = region;
     const request = ++detailRequest;
-    loader.load(`${base}/world-v2/${region}-detail.webp`, texture => {
+    const folder = compactSurface ? 'mobile' : 'world-v2';
+    loader.load(`${base}/${folder}/${region}-detail.webp`, texture => {
       if (disposed || request !== detailRequest) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+      texture.anisotropy = Math.min(maxAnisotropy, 8);
+      if (compactSurface && !state.contextLost) renderer.initTexture(texture);
       landDetail = texture;
       if (surface) {
         surface.uniforms.uLandingDetail.value = texture;
@@ -384,7 +374,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       if (surface) surface.uniforms.uLandingDetail.value = surface.uniforms.uDetail.value;
       landDetail?.dispose();
       landDetail = undefined;
-      if (camera.zoom > 1) loadLandDetail();
+      if (compactSurface || camera.zoom > 1) loadLandDetail();
     }
     invalidate();
   }
@@ -397,7 +387,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       const texture = await loader.loadAsync(key === 'reference' ? `${base}/reference.png` : `${base}/${file}-${resolution}.webp`);
       texture.colorSpace = ['day', 'night', 'detail', 'lightDetail', 'reference'].includes(key) ? THREE.SRGBColorSpace : THREE.NoColorSpace;
       texture.wrapS = key === 'reference' ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
-      texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+      texture.anisotropy = Math.min(maxAnisotropy, compactSurface ? 4 : 8);
       textures.push(texture);
       return { key, texture };
     }));
@@ -497,7 +487,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
 
   return {
     ready, dispose, reset, setAutoRotate, setFinish, setDescentTarget,
-    setDescentView(zoom: number, alignment: number) {
+    setDescentView(zoom: number, alignment: number, scrollFrameTime?: number) {
       if (camera.zoom === zoom && descentAlignment === alignment) return;
       const wasDescending = camera.zoom > 1 || descentAlignment > 0;
       const isDescending = zoom > 1 || alignment > 0;
@@ -509,7 +499,12 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       descentAlignment = alignment;
       if (isDescending) loadLandDetail();
       updateProjection();
-      invalidate();
+      // Scroll has its own animation callback. Draw its camera and CSS fades
+      // on that refresh instead of queueing the canvas for the next one.
+      if (compactSurface && scrollFrameTime !== undefined && canRender()) {
+        if (frame) cancelAnimationFrame(frame);
+        render(scrollFrameTime);
+      } else invalidate();
     },
     getState: () => ({ ...state }),
     setSuspended(value: boolean) {

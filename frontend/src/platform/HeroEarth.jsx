@@ -22,14 +22,14 @@ export default function HeroEarth({ landing }) {
     element.style.setProperty("--earth-focus", `${DESCENT_FOCUS * 100}%`);
     let cancelled = false;
     let view = { zoom: 1, alignment: 0, visible: true };
-    const applyView = (instance) => {
+    const applyView = (instance, scrollFrameTime) => {
       instance.setSuspended(!view.visible);
-      instance.setDescentView(view.zoom, view.alignment);
+      instance.setDescentView(view.zoom, view.alignment, scrollFrameTime);
     };
     const hero = element.closest(".pf-hero");
-    const stopDescent = hero && bindHomeDescent(hero, (zoom, alignment, visible) => {
+    const stopDescent = hero && bindHomeDescent(hero, (zoom, alignment, visible, scrollFrameTime) => {
       view = { zoom, alignment, visible };
-      if (renderer.current) applyView(renderer.current);
+      if (renderer.current) applyView(renderer.current, scrollFrameTime);
     });
     const resize = () => {
       const { x, y, radius } = heroGlobeLayout(element.clientWidth, element.clientHeight);

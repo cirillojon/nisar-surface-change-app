@@ -172,10 +172,8 @@ export const compactSurfaceFragment = /* glsl */ `
 uniform sampler2D uDay;
 uniform sampler2D uNight;
 uniform sampler2D uClouds;
-uniform sampler2D uCloudDetail;
 uniform sampler2D uWater;
 uniform sampler2D uNormal;
-uniform sampler2D uDetail;
 uniform sampler2D uLandingDetail;
 uniform vec4 uLandingBounds;
 uniform vec3 uSun;
@@ -193,35 +191,28 @@ void main() {
   vec3 t = normalize(vTangent - n * dot(n, vTangent));
   vec3 b = cross(n, t);
   vec3 slopes = texture2D(uNormal, vUv).rgb * 2.0 - 1.0;
-  slopes.xy *= 1.65 * (1.0 - water);
+  slopes.xy *= mix(1.65, 2.05, uLandingClarity) * (1.0 - water);
   vec3 groundNormal = normalize(mat3(t, b, n) * slopes);
 
-  vec3 fine = texture2D(uDetail, vUv).rgb;
+  vec3 terrain = texture2D(uDay, vUv).rgb;
   if (uLandingDetailStrength > 0.0) {
     vec2 uv = (vUv - uLandingBounds.xy) / uLandingBounds.zw;
     vec2 edge = min(uv, 1.0 - uv);
     float mixDetail = smoothstep(0.0, 0.10, min(edge.x, edge.y)) * uLandingDetailStrength;
-    fine = mix(fine, texture2D(uLandingDetail, uv).rgb, mixDetail);
+    terrain = mix(terrain, texture2D(uLandingDetail, uv, -0.35).rgb, mixDetail);
   }
-  vec3 broad = textureLod(uDetail, vUv, 4.5).rgb;
-  vec3 artBroad = textureLod(uDay, vUv, 4.0).rgb;
-  vec3 land = fine * clamp((artBroad + 0.008) / (broad + 0.008), 0.28, 2.8);
-  float snow = smoothstep(0.45, 0.70, min(fine.r, min(fine.g, fine.b)));
-  land = mix(land, fine * vec3(0.96, 0.99, 1.04), snow);
 
   vec3 key = normalize(vec3(-0.72, 0.38, 0.58));
   float smoothLight = 0.24 + 0.9 * max(dot(n, key), 0.0);
   float reliefLight = 0.24 + 0.9 * max(dot(groundNormal, key), 0.0);
-  land *= clamp(reliefLight / smoothLight, 0.32, 1.48);
+  float terrainShade = clamp(reliefLight / smoothLight, 0.32, 1.48);
   float sun = max(dot(n, uSun), 0.0);
-  vec3 color = mix(land, texture2D(uDay, vUv).rgb, water) * (0.24 + sun * 0.92);
+  vec3 color = terrain * mix(terrainShade, 1.0, water) * (0.24 + sun * 0.92);
   vec3 lights = texture2D(uNight, vUv).rgb;
   color += lights * vec3(1.0, 0.65, 0.30) * 0.48 * mix(1.0, 0.15, uLandingClarity);
 
   vec2 cloudUv = vUv + vec2(uCloudOffset, 0.0);
-  float cloudField = texture2D(uClouds, cloudUv).r;
-  float cloudFine = texture2D(uCloudDetail, cloudUv).r;
-  float cloud = smoothstep(0.11, 0.78, mix(cloudFine, cloudField, 0.35));
+  float cloud = smoothstep(0.11, 0.78, texture2D(uClouds, cloudUv).r);
   cloud *= mix(0.94, 0.18, uLandingClarity) * smoothstep(0.08, 0.26, facing);
   color = mix(color, vec3(0.83, 0.91, 1.0) * (0.32 + sun * 0.86), cloud);
   float rim = pow(1.0 - facing, 3.8);
