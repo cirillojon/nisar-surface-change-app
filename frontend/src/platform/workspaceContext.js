@@ -4,6 +4,7 @@
  * subscribe with useWorkspaceContext(). A tiny external store keeps the
  * workspace free of platform imports beyond one setter. */
 import { useSyncExternalStore } from "react";
+import { comparisonParam } from "../workspace/navigation.js";
 
 let current = { site: null, date: null, area: null, profileLine: null, landChange: null };
 const listeners = new Set();
@@ -31,13 +32,14 @@ export function useWorkspaceContext() {
  * workspaceHref({ mode: "stories", place: "jakobshavn" }) or
  * workspaceHref({ mode: "findings", finding: "okavango-flood-pulse:1" }).
  */
-export function workspaceHref({ mode, site, place, finding, date } = {}) {
+export function workspaceHref({ mode, site, place, finding, date, comparison } = {}) {
   const params = new URLSearchParams();
   if (mode) params.set("mode", mode);
   if (site) params.set("site", site);
   if (place) params.set("place", place);
   if (finding) params.set("finding", finding);
-  if (date) params.set("date", date);
+  if (date && !comparison) params.set("date", date);
+  if (comparison) params.set("compare", comparisonParam(comparison));
   const query = params.toString();
   return query ? `/workspace?${query}` : "/workspace";
 }
