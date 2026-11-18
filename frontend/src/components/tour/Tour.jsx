@@ -424,10 +424,11 @@ function stepStatus({ step, state, playing, looked, look, sequenceAt, atEntry })
 const PHONE_QUERY = "(max-width: 760px)";
 
 /**
- * On a phone the bubble can fold down to its title and buttons, to show the
- * map behind it. It opens again on the next step.
+ * On a phone the bubble can fold down to its title and buttons and dock to
+ * the screen edge farthest from the step's target, to show the map behind
+ * it. It opens again on the next step.
  */
-function useFold(index) {
+function useFold(index, target) {
   const [foldedAt, setFoldedAt] = useState(-1);
   const [phone, setPhone] = useState(() => Boolean(window.matchMedia?.(PHONE_QUERY).matches));
   useEffect(() => {
@@ -439,7 +440,8 @@ function useFold(index) {
   }, []);
   const folded = phone && foldedAt === index;
   const toggle = () => setFoldedAt(folded ? -1 : index);
-  return { phone, folded, toggle };
+  const dock = target && target.top + target.height / 2 > window.innerHeight / 2 ? "top" : "bottom";
+  return { phone, folded, toggle, dock };
 }
 
 function FoldButton({ folded, onToggle }) {
@@ -471,6 +473,7 @@ function TourBubble({ bubbleRef, bubble, step, index, width, nudged, fold, child
       ref={bubbleRef}
       className={classes}
       data-placing={placing ? "" : undefined}
+      data-dock={fold.folded ? fold.dock : undefined}
       style={placing ? { ...style, opacity: 0, pointerEvents: "none" } : style}
       aria-labelledby="tour-bubble-title"
     >
@@ -505,7 +508,7 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
   useFollowTheApp({ isDone, lost: status.lost, step, index, go: steps.go });
   useTourKeys({ steps, canNext, onEnd });
   const [nudged, onBlocked] = useNudge();
-  const fold = useFold(index);
+  const fold = useFold(index, look.settled ? look.rect : null);
   const bubbleRef = useRef(null);
   const snappedLine = Boolean(state.snapped) && step.id === "profile-elevation";
   const width = step.art ? INTRO_W : BUBBLE_W;
@@ -514,7 +517,7 @@ export default function Tour({ state, actions, onEnd, startAt = 0 }) {
 
   return (
     <div className="tour-layer" data-testid="tour">
-      <TourShade look={look} bubble={bubble} interactive={Boolean(step.interactive)} onBlocked={onBlocked} />
+      <TourShade look={look} bubble={fold.folded ? null : bubble} interactive={Boolean(step.interactive)} onBlocked={onBlocked} />
       <TourBubble bubbleRef={bubbleRef} bubble={bubble} step={step} index={index} width={width} nudged={nudged} fold={fold}>
         <BubbleText step={step} index={index} waiting={waiting} snappedLine={snappedLine} isDone={isDone} />
         <BubbleActions steps={steps} canNext={canNext} onEnd={onEnd} />

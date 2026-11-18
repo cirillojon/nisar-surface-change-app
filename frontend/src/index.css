@@ -1663,8 +1663,25 @@ code {
   .tour-bubble-folded .tour-progress {
     display: none;
   }
+  /* Docked to the top or bottom edge, away from the target, whatever the
+     measured place was. */
+  .tour-bubble[data-dock] {
+    position: fixed;
+    inset-inline: 8px !important;
+    width: auto !important;
+    max-height: none;
+    overflow: visible;
+    transition: none;
+  }
+  .tour-bubble[data-dock="bottom"] {
+    top: auto !important;
+    inset-block-end: max(8px, env(safe-area-inset-bottom));
+  }
+  .tour-bubble[data-dock="top"] {
+    top: max(8px, env(safe-area-inset-top)) !important;
+  }
   .tour-bubble-folded.tour-bubble-intro {
-    max-height: min(max(32svh, 220px), calc(100svh - 24px));
+    max-height: none;
   }
   .tour-bubble .tour-step-count {
     margin-block: 0 2px;
