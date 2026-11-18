@@ -205,14 +205,17 @@ function useTerrainFrame(photoFrame) {
     }
 
     const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    const onViewportResize = () => {
+      if (!observer || desktopQuery?.matches) measure();
+    };
     observer?.observe(frame);
     desktopQuery?.addEventListener?.("change", measure);
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", onViewportResize);
     watchDensity();
     return () => {
       desktopQuery?.removeEventListener?.("change", measure);
       densityQuery?.removeEventListener?.("change", watchDensity);
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", onViewportResize);
       observer?.disconnect();
     };
   }, [photoFrame]);

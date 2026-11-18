@@ -63,9 +63,16 @@ it("brings the heading over a moving globe without a full-screen terrain reveal"
   scroll(900);
   expect(view.mock.lastCall[2]).toBe(false);
   expect(Number(coverage.style.getPropertyValue("--coverage-entry"))).toBe(1);
+  expect(earth.style.getPropertyValue("--hero-earth-presence")).toBe("0.000");
+  expect(earth.style.getPropertyValue("--hero-earth-visibility")).toBe("");
+  expect(earth).toHaveAttribute("inert");
+  view.mockClear();
+  scroll(960);
+  expect(view).not.toHaveBeenCalled();
 
   scroll(0);
   expect(view.mock.lastCall.slice(0, 3)).toEqual([1, 0, true]);
+  expect(earth).not.toHaveAttribute("inert");
 });
 
 it("reveals the topics independently of the photo and clears the effect for reduced motion", () => {
@@ -93,5 +100,29 @@ it("clips the offscreen part of the canvas and leaves room for a fast return scr
   expect(view.mock.lastCall[4]).toBe(180);
 
   scroll(420);
+  expect(view.mock.lastCall[4]).toBe(0);
+});
+
+it("coalesces compact viewport resizes and repaints when the hero framing changes", () => {
+  const { scroll, view, track } = mountDescent(undefined, { height: 841, stickyTop: -105 });
+  scroll(60);
+  view.mockClear();
+  const measureTrack = vi.spyOn(track, "getBoundingClientRect");
+
+  window.dispatchEvent(new Event("resize"));
+  vi.advanceTimersByTime(80);
+  window.dispatchEvent(new Event("resize"));
+  vi.advanceTimersByTime(80);
+  expect(measureTrack).not.toHaveBeenCalled();
+
+  vi.advanceTimersByTime(40);
+  vi.advanceTimersToNextFrame();
+  expect(measureTrack).toHaveBeenCalledTimes(1);
+  expect(view).not.toHaveBeenCalled();
+
+  track.firstElementChild.style.top = "-45px";
+  window.dispatchEvent(new Event("resize"));
+  vi.advanceTimersByTime(120);
+  vi.advanceTimersToNextFrame();
   expect(view.mock.lastCall[4]).toBe(0);
 });

@@ -2,7 +2,9 @@ const clamp = (value) => Math.max(0, Math.min(1, value));
 
 export const COMPACT_DESCENT_QUERY = "(max-width: 780px), (max-width: 959px) and (max-height: 540px)";
 const COMPACT_HOLD_FRACTION = 0.47;
+const COMPACT_FADE_END = 0.92;
 const SCROLL_OVERSCAN = 64;
+const VIEWPORT_SETTLE_MS = 120;
 
 function easeBetween(progress, start, end) {
   const t = clamp((progress - start) / (end - start));
@@ -21,6 +23,7 @@ export function bindHomeDescent(hero, onViewChange) {
 
   const styled = new Map();
   let frame = 0;
+  let viewportTimer = 0;
   let previousProgress;
   let compact;
   let compactLead = 0;
@@ -46,6 +49,7 @@ export function bindHomeDescent(hero, onViewChange) {
     styled.clear();
     delete home.dataset.compactDescent;
     delete earth.dataset.descent;
+    earth.removeAttribute("inert");
     previousProgress = undefined;
     onViewChange(1, 0, true);
   }
@@ -75,7 +79,6 @@ export function bindHomeDescent(hero, onViewChange) {
 
   function setPresence({ globe, sky, copy, entry }) {
     setStyle(earth, "--hero-earth-presence", globe.toFixed(3));
-    setStyle(earth, "--hero-earth-visibility", globe > 0 ? "visible" : "hidden");
     setStyle(hero, "--hero-sky-presence", sky.toFixed(3));
     setStyle(hero, "--hero-tile-visibility", sky > 0 ? "visible" : "hidden");
     setStyle(hero, "--hero-copy-presence", copy.toFixed(3));
@@ -89,14 +92,17 @@ export function bindHomeDescent(hero, onViewChange) {
     // with the observation below, so there is no image swap at this boundary.
     const zoom = 1 + 2.65 * easeBetween(progress, 0.055, 0.93);
     const alignment = easeBetween(progress, 0.075, 0.67);
-    const globe = 1 - easeBetween(progress, 0.43, 0.92);
+    const globe = 1 - easeBetween(progress, 0.43, COMPACT_FADE_END);
     const sky = 1 - easeBetween(progress, 0.04, 0.28);
     const copy = 1 - easeBetween(progress, 0.07, 0.31);
     const entry = easeBetween(progress, 0.41, 0.61);
     setPresence({ globe, sky, copy, entry });
     setStyle(hero, "--hero-backdrop-presence", (1 - easeBetween(progress, 0.26, 0.61)).toFixed(3));
     const descending = progress > 0.025;
-    if (descending !== earth.hasAttribute("data-descent")) earth.toggleAttribute("data-descent", descending);
+    if (descending !== earth.hasAttribute("data-descent")) {
+      earth.toggleAttribute("data-descent", descending);
+      earth.toggleAttribute("inert", descending);
+    }
     // The poster uses the same focal point if WebGL is unavailable.
     if (earth.querySelector(".pf-hero-earth-poster-view")) setStyle(earth, "--hero-earth-zoom", zoom.toFixed(3));
 
@@ -124,6 +130,7 @@ export function bindHomeDescent(hero, onViewChange) {
     const copy = 1 - easeBetween(progress, 0.06, 0.28);
     const entry = easeBetween(progress, 0.54, 0.80);
     setPresence({ globe, sky, copy, entry });
+    setStyle(earth, "--hero-earth-visibility", globe > 0 ? "visible" : "hidden");
     setStyle(earth, "--hero-earth-zoom", zoom);
     setStyle(earth, "--hero-earth-edge", edge.toFixed(3));
     setStyle(earth, "--hero-earth-bottom-clip", edge > 0 ? "0px" : "var(--hero-exit-clearance)");
@@ -135,7 +142,7 @@ export function bindHomeDescent(hero, onViewChange) {
   function paint(now) {
     frame = 0;
     if (reducedMotion.matches) return;
-    const progress = clamp((window.scrollY - startY) / distance);
+    const progress = Math.min(compact ? COMPACT_FADE_END : 1, clamp((window.scrollY - startY) / distance));
     if (progress === previousProgress && terrainFadeStart === null) return;
     const revealBlend = compact || !touch.matches ? 1 : !terrainReady ? 0
       : terrainFadeStart === null ? 1 : easeBetween(now - terrainFadeStart, 0, 180);
@@ -152,7 +159,26 @@ export function bindHomeDescent(hero, onViewChange) {
     if (!frame && !reducedMotion.matches) frame = requestAnimationFrame(paint);
   }
 
+  function onScroll() {
+    if (compact && (
+      (previousProgress === 0 && window.scrollY <= startY) ||
+      (previousProgress === COMPACT_FADE_END && window.scrollY >= startY + distance * COMPACT_FADE_END)
+    )) return;
+    schedulePaint();
+  }
+
+  function onViewportResize() {
+    if (reducedMotion.matches) return;
+    if (!compact) { measure(); return; }
+    // The address bar moves the visual viewport during a swipe. The hero's
+    // ResizeObserver still handles real size changes as soon as they happen.
+    clearTimeout(viewportTimer);
+    viewportTimer = window.setTimeout(measure, VIEWPORT_SETTLE_MS);
+  }
+
   function measure() {
+    clearTimeout(viewportTimer);
+    viewportTimer = 0;
     if (reducedMotion.matches) {
       clearStyles();
       compact = undefined;
@@ -163,6 +189,9 @@ export function bindHomeDescent(hero, onViewChange) {
       compact = compactLayout.matches;
       home.toggleAttribute("data-compact-descent", compact);
     }
+    const previousStart = startY;
+    const previousDistance = distance;
+    const previousLead = compactLead;
     const height = hero.clientHeight;
     startY = Math.max(0, track.getBoundingClientRect().top + window.scrollY);
     if (compact) {
@@ -184,6 +213,8 @@ export function bindHomeDescent(hero, onViewChange) {
       setStyle(track, "--hero-descent-hold", `${distance * 0.535}px`);
       setStyle(coverage, "--coverage-descent-overlap", `${height - viewport * 0.08}px`);
     }
+    if (compact && previousProgress !== undefined && startY === previousStart &&
+      distance === previousDistance && compactLead === previousLead) return;
     previousProgress = undefined;
     prepareTerrain();
     schedulePaint();
@@ -191,8 +222,8 @@ export function bindHomeDescent(hero, onViewChange) {
 
   const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
   observer?.observe(hero);
-  window.addEventListener("scroll", schedulePaint, { passive: true });
-  window.addEventListener("resize", measure);
+  window.addEventListener("scroll", onScroll, { passive: true });
+  window.addEventListener("resize", onViewportResize);
   coverage.addEventListener("load", prepareTerrain, true);
   compactLayout.addEventListener("change", measure);
   reducedMotion.addEventListener("change", measure);
@@ -201,9 +232,10 @@ export function bindHomeDescent(hero, onViewChange) {
   return () => {
     disposed = true;
     if (frame) cancelAnimationFrame(frame);
+    clearTimeout(viewportTimer);
     observer?.disconnect();
-    window.removeEventListener("scroll", schedulePaint);
-    window.removeEventListener("resize", measure);
+    window.removeEventListener("scroll", onScroll);
+    window.removeEventListener("resize", onViewportResize);
     coverage.removeEventListener("load", prepareTerrain, true);
     compactLayout.removeEventListener("change", measure);
     reducedMotion.removeEventListener("change", measure);

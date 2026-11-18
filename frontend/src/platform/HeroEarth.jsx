@@ -24,7 +24,7 @@ export default function HeroEarth({ landing }) {
     let view = { zoom: 1, alignment: 0, visible: true, clipTop: 0 };
     const applyView = (instance, scrollFrameTime) => {
       instance.setSuspended(!view.visible);
-      instance.setDescentView(view.zoom, view.alignment, scrollFrameTime, view.clipTop);
+      if (view.visible) instance.setDescentView(view.zoom, view.alignment, scrollFrameTime, view.clipTop);
     };
     const hero = element.closest(".pf-hero");
     const stopDescent = hero && bindHomeDescent(hero, (zoom, alignment, visible, scrollFrameTime, clipTop = 0) => {
