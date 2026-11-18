@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { vertex, surfaceFragment, cloudFragment, atmosphereFragment } from './shaders';
+import { vertex, surfaceFragment, compactSurfaceFragment, cloudFragment, atmosphereFragment } from './shaders';
 
 export type EarthHeroState = {
   finish: 'reference' | 'satellite';
@@ -47,12 +47,16 @@ function detailBounds(region: DescentTarget['region']) {
 
 /** A complete globe with a fixed, cropped hero camera. No DOM work at import time. */
 export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {}) {
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
+  const compact = options.quality === 'low' || (options.quality !== 'high' && host.clientWidth < 700);
+  const authored = options.textureSet !== 'original';
+  const compactSurface = compact && authored && options.loadReference === false;
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !compactSurface, powerPreference: 'low-power' });
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   const canvas = renderer.domElement;
   canvas.className = 'earth-hero__canvas';
+  if (compactSurface) canvas.dataset.renderer = 'compact';
   canvas.tabIndex = 0;
   canvas.setAttribute('role', 'group');
   canvas.setAttribute('aria-roledescription', 'interactive globe');
@@ -87,6 +91,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   let frame = 0;
   let frames = 0;
   let previousTime = 0;
+  let lastDraw = -Infinity;
   let longitude = THREE.MathUtils.degToRad(options.descentFocus === undefined ? 170 : 18);
   let pitch = THREE.MathUtils.degToRad(options.descentFocus === undefined ? -29 : 0);
   let cloudSpin = 0;
@@ -98,9 +103,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   const initialPitch = pitch;
   const textures: THREE.Texture[] = [];
   const materials: THREE.ShaderMaterial[] = [];
-  const compact = options.quality === 'low' || (options.quality !== 'high' && host.clientWidth < 700);
   const width = compact ? 2048 : 4096;
-  const authored = options.textureSet !== 'original';
   const geometry = new THREE.SphereGeometry(1, compact ? 96 : 160, compact ? 64 : 96);
   const terrainGeometry = authored ? new THREE.SphereGeometry(1, compact ? 192 : 512, compact ? 96 : 256) : geometry;
   const reliefScale = authored ? 0.009 : 0;
@@ -122,6 +125,10 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   function render(now: number) {
     frame = 0;
     if (!canRender()) { previousTime = 0; return; }
+    // Camera inputs coalesce while the phone scrolls. An active drag still
+    // gets a frame on each refresh for direct feedback.
+    if (compactSurface && !state.dragging && now - lastDraw < 30) { invalidate(); return; }
+    lastDraw = now;
     const dt = previousTime ? Math.min((now - previousTime) / 1000, 0.05) : 0;
     previousTime = now;
     const descentActive = camera.zoom > 1 || descentAlignment > 0;
@@ -206,6 +213,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     // extra shading as Earth fills the viewport during the descent.
     renderer.setPixelRatio(Math.min(devicePixelRatio || 1, compact ? 1 : 1.5));
     renderer.setSize(width, height);
+    if (surface) surface.uniforms.uFrameHeight.value = canvas.height;
     invalidate();
   }
 
@@ -331,11 +339,15 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     { key: 'water', file: 'world-v2/water', resolution: width },
     { key: 'normal', file: 'world-v2/normal', resolution: width },
     { key: 'height', file: 'relief/height', resolution: width },
-    { key: 'roughness', file: 'world-v2/roughness', resolution: artWidth },
     { key: 'detail', file: 'world-v2/detail', resolution: width },
     { key: 'cloudDetail', file: 'world-v2/cloud-detail', resolution: width },
-    { key: 'lightDetail', file: 'world-v2/light-detail', resolution: width },
   ] : ['day', 'night', 'clouds', 'water'].map(key => ({ key, file: key, resolution: width }));
+  if (authored && !compactSurface) {
+    layers.push(
+      { key: 'roughness', file: 'world-v2/roughness', resolution: artWidth },
+      { key: 'lightDetail', file: 'world-v2/light-detail', resolution: width },
+    );
+  }
   if (options.loadReference !== false) layers.push({ key: 'reference', file: 'reference', resolution: 1775 });
   const loader = new THREE.TextureLoader();
   let landDetail: THREE.Texture | undefined;
@@ -377,6 +389,9 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     invalidate();
   }
 
+  // Warm the first region with the mobile globe so the descent does not
+  // have to upload a new map just as the visitor starts scrolling.
+  if (compactSurface) loadLandDetail();
   const ready = (async () => {
     const results = await Promise.allSettled(layers.map(async ({ key, file, resolution }) => {
       const texture = await loader.loadAsync(key === 'reference' ? `${base}/reference.png` : `${base}/${file}-${resolution}.webp`);
@@ -409,7 +424,8 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       uReferenceRotation: { value: new THREE.Matrix3().setFromMatrix4(rotation) },
     });
     surface = new THREE.ShaderMaterial({
-      vertexShader: vertex, fragmentShader: surfaceFragment,
+      vertexShader: vertex, fragmentShader: compactSurface ? compactSurfaceFragment : surfaceFragment,
+      transparent: compactSurface,
       defines: { TERRAIN: 1 },
       uniforms: {
         ...referenceUniforms(),
@@ -419,34 +435,39 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
         uLandingDetail: { value: landDetail || maps.detail || day },
         uLandingBounds: { value: descentTarget ? detailBounds(descentTarget.region) : new THREE.Vector4() },
         uLandingClarity: { value: 0 }, uLandingDetailStrength: { value: 0 },
+        uCloudDetail: { value: maps.cloudDetail || cloud }, uFrameHeight: { value: canvas.height },
         uHeight: { value: maps.height || water }, uReliefScale: { value: reliefScale },
         uDetailMipOffset: { value: Math.log2(width / 4096) },
         uArtDirected: { value: authored ? 1 : 0 }, uTexel: { value: new THREE.Vector2(1 / width, 2 / width) },
         uSun: { value: sun }, uCloudOffset: { value: 0 }, uLights: { value: authored ? 1.0 : 1.15 },
       },
     });
-    cloudMaterial = new THREE.ShaderMaterial({
-      vertexShader: vertex, fragmentShader: cloudFragment,
-      transparent: true, depthWrite: false,
-      uniforms: { ...referenceUniforms(), uClouds: { value: cloud }, uCloudDetail: { value: maps.cloudDetail || cloud },
-        uLandingClarity: { value: 0 },
-        uArtDirected: { value: authored ? 1 : 0 }, uDetailMipOffset: { value: Math.log2(width / 4096) }, uSun: { value: sun } },
-    });
-    const atmosphereMaterial = new THREE.ShaderMaterial({
-      vertexShader: vertex, fragmentShader: atmosphereFragment,
-      transparent: true, side: THREE.BackSide, depthWrite: false,
-      uniforms: { uCenter: { value: position.position }, uReferenceFinish: { value: state.finish === 'reference' ? 1 : 0 },
-        uArtDirected: { value: authored ? 1 : 0 } },
-    });
-    materials.push(surface, cloudMaterial, atmosphereMaterial);
+    materials.push(surface);
     const globe = new THREE.Mesh(terrainGeometry, surface);
     globe.name = 'Earth surface';
-    clouds = new THREE.Mesh(geometry, cloudMaterial);
-    clouds.name = 'Independent cloud shell'; clouds.scale.setScalar(authored ? 1.013 : 1.004); clouds.renderOrder = 2;
-    const atmosphere = new THREE.Mesh(geometry, atmosphereMaterial);
-    atmosphere.name = 'Horizon atmosphere'; atmosphere.scale.setScalar(1.08); atmosphere.renderOrder = 1;
-    earth.add(globe, clouds);
-    position.add(atmosphere);
+    earth.add(globe);
+    if (!compactSurface) {
+      cloudMaterial = new THREE.ShaderMaterial({
+        vertexShader: vertex, fragmentShader: cloudFragment,
+        transparent: true, depthWrite: false,
+        uniforms: { ...referenceUniforms(), uClouds: { value: cloud }, uCloudDetail: { value: maps.cloudDetail || cloud },
+          uLandingClarity: { value: 0 },
+          uArtDirected: { value: authored ? 1 : 0 }, uDetailMipOffset: { value: Math.log2(width / 4096) }, uSun: { value: sun } },
+      });
+      const atmosphereMaterial = new THREE.ShaderMaterial({
+        vertexShader: vertex, fragmentShader: atmosphereFragment,
+        transparent: true, side: THREE.BackSide, depthWrite: false,
+        uniforms: { uCenter: { value: position.position }, uReferenceFinish: { value: state.finish === 'reference' ? 1 : 0 },
+          uArtDirected: { value: authored ? 1 : 0 } },
+      });
+      materials.push(cloudMaterial, atmosphereMaterial);
+      clouds = new THREE.Mesh(geometry, cloudMaterial);
+      clouds.name = 'Independent cloud shell'; clouds.scale.setScalar(authored ? 1.013 : 1.004); clouds.renderOrder = 2;
+      const atmosphere = new THREE.Mesh(geometry, atmosphereMaterial);
+      atmosphere.name = 'Horizon atmosphere'; atmosphere.scale.setScalar(1.08); atmosphere.renderOrder = 1;
+      earth.add(clouds);
+      position.add(atmosphere);
+    }
     texturesReady = true;
     lastInteraction = performance.now();
     invalidate();
@@ -476,7 +497,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
 
   return {
     ready, dispose, reset, setAutoRotate, setFinish, setDescentTarget,
-    setDescentView(zoom: number, alignment: number, now?: number) {
+    setDescentView(zoom: number, alignment: number) {
       if (camera.zoom === zoom && descentAlignment === alignment) return;
       const wasDescending = camera.zoom > 1 || descentAlignment > 0;
       const isDescending = zoom > 1 || alignment > 0;
@@ -488,12 +509,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       descentAlignment = alignment;
       if (isDescending) loadLandDetail();
       updateProjection();
-      if (now !== undefined && canRender()) {
-        // Scroll already scheduled this frame. Draw the camera update before
-        // paint so it stays in sync with the DOM fades.
-        if (frame) cancelAnimationFrame(frame);
-        render(now);
-      } else invalidate();
+      invalidate();
     },
     getState: () => ({ ...state }),
     setSuspended(value: boolean) {

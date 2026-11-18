@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { loadImage } from "../services/imageCache.js";
 import desktopArt from "./coverage-desktop-art.js";
+import { COMPACT_DESCENT_QUERY } from "./earth/home-descent.js";
 import crops from "./media/coverage/crops.webp";
 import cropsCompact from "./media/coverage/crops-810.webp";
 import cropsWireframe from "./media/coverage/crops-wireframe.webp";
@@ -233,7 +234,8 @@ function flightDirection(from, to) {
 
 function CoveragePhoto({ topic, art, phase, onAnimationEnd }) {
   const touch = window.matchMedia?.("(any-pointer: coarse)")?.matches;
-  const loading = phase === "fading" || touch ? "eager" : "lazy";
+  const compact = window.matchMedia?.(COMPACT_DESCENT_QUERY)?.matches;
+  const loading = phase === "fading" || (touch && !compact) ? "eager" : "lazy";
 
   return (
     <img className="pf-coverage-photo" data-topic={topic.id} data-phase={phase}

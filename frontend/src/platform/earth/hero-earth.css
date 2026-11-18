@@ -42,30 +42,15 @@
     var(--earth-center-x) calc(var(--earth-center-y) * var(--earth-zoom) + var(--earth-focus, 82%) * (1 - var(--earth-zoom)))
   );
 }
-.pf-home[data-compact-descent] .pf-hero-earth-visual {
-  overflow: clip;
+.pf-home[data-compact-descent] .pf-hero-earth-visual:has(.earth-hero__canvas[data-renderer="compact"]) {
   clip-path: none;
   mask-image: none;
 }
-.pf-home[data-compact-descent] .pf-hero-earth-visual::after {
-  /* Lift the opening fade with a composited overlay during the approach. */
-  content: "";
-  position: absolute;
-  inset: auto 0 0;
-  height: var(--hero-earth-fade);
-  background: linear-gradient(to bottom, transparent, var(--pf-canvas) calc(100% - var(--hero-exit-clearance)));
-  opacity: var(--hero-bottom-fade, 1);
-  pointer-events: none;
-}
 .pf-hero-earth[data-descent] .pf-hero-earth-mount {
-  /* The opening hit area stays fixed until the canvas starts scaling. */
+  /* The hit area is only needed when the opening globe is draggable. */
   clip-path: none;
 }
-.pf-hero-earth[data-descent] .earth-hero__canvas {
-  pointer-events: none;
-  transform: scale(var(--hero-canvas-scale, 1));
-  transform-origin: center var(--earth-focus, 82%);
-}
+.pf-hero-earth[data-descent] .earth-hero__canvas { pointer-events: none; }
 .pf-hero-earth .earth-hero__canvas {
   display: block;
   pointer-events: auto;

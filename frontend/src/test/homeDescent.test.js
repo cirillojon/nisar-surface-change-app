@@ -42,53 +42,40 @@ function mountDescent(decode = () => Promise.resolve()) {
   return { scroll, view, coverage, track, reducedMotion };
 }
 
-it("holds the globe through the approach and keeps zooming with a settled camera", async () => {
+it("brings the heading over a moving globe without a full-screen terrain reveal", () => {
   const { scroll, view, coverage, track } = mountDescent();
-  await Promise.resolve();
   scroll(340);
-  expect(view.mock.lastCall.slice(0, 3)).toEqual([1, expect.any(Number), true]);
-  expect(parseFloat(track.style.getPropertyValue("--hero-descent-hold"))).toBeGreaterThan(500);
-  expect(Number(coverage.style.getPropertyValue("--coverage-terrain-opacity"))).toBe(0);
+  const earlierZoom = view.mock.lastCall[0];
+  expect(view.mock.lastCall[2]).toBe(true);
+  expect(parseFloat(coverage.style.getPropertyValue("--coverage-heading-overlap"))).toBeGreaterThan(0);
 
   const earth = track.querySelector(".pf-hero-earth");
   scroll(515);
-  const settledView = view.mock.lastCall.slice(0, 3);
-  const canvasScale = Number(earth.style.getPropertyValue("--hero-canvas-scale"));
-  expect(settledView[0]).toBeGreaterThan(1);
-  expect(settledView.slice(1)).toEqual([1, true]);
+  expect(view.mock.lastCall[0]).toBeGreaterThan(earlierZoom);
+  expect(Number(coverage.style.getPropertyValue("--coverage-entry"))).toBeGreaterThan(0);
+  expect(view.mock.lastCall[2]).toBe(true);
   scroll(650);
-  expect(view.mock.lastCall.slice(0, 3)).toEqual(settledView);
-  expect(Number(earth.style.getPropertyValue("--hero-canvas-scale"))).toBeGreaterThan(canvasScale);
-  expect(Number(coverage.style.getPropertyValue("--coverage-terrain-opacity"))).toBeGreaterThan(0.9);
+  expect(Number(earth.style.getPropertyValue("--hero-earth-presence"))).toBeLessThan(1);
+  expect(coverage.style.getPropertyValue("--coverage-terrain-opacity")).toBe("");
 
   scroll(900);
-  const scale = Number(coverage.style.getPropertyValue("--coverage-descent-scale"));
   expect(view.mock.lastCall[2]).toBe(false);
   expect(Number(coverage.style.getPropertyValue("--coverage-entry"))).toBe(1);
-  scroll(955);
-  expect(Number(coverage.style.getPropertyValue("--coverage-descent-scale"))).toBeGreaterThan(scale);
 
   scroll(0);
   expect(view.mock.lastCall.slice(0, 3)).toEqual([1, 0, true]);
 });
 
-it("lets visitors reach the topics when the photo is late and clears the effect for reduced motion", async () => {
-  let finishDecode;
-  const pendingPhoto = new Promise((resolve) => { finishDecode = resolve; });
-  const { scroll, view, coverage, reducedMotion } = mountDescent(() => pendingPhoto);
-  scroll(1050);
-  expect(view.mock.lastCall[2]).toBe(false);
+it("reveals the topics independently of the photo and clears the effect for reduced motion", () => {
+  const decode = vi.fn(() => new Promise(() => {}));
+  const { scroll, view, coverage, reducedMotion } = mountDescent(decode);
+  scroll(650);
+  expect(decode).not.toHaveBeenCalled();
   expect(Number(coverage.style.getPropertyValue("--coverage-entry"))).toBe(1);
-  expect(Number(coverage.style.getPropertyValue("--coverage-terrain-opacity"))).toBe(0);
-
-  finishDecode();
-  await pendingPhoto;
-  vi.advanceTimersByTime(220);
-  expect(Number(coverage.style.getPropertyValue("--coverage-terrain-opacity"))).toBe(1);
 
   reducedMotion.matches = true;
   reducedMotion.dispatchEvent(new Event("change"));
-  expect(coverage.style.getPropertyValue("--coverage-terrain-opacity")).toBe("");
+  expect(coverage.style.getPropertyValue("--coverage-heading-overlap")).toBe("");
   expect(coverage.closest(".pf-home")).not.toHaveAttribute("data-compact-descent");
   expect(view.mock.lastCall).toEqual([1, 0, true]);
 });

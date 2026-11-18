@@ -27,8 +27,6 @@ export function bindHomeDescent(hero, onViewChange) {
   let decoding = false;
   let disposed = false;
   let terrainFadeStart = null;
-  let steeredAt = -Infinity;
-  let renderedAlignment = 0;
 
   function setStyle(element, property, value) {
     const cssValue = String(value);
@@ -46,13 +44,11 @@ export function bindHomeDescent(hero, onViewChange) {
     delete home.dataset.compactDescent;
     delete earth.dataset.descent;
     previousProgress = undefined;
-    renderedAlignment = 0;
-    steeredAt = -Infinity;
     onViewChange(1, 0, true);
   }
 
   function prepareTerrain() {
-    if ((!compact && !touch.matches) || terrainReady || decoding || reducedMotion.matches) return;
+    if (compact || !touch.matches || terrainReady || decoding || reducedMotion.matches) return;
     const photo = coverage.querySelector(".pf-coverage-photo");
     if (!photo?.complete || !photo.naturalWidth) return;
     const source = photo.src;
@@ -65,7 +61,7 @@ export function bindHomeDescent(hero, onViewChange) {
         return;
       }
       terrainReady = true;
-      if (previousProgress > (compact ? 0.48 : 0.455)) terrainFadeStart = performance.now();
+      if (!compact && previousProgress > 0.455) terrainFadeStart = performance.now();
       previousProgress = undefined;
       schedulePaint();
     }, () => {
@@ -74,47 +70,33 @@ export function bindHomeDescent(hero, onViewChange) {
     });
   }
 
-  function setPresence({ globe, terrain, sky, copy, entry }) {
+  function setPresence({ globe, sky, copy, entry }) {
     setStyle(earth, "--hero-earth-presence", globe.toFixed(3));
     setStyle(earth, "--hero-earth-visibility", globe > 0 ? "visible" : "hidden");
     setStyle(hero, "--hero-sky-presence", sky.toFixed(3));
     setStyle(hero, "--hero-tile-visibility", sky > 0 ? "visible" : "hidden");
     setStyle(hero, "--hero-copy-presence", copy.toFixed(3));
     setStyle(hero, "--hero-copy-pointer-events", copy > 0 ? "auto" : "none");
-    setStyle(coverage, "--coverage-terrain-opacity", terrain.toFixed(3));
     setStyle(coverage, "--coverage-entry", entry.toFixed(3));
     setStyle(coverage, "--coverage-entry-pointer-events", entry > 0 ? "auto" : "none");
   }
 
-  function paintCompact(progress, revealBlend, now) {
-    const zoom = 1 + 2.9 * easeBetween(progress, 0.03, 0.85);
-    const alignment = easeBetween(progress, 0.07, 0.46);
-    const terrain = easeBetween(progress, 0.48, 0.72) * revealBlend;
-    // A slow or failed photo load must not leave the canvas covering the section.
-    const departure = Math.max(easeBetween(progress, 0.60, 0.78) * revealBlend,
-      easeBetween(progress, 0.76, 0.99));
-    const globe = 1 - departure;
+  function paintCompact(progress) {
+    // The topic heading enters over the live globe. The illustration stays
+    // with the observation below, so there is no image swap at this boundary.
+    const zoom = 1 + 2.65 * easeBetween(progress, 0.025, 0.86);
+    const alignment = easeBetween(progress, 0.055, 0.64);
+    const globe = 1 - easeBetween(progress, 0.38, 0.88);
     const sky = 1 - easeBetween(progress, 0.04, 0.28);
     const copy = 1 - easeBetween(progress, 0.07, 0.31);
-    const entry = easeBetween(progress, 0.73, 0.94);
-    const terrainScale = 1 + 0.14 * easeBetween(progress, 0.48, 1);
-
-    // Draw the small opening globe while steering. Once aimed at the region,
-    // redraw it once at a closer framing. The canvas transform does the zoom.
-    const cameraZoom = alignment === 1 ? 2.4 : 1;
-    if (alignment === 0 || alignment === 1 || renderedAlignment === 1 || now - steeredAt >= 40) {
-      renderedAlignment = alignment;
-      steeredAt = now;
-    }
-    setPresence({ globe, terrain, sky, copy, entry });
-    setStyle(hero, "--hero-backdrop-presence", (1 - easeBetween(progress, 0.23, 0.54)).toFixed(3));
-    setStyle(coverage, "--coverage-descent-scale", terrainScale.toFixed(4));
-    setStyle(earth, "--hero-earth-zoom", zoom.toFixed(4));
-    setStyle(earth, "--hero-canvas-scale", (zoom / cameraZoom).toFixed(4));
-    setStyle(earth, "--hero-bottom-fade", (1 - easeBetween(progress, 0.06, 0.30)).toFixed(3));
-    const descending = progress > 0.03;
+    const entry = easeBetween(progress, 0.41, 0.61);
+    setPresence({ globe, sky, copy, entry });
+    setStyle(hero, "--hero-backdrop-presence", (1 - easeBetween(progress, 0.26, 0.61)).toFixed(3));
+    const descending = progress > 0.025;
     if (descending !== earth.hasAttribute("data-descent")) earth.toggleAttribute("data-descent", descending);
-    onViewChange(cameraZoom, renderedAlignment, globe > 0, now);
+    // The poster uses the same focal point if WebGL is unavailable.
+    if (earth.querySelector(".pf-hero-earth-poster-view")) setStyle(earth, "--hero-earth-zoom", zoom.toFixed(3));
+    onViewChange(zoom, alignment, globe > 0);
   }
 
   function paintWide(progress, revealBlend) {
@@ -132,10 +114,11 @@ export function bindHomeDescent(hero, onViewChange) {
     const sky = 1 - easeBetween(progress, 0.02, 0.26);
     const copy = 1 - easeBetween(progress, 0.06, 0.28);
     const entry = easeBetween(progress, 0.54, 0.80);
-    setPresence({ globe, terrain, sky, copy, entry });
+    setPresence({ globe, sky, copy, entry });
     setStyle(earth, "--hero-earth-zoom", zoom);
     setStyle(earth, "--hero-earth-edge", edge.toFixed(3));
     setStyle(earth, "--hero-earth-bottom-clip", edge > 0 ? "0px" : "var(--hero-exit-clearance)");
+    setStyle(coverage, "--coverage-terrain-opacity", terrain.toFixed(3));
     setStyle(coverage, "--coverage-reveal-position", `${(115 - 145 * reveal).toFixed(2)}svh`);
     onViewChange(zoom, alignment, globe > 0);
   }
@@ -145,13 +128,12 @@ export function bindHomeDescent(hero, onViewChange) {
     if (reducedMotion.matches) return;
     const progress = clamp((window.scrollY - startY) / distance);
     if (progress === previousProgress && terrainFadeStart === null) return;
-    const waitForTerrain = compact || touch.matches;
-    const revealBlend = !waitForTerrain ? 1 : !terrainReady ? 0
+    const revealBlend = compact || !touch.matches ? 1 : !terrainReady ? 0
       : terrainFadeStart === null ? 1 : easeBetween(now - terrainFadeStart, 0, 180);
     if (revealBlend === 1) terrainFadeStart = null;
     previousProgress = progress;
 
-    if (compact) paintCompact(progress, revealBlend, now);
+    if (compact) paintCompact(progress);
     else paintWide(progress, revealBlend);
     if (terrainFadeStart !== null) schedulePaint();
   }
@@ -175,16 +157,14 @@ export function bindHomeDescent(hero, onViewChange) {
     startY = Math.max(0, track.getBoundingClientRect().top + window.scrollY);
     if (compact) {
       // Tall heroes can scroll until their bottom reaches the small viewport.
-      // Only then hold the globe long enough to blend over the whole screen.
+      // The heading can then enter over the globe before it scrolls away.
       setStyle(hero, "--hero-frame-height", `${height}px`);
       const lead = Math.max(0, -(parseFloat(getComputedStyle(hero).top) || 0));
       startY += lead;
-      distance = Math.max(600, Math.min(1080, (height - lead) * 1.12));
-      const hold = distance * 0.72;
-      setStyle(track, "--hero-descent-hold", `${hold}px`);
-      // Keep the photo's top fade above the viewport when the blend begins.
-      const photoTop = lead + distance * 0.44 - 128;
-      setStyle(coverage, "--coverage-descent-overlap", `${height + hold - photoTop}px`);
+      const viewport = height - lead;
+      distance = Math.max(520, Math.min(1040, viewport * 1.06));
+      setStyle(track, "--hero-descent-hold", `${distance * 0.45}px`);
+      setStyle(coverage, "--coverage-heading-overlap", `${Math.min(340, viewport * 0.37)}px`);
     } else {
       const viewport = Math.min(window.innerHeight, height);
       const landscapeTouch = touch.matches && window.innerWidth > window.innerHeight;
