@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mountDescent(decode = () => Promise.resolve()) {
+function mountDescent(decode = () => Promise.resolve(), { height = 844, stickyTop = 0 } = {}) {
   vi.useFakeTimers();
   vi.stubGlobal("scrollY", 0);
   const reducedMotion = Object.assign(new EventTarget(), { matches: false });
@@ -28,7 +28,8 @@ function mountDescent(decode = () => Promise.resolve()) {
   const coverage = document.querySelector(".pf-home-coverage");
   const photo = coverage.querySelector("img");
   track.getBoundingClientRect = () => ({ top: -window.scrollY });
-  Object.defineProperty(hero, "clientHeight", { value: 844 });
+  Object.defineProperty(hero, "clientHeight", { value: height });
+  hero.style.top = `${stickyTop}px`;
   Object.defineProperty(photo, "naturalWidth", { value: 1086 });
   photo.decode = decode;
   const view = vi.fn();
@@ -79,4 +80,18 @@ it("reveals the topics independently of the photo and clears the effect for redu
   expect(coverage.style.getPropertyValue("--coverage-heading-overlap")).toBe("");
   expect(coverage.closest(".pf-home")).not.toHaveAttribute("data-compact-descent");
   expect(view.mock.lastCall).toEqual([1, 0, true]);
+});
+
+it("clips the offscreen part of the canvas and leaves room for a fast return scroll", () => {
+  const { scroll, view } = mountDescent(undefined, { height: 841, stickyTop: -105 });
+  scroll(105);
+  expect(view.mock.lastCall[4]).toBe(0);
+
+  scroll(596);
+  expect(view.mock.lastCall[4]).toBe(0);
+  scroll(611);
+  expect(view.mock.lastCall[4]).toBe(180);
+
+  scroll(420);
+  expect(view.mock.lastCall[4]).toBe(0);
 });

@@ -1,6 +1,8 @@
 const clamp = (value) => Math.max(0, Math.min(1, value));
 
 export const COMPACT_DESCENT_QUERY = "(max-width: 780px), (max-width: 959px) and (max-height: 540px)";
+const COMPACT_HOLD_FRACTION = 0.47;
+const SCROLL_OVERSCAN = 64;
 
 function easeBetween(progress, start, end) {
   const t = clamp((progress - start) / (end - start));
@@ -21,6 +23,7 @@ export function bindHomeDescent(hero, onViewChange) {
   let frame = 0;
   let previousProgress;
   let compact;
+  let compactLead = 0;
   let startY = 0;
   let distance = 1;
   let terrainReady = false;
@@ -81,7 +84,7 @@ export function bindHomeDescent(hero, onViewChange) {
     setStyle(coverage, "--coverage-entry-pointer-events", entry > 0 ? "auto" : "none");
   }
 
-  function paintCompact(progress, now) {
+  function paintCompact(progress, now, scrollStep) {
     // The topic heading enters over the live globe. The illustration stays
     // with the observation below, so there is no image swap at this boundary.
     const zoom = 1 + 2.65 * easeBetween(progress, 0.055, 0.93);
@@ -96,7 +99,13 @@ export function bindHomeDescent(hero, onViewChange) {
     if (descending !== earth.hasAttribute("data-descent")) earth.toggleAttribute("data-descent", descending);
     // The poster uses the same focal point if WebGL is unavailable.
     if (earth.querySelector(".pf-hero-earth-poster-view")) setStyle(earth, "--hero-earth-zoom", zoom.toFixed(3));
-    onViewChange(zoom, alignment, globe > 0, now);
+
+    // The sticky canvas rests at -compactLead, then scrolls out of view. Keep
+    // a margin drawn above the viewport for native scrolling between frames.
+    const hiddenTop = compactLead + Math.max(0, (progress - COMPACT_HOLD_FRACTION) * distance);
+    const overscan = Math.max(SCROLL_OVERSCAN, scrollStep * 2);
+    const clipTop = descending ? Math.floor(Math.max(0, hiddenTop - overscan)) : 0;
+    onViewChange(zoom, alignment, globe > 0, now, clipTop);
   }
 
   function paintWide(progress, revealBlend) {
@@ -131,9 +140,10 @@ export function bindHomeDescent(hero, onViewChange) {
     const revealBlend = compact || !touch.matches ? 1 : !terrainReady ? 0
       : terrainFadeStart === null ? 1 : easeBetween(now - terrainFadeStart, 0, 180);
     if (revealBlend === 1) terrainFadeStart = null;
+    const scrollStep = Math.abs(progress - (previousProgress ?? progress)) * distance;
     previousProgress = progress;
 
-    if (compact) paintCompact(progress, now);
+    if (compact) paintCompact(progress, now, scrollStep);
     else paintWide(progress, revealBlend);
     if (terrainFadeStart !== null) schedulePaint();
   }
@@ -159,11 +169,11 @@ export function bindHomeDescent(hero, onViewChange) {
       // Tall heroes can scroll until their bottom reaches the small viewport.
       // The heading can then enter over the globe before it scrolls away.
       setStyle(hero, "--hero-frame-height", `${height}px`);
-      const lead = Math.max(0, -(parseFloat(getComputedStyle(hero).top) || 0));
-      startY += lead;
-      const viewport = height - lead;
+      compactLead = Math.max(0, -(parseFloat(getComputedStyle(hero).top) || 0));
+      startY += compactLead;
+      const viewport = height - compactLead;
       distance = Math.max(520, Math.min(1040, viewport * 1.06));
-      setStyle(track, "--hero-descent-hold", `${distance * 0.47}px`);
+      setStyle(track, "--hero-descent-hold", `${distance * COMPACT_HOLD_FRACTION}px`);
       setStyle(coverage, "--coverage-heading-overlap", `${Math.min(340, viewport * 0.37)}px`);
     } else {
       const viewport = Math.min(window.innerHeight, height);

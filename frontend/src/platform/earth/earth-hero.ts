@@ -79,6 +79,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   let suspended = false;
   let descentFocusY = 0;
   let descentAlignment = 0;
+  let clippedTop = 0;
   let framedLatitude = 0;
   let descentTarget = options.descentTarget;
   let texturesReady = false;
@@ -96,6 +97,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   const initialPitch = pitch;
   const textures: THREE.Texture[] = [];
   const materials: THREE.ShaderMaterial[] = [];
+  const renderSize = new THREE.Vector2();
   const width = compact ? 2048 : 4096;
   const geometry = new THREE.SphereGeometry(1, compact ? 96 : 160, compact ? 64 : 96);
   const terrainGeometry = authored ? new THREE.SphereGeometry(1, compact ? 192 : 512, compact ? 96 : 256) : geometry;
@@ -178,6 +180,14 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     camera.updateProjectionMatrix();
   }
 
+  function updateScissor() {
+    if (!compactSurface) return;
+    renderer.getSize(renderSize);
+    // WebGL's scissor starts at the bottom, so cutting the top reduces height.
+    renderer.setScissor(0, 0, renderSize.x, Math.max(0, renderSize.y - clippedTop));
+    renderer.setScissorTest(clippedTop > 0);
+  }
+
   function resize() {
     const width = host.clientWidth;
     const height = host.clientHeight;
@@ -200,6 +210,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     framedLatitude = Math.asin(THREE.MathUtils.clamp(closeUpY - position.position.y, -0.98, 0.98));
     const pixelRatio = Math.min(devicePixelRatio || 1, compact ? 1.25 : 1.5);
     renderer.setDrawingBufferSize(width, height, pixelRatio);
+    updateScissor();
     if (surface) surface.uniforms.uFrameHeight.value = canvas.height;
     invalidate();
   }
@@ -296,7 +307,12 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     host.dataset.context = 'lost'; delete host.dataset.ready;
     emit(); visibility();
   }
-  function restored() { state.contextLost = false; delete host.dataset.context; visibility(); }
+  function restored() {
+    state.contextLost = false;
+    delete host.dataset.context;
+    updateScissor();
+    visibility();
+  }
   canvas.addEventListener('pointerdown', down);
   canvas.addEventListener('pointermove', move);
   canvas.addEventListener('pointerup', up);
@@ -487,8 +503,9 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
 
   return {
     ready, dispose, reset, setAutoRotate, setFinish, setDescentTarget,
-    setDescentView(zoom: number, alignment: number, scrollFrameTime?: number) {
-      if (camera.zoom === zoom && descentAlignment === alignment) return;
+    setDescentView(zoom: number, alignment: number, scrollFrameTime?: number, clipTop = 0) {
+      const clipChanged = clipTop !== clippedTop;
+      if (camera.zoom === zoom && descentAlignment === alignment && !clipChanged) return;
       const wasDescending = camera.zoom > 1 || descentAlignment > 0;
       const isDescending = zoom > 1 || alignment > 0;
       if (wasDescending !== isDescending) {
@@ -497,6 +514,10 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       }
       camera.zoom = zoom;
       descentAlignment = alignment;
+      if (clipChanged) {
+        clippedTop = clipTop;
+        updateScissor();
+      }
       if (isDescending) loadLandDetail();
       updateProjection();
       // Scroll has its own animation callback. Draw its camera and CSS fades
