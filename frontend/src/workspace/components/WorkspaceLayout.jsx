@@ -204,6 +204,7 @@ function WorkspaceDock({ ws }) {
       onOpacityChange={ui.setOverlayOpacity}
       colourLegend={data.backscatterLegend}
       land={land}
+      comparison={v.landSite ? sel.comparison : images.comparison}
       landKey={v.tourPlace ? `tour-${v.aoi.imagery}` : v.landSite?.slug}
       onLandLayerChange={sel.setLandLayer}
       onLandShiftChange={sel.setLandShift}

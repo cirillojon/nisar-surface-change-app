@@ -1,0 +1,82 @@
+.pf-hero-earth,
+.pf-hero-earth-visual,
+.pf-hero-earth-mount,
+.pf-hero-earth-poster-view,
+.pf-hero-earth .earth-hero__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.pf-hero-earth {
+  z-index: 2;
+  pointer-events: none;
+  opacity: var(--hero-earth-presence, 1);
+  visibility: var(--hero-earth-visibility, visible);
+}
+.pf-hero-earth-visual {
+  --hero-earth-fade: clamp(128px, 16vw, 236px);
+  --earth-edge: var(--hero-earth-edge, 0);
+  opacity: 0;
+  /* Keep the transparent exit outside the canvas reveal. */
+  clip-path: inset(0 0 var(--hero-earth-bottom-clip, var(--hero-exit-clearance)));
+  mask-image: linear-gradient(to bottom,
+    black calc(100% - var(--hero-earth-fade)),
+    rgb(0 0 0 / calc(.73 + .27 * var(--earth-edge))) calc(100% - var(--hero-earth-fade) * .65),
+    rgb(0 0 0 / calc(.2 + .8 * var(--earth-edge))) calc(100% - var(--hero-earth-fade) * .32),
+    rgb(0 0 0 / var(--earth-edge)) calc(100% - var(--hero-exit-clearance)));
+}
+.pf-hero-earth-visual:has(.pf-hero-earth-mount[data-ready="true"], .pf-hero-earth-poster-view) {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .pf-hero-earth-visual:has(.pf-hero-earth-mount[data-ready="true"]) {
+    transition: opacity 380ms ease-out;
+  }
+}
+.pf-hero-earth-mount {
+  --earth-zoom: var(--hero-earth-zoom, 1);
+  /* The transparent sky still belongs to the draggable radar field. */
+  clip-path: circle(
+    calc((var(--earth-radius) * 1.009 + 16px) * var(--earth-zoom)) at
+    var(--earth-center-x) calc(var(--earth-center-y) * var(--earth-zoom) + var(--earth-focus, 82%) * (1 - var(--earth-zoom)))
+  );
+}
+.pf-hero-earth .earth-hero__canvas {
+  display: block;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: pan-y;
+}
+.pf-hero-earth-mount:not([data-ready="true"]) .earth-hero__canvas { visibility: hidden; }
+.pf-hero-earth .earth-hero__canvas[data-dragging="true"] { cursor: grabbing; }
+.pf-hero-earth .earth-hero__canvas:focus-visible {
+  outline: 2px solid var(--pf-brand);
+  outline-offset: -5px;
+}
+.pf-hero-earth-poster-view {
+  transform: scale(var(--earth-zoom));
+  transform-origin: center var(--earth-focus, 82%);
+}
+.pf-hero-earth-poster {
+  position: absolute;
+  width: calc(var(--earth-radius) / 0.568);
+  max-width: none;
+  height: auto;
+  left: calc(var(--earth-center-x) - var(--earth-radius) / 1.136);
+  top: calc(var(--earth-center-y) - var(--earth-radius) * 1.322);
+}
+.pf-hero-earth-status {
+  position: absolute;
+  bottom: calc(var(--hero-exit-clearance) + 18px);
+  right: var(--home-gutter);
+  display: flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 6px 12px;
+  border: 1px solid var(--pf-line);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--pf-surface) 88%, transparent);
+  color: var(--pf-muted);
+  font-size: 11px;
+}

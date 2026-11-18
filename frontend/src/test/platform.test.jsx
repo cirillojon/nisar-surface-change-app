@@ -80,6 +80,28 @@ describe("<TopBar />", () => {
     expect(screen.getByRole("link", { name: "Home" })).toHaveAttribute("href", "/");
     expect(screen.getByRole("link", { name: "Home" })).not.toHaveClass("is-active");
   });
+
+  it("puts landing navigation and actions in the same menu and closes it on search", () => {
+    const onSearch = vi.fn();
+    const { container } = render(
+      <MemoryRouter>
+        <AssistantProvider>
+          <TopBar inWorkspace={false} onSearch={onSearch} />
+        </AssistantProvider>
+      </MemoryRouter>,
+    );
+    const toggle = screen.getByRole("button", { name: "Site menu" });
+    const panel = container.querySelector(`#${toggle.getAttribute("aria-controls")}`);
+    expect(panel).toHaveAttribute("data-open", "false");
+    fireEvent.click(toggle);
+    expect(panel).toHaveAttribute("data-open", "true");
+    expect(within(panel).getByRole("navigation", { name: "Main navigation" })).toBeInTheDocument();
+    expect(within(panel).getByRole("link", { name: "Open Workspace" })).toHaveAttribute("href", "/workspace");
+    fireEvent.click(within(panel).getByRole("button", { name: "Search documentation" }));
+    expect(onSearch).toHaveBeenCalledOnce();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(toggle).toHaveFocus();
+  });
 });
 
 describe("docs navigation", () => {

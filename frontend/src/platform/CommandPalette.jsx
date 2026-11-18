@@ -130,6 +130,14 @@ function PaletteDialog({ onClose: close, children }) {
   const onClose = useStableCallback(close);
   useEffect(() => {
     const dialog = dialogRef.current;
+    const viewport = window.visualViewport;
+    const sizeToViewport = () => {
+      dialog.style.setProperty("--pf-search-viewport-height", `${viewport.height}px`);
+      dialog.style.setProperty("--pf-search-viewport-top", `${viewport.offsetTop}px`);
+    };
+    if (viewport) sizeToViewport();
+    viewport?.addEventListener("resize", sizeToViewport);
+    viewport?.addEventListener("scroll", sizeToViewport);
     if (!dialog.open) dialog.showModal();
     // A click on the backdrop lands on the dialog itself (a pointer shortcut; Escape is the keyboard's).
     const onDown = (event) => {
@@ -137,6 +145,8 @@ function PaletteDialog({ onClose: close, children }) {
     };
     dialog.addEventListener("mousedown", onDown);
     return () => {
+      viewport?.removeEventListener("resize", sizeToViewport);
+      viewport?.removeEventListener("scroll", sizeToViewport);
       dialog.removeEventListener("mousedown", onDown);
       dialog.close();
     };
@@ -172,20 +182,23 @@ function PaletteSearch({ inputRef, query, items, cursor, setCursor, onQuery, onG
   };
   return (
     <>
-      <input
-        ref={inputRef}
-        className="pf-palette-input"
-        placeholder="Search docs, concepts, endpoints…"
-        value={query}
-        onChange={(e) => onQuery(e.target.value)}
-        onKeyDown={onKeyDown}
-        role="combobox"
-        aria-label="Search"
-        aria-expanded={items.length > 0}
-        aria-controls="palette-results"
-        aria-activedescendant={active ? optionId(active) : undefined}
-        aria-autocomplete="list"
-      />
+      <div className="pf-palette-header">
+        <input
+          ref={inputRef}
+          className="pf-palette-input"
+          placeholder="Search docs, concepts, endpoints…"
+          value={query}
+          onChange={(e) => onQuery(e.target.value)}
+          onKeyDown={onKeyDown}
+          role="combobox"
+          aria-label="Search"
+          aria-expanded={items.length > 0}
+          aria-controls="palette-results"
+          aria-activedescendant={active ? optionId(active) : undefined}
+          aria-autocomplete="list"
+        />
+        <button type="button" className="btn pf-palette-close" onClick={onClose}>Close</button>
+      </div>
       <ul id="palette-results" className="pf-palette-list" role="listbox" aria-label="Results">
         {items.map((r, i) => (
           <li

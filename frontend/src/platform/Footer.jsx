@@ -42,6 +42,9 @@ export default function Footer() {
       <p className="pf-footer-legal">
         Not an official NASA or ISRO product. NISAR data courtesy of NASA/JPL-Caltech and ISRO, distributed by
         the Alaska Satellite Facility DAAC. Weather and river data from their named public sources.
+        {" "}Earth artwork adapted from <a href="https://www.solarsystemscope.com/textures/">Solar System Scope</a>
+        {" "}(<a href="https://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a>) and NASA/GEBCO elevation,
+        with AI-assisted color, clouds, and lighting.
       </p>
     </footer>
   );

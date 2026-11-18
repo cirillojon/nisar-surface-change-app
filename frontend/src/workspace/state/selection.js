@@ -24,6 +24,8 @@ export const FRESH_VIEW = Object.freeze({
   pendingDate: null,
   keepDate: false,
   siteLayer: "colour",
+  // The linked pair that opened the timeline comparison, if any.
+  comparison: null,
   // A gallery place (or the tour's imagery) in its player: its layer (null:
   // its starting one), the dates it compares ({ from?, to? }; null: its
   // suggested pair), and whether change maps remove the area-wide shift

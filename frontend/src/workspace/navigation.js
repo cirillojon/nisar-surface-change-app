@@ -39,6 +39,20 @@ export function parseFinding(value) {
 }
 export const findingParam = (f) => (f ? `${f.slug}${f.moment != null ? `:${f.moment}` : ""}` : null);
 
+/** A link can seed the timeline and open the two passes together. */
+export function parseComparison(value) {
+  if (!value) return null;
+  const [from, to, layer = null, extra] = value.split(",");
+  const date = /^\d{4}-\d{2}-\d{2}$/;
+  return extra === undefined && date.test(from) && date.test(to) && from < to ? { from, to, layer } : null;
+}
+
+export function comparisonParam(comparison) {
+  if (!comparison) return null;
+  const { from, to, layer } = comparison;
+  return layer ? `${from},${to},${layer}` : `${from},${to}`;
+}
+
 /**
  * What the side panel holds: "finding" | "story" | "stories" | "details" |
  * "places" | "mine". `hasStory`: the selected place has a story;
@@ -62,6 +76,7 @@ export function readWorkspaceUrl(searchParams) {
     site: get("site"),
     date: get("date"),
     place: get("place"),
+    comparison: parseComparison(get("compare")),
     finding: get("finding"),
     demo: params.has("demo"),
   };
@@ -70,16 +85,18 @@ export function readWorkspaceUrl(searchParams) {
 /**
  * The workspace's query parameters for a selection:
  * `?mode=…` plus `&site=…&date=…` or `&place=…`, and `&finding=…` in Stories.
+ * A comparison carries its own two dates and optional image layer.
  */
-export function workspaceParams({ mode, site = null, date = null, place = null, finding = null }) {
+export function workspaceParams({ mode, site = null, date = null, place = null, finding = null, comparison = null }) {
   const params = { mode };
   if (site) {
     params.site = site;
-    if (date) params.date = date;
+    if (date && !comparison) params.date = date;
   } else if (place) {
     params.place = place;
   }
   if (mode === "stories" && finding) params.finding = findingParam(finding);
+  if ((site || place) && comparison) params.compare = comparisonParam(comparison);
   return params;
 }
 

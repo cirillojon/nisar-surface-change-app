@@ -65,7 +65,7 @@ function ChangeNote({ player, scenes, dateLabel }) {
  * the map; it lives in the dock, not in the side panel, so the dates, layer
  * and playback carry over when the panel changes.
  */
-export default function LandPlayer({ player, opacity, onOpacityChange, onLayerChange, onRemoveShiftChange, colourLegend, guideDates = null }) {
+export default function LandPlayer({ player, opacity, onOpacityChange, onLayerChange, onRemoveShiftChange, colourLegend, guideDates = null, comparison = null }) {
   const { site, passes, dates, from, to, layer, changing, everyHv, mapUrl, maps, removeShift } = player;
   const scenes = passes.map((p) => ({ date: p.date, quality: p.quality, image_url: p.image_url }));
   const event = site.event;
@@ -81,6 +81,7 @@ export default function LandPlayer({ player, opacity, onOpacityChange, onLayerCh
       onIndexChange={player.setTo}
       before={from}
       onBeforeChange={player.setFrom}
+      comparison={comparison}
       opacity={opacity}
       onOpacityChange={onOpacityChange}
       product="GCOV"
