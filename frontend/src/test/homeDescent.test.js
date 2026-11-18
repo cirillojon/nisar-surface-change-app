@@ -42,20 +42,30 @@ function mountDescent(decode = () => Promise.resolve()) {
   return { scroll, view, coverage, track, reducedMotion };
 }
 
-it("keeps the terrain moving after the globe fades and restores the globe on return", async () => {
+it("holds the globe through the approach and keeps zooming with a settled camera", async () => {
   const { scroll, view, coverage, track } = mountDescent();
   await Promise.resolve();
   scroll(340);
-  const openingZoom = view.mock.lastCall[0];
-  expect(view.mock.lastCall[2]).toBe(true);
-  expect(track.style.getPropertyValue("--hero-descent-hold")).toBe("");
+  expect(view.mock.lastCall.slice(0, 3)).toEqual([1, expect.any(Number), true]);
+  expect(parseFloat(track.style.getPropertyValue("--hero-descent-hold"))).toBeGreaterThan(500);
+  expect(Number(coverage.style.getPropertyValue("--coverage-terrain-opacity"))).toBe(0);
 
-  scroll(520);
+  const earth = track.querySelector(".pf-hero-earth");
+  scroll(515);
+  const settledView = view.mock.lastCall.slice(0, 3);
+  const canvasScale = Number(earth.style.getPropertyValue("--hero-canvas-scale"));
+  expect(settledView[0]).toBeGreaterThan(1);
+  expect(settledView.slice(1)).toEqual([1, true]);
+  scroll(650);
+  expect(view.mock.lastCall.slice(0, 3)).toEqual(settledView);
+  expect(Number(earth.style.getPropertyValue("--hero-canvas-scale"))).toBeGreaterThan(canvasScale);
+  expect(Number(coverage.style.getPropertyValue("--coverage-terrain-opacity"))).toBeGreaterThan(0.9);
+
+  scroll(900);
   const scale = Number(coverage.style.getPropertyValue("--coverage-descent-scale"));
-  expect(view.mock.lastCall[0]).toBeGreaterThan(openingZoom);
   expect(view.mock.lastCall[2]).toBe(false);
   expect(Number(coverage.style.getPropertyValue("--coverage-entry"))).toBe(1);
-  scroll(650);
+  scroll(955);
   expect(Number(coverage.style.getPropertyValue("--coverage-descent-scale"))).toBeGreaterThan(scale);
 
   scroll(0);
@@ -66,7 +76,7 @@ it("lets visitors reach the topics when the photo is late and clears the effect 
   let finishDecode;
   const pendingPhoto = new Promise((resolve) => { finishDecode = resolve; });
   const { scroll, view, coverage, reducedMotion } = mountDescent(() => pendingPhoto);
-  scroll(700);
+  scroll(1050);
   expect(view.mock.lastCall[2]).toBe(false);
   expect(Number(coverage.style.getPropertyValue("--coverage-entry"))).toBe(1);
   expect(Number(coverage.style.getPropertyValue("--coverage-terrain-opacity"))).toBe(0);

@@ -56,7 +56,7 @@ export default function HeroEarth({ landing }) {
         },
       });
       renderer.current = instance;
-      if (view.zoom > 1 || !view.visible) applyView(instance);
+      if (view.zoom > 1 || view.alignment > 0 || !view.visible) applyView(instance);
       await instance.ready;
     }).catch(() => { if (!cancelled) setUnavailable(true); });
 

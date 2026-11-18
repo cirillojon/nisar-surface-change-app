@@ -124,7 +124,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     if (!canRender()) { previousTime = 0; return; }
     const dt = previousTime ? Math.min((now - previousTime) / 1000, 0.05) : 0;
     previousTime = now;
-    const descentActive = camera.zoom > 1;
+    const descentActive = camera.zoom > 1 || descentAlignment > 0;
     if (!state.dragging && !descentActive) {
       if (Math.abs(velocity) > 0.0001 && !state.reducedMotion) {
         longitude += velocity * dt;
@@ -478,13 +478,15 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     ready, dispose, reset, setAutoRotate, setFinish, setDescentTarget,
     setDescentView(zoom: number, alignment: number, now?: number) {
       if (camera.zoom === zoom && descentAlignment === alignment) return;
-      if (camera.zoom === 1 || zoom === 1) {
+      const wasDescending = camera.zoom > 1 || descentAlignment > 0;
+      const isDescending = zoom > 1 || alignment > 0;
+      if (wasDescending !== isDescending) {
         previousTime = 0;
         velocity = 0;
       }
       camera.zoom = zoom;
       descentAlignment = alignment;
-      if (zoom > 1) loadLandDetail();
+      if (isDescending) loadLandDetail();
       updateProjection();
       if (now !== undefined && canRender()) {
         // Scroll already scheduled this frame. Draw the camera update before

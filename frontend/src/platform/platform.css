@@ -1051,7 +1051,9 @@ h3:hover > .pf-anchor,
 }
 @media (prefers-reduced-motion: no-preference) {
   .pf-hero-track > .pf-hero { position: sticky; top: 0; }
-  .pf-home[data-compact-descent] .pf-hero { position: relative; }
+  .pf-home[data-compact-descent] .pf-hero {
+    top: min(0px, calc(100svh - var(--hero-frame-height, 100svh)));
+  }
 }
 .pf-hero::before,
 .pf-hero::after {
@@ -1103,14 +1105,14 @@ h3:hover > .pf-anchor,
   mask-image:
     linear-gradient(to right, transparent, black 7%, black 94%, transparent),
     linear-gradient(to bottom, transparent, black 9%, black 76%, transparent 98%);
-  opacity: calc(var(--hero-starfield-opacity) * var(--hero-sky-presence, 1));
+  opacity: calc(var(--hero-starfield-opacity) * var(--hero-backdrop-presence, var(--hero-sky-presence, 1)));
 }
 @media (width >= 1500px), (width >= 900px) and (resolution >= 1.8dppx) {
   .pf-hero::before { --hero-starfield-art: url("./media/nisar-starfield-satellite-repaired-full.webp"); }
 }
 .pf-hero::after {
   z-index: -1;
-  opacity: var(--hero-sky-presence, 1);
+  opacity: var(--hero-backdrop-presence, var(--hero-sky-presence, 1));
   background:
     radial-gradient(ellipse 39% 25% at 50% var(--hero-copy-shade-y),
       color-mix(in srgb, var(--pf-canvas) 88%, transparent) 25%, transparent),
