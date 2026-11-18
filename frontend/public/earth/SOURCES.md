@@ -1,6 +1,6 @@
 # Sources and attribution
 
-This folder contains the runtime subset used by the NISAR homepage. The complete authoring project, native masters, prompts, and preparation scripts are in the separate `nisar-earth-hero` package. Paths to authoring files below refer to that package. Source manifests retain the provenance of the full texture set; only maps requested by the live renderer are deployed here.
+This folder contains the NISAR homepage's runtime textures and the world maps used to bake the mobile variants. The complete authoring project, native masters, prompts, and preparation scripts are in the separate `nisar-earth-hero` package. Paths to authoring files below refer to that package. Source manifests retain the provenance of the full texture set.
 
 The supplied **Asia-Centered Earth Horizon (1).png** is the artistic reference. The original 1775 × 887 file is retained unaltered as `public/earth/reference.png` for comparison and fallback. No ownership or license beyond the user's supplied working reference is asserted here.
 
@@ -16,7 +16,9 @@ Earth day, night, cloud, specular/water, and normal maps are from [Solar System 
 
 These originals are 8192 × 4096. In the new world pack, they supply terrain detail, cloud detail, fine city lights, the water mask, and normals. Roughness is derived from the water mask. Changes include resizing, WebP encoding, longitude-boundary blending, polar conditioning, and shader-based color/lighting treatment. Source and output hashes are recorded in `public/earth/world-v2/manifest.json`.
 
-The regional `world-v2/*-detail.webp` images use the same credited day map at its native resolution. The renderer's `regionalCrops` table records each WebP's source dimensions and offset.
+The regional `world-v2/*-detail.webp` images use the same credited day map at its native resolution. The renderer's `regional-crops.json` records their source dimensions and offsets.
+
+The `mobile` maps use the same credits. The mobile preparation script combines the authored palette with the terrain and water maps, applies that grading to the native-resolution regional crops, and blends the two cloud maps into a single density texture.
 
 ## Generated artistic maps
 

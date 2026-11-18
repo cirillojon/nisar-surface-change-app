@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { vertex, surfaceFragment, cloudFragment, atmosphereFragment } from './shaders';
+import regionalCrops from './regional-crops.json';
+import { vertex, surfaceFragment, compactSurfaceFragment, cloudFragment, atmosphereFragment } from './shaders';
 
 export type EarthHeroState = {
   finish: 'reference' | 'satellite';
@@ -13,7 +14,7 @@ export type EarthHeroState = {
 type DescentTarget = {
   latitude: number;
   longitude: number;
-  region: keyof typeof regionalCrops;
+  region: keyof typeof regionalCrops.regions;
 };
 
 export type EarthHeroOptions = {
@@ -31,28 +32,25 @@ export type EarthHeroOptions = {
 
 export type EarthHero = ReturnType<typeof createEarthHero>;
 
-// Native 8192 × 4096 day-map crops in left, top, width, height order.
-const regionalCrops = {
-  greenland: [1664, 0, 2816, 1152],
-  'south-asia': [5376, 768, 1280, 1216],
-  hawaii: [0, 1024, 1152, 1024],
-  mexico: [1344, 1024, 1152, 960],
-};
-
 function detailBounds(region: DescentTarget['region']) {
-  const [left, top, width, height] = regionalCrops[region];
+  const { sourceWidth, sourceHeight, regions } = regionalCrops;
+  const [left, top, width, height] = regions[region];
   // UV coordinates run north from the bottom of the texture.
-  return new THREE.Vector4(left / 8192, 1 - (top + height) / 4096, width / 8192, height / 4096);
+  return new THREE.Vector4(left / sourceWidth, 1 - (top + height) / sourceHeight, width / sourceWidth, height / sourceHeight);
 }
 
 /** A complete globe with a fixed, cropped hero camera. No DOM work at import time. */
 export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {}) {
-  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'low-power' });
+  const compact = options.quality === 'low' || (options.quality !== 'high' && host.clientWidth < 700);
+  const authored = options.textureSet !== 'original';
+  const compactSurface = compact && authored && options.loadReference === false;
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: !compactSurface, powerPreference: 'low-power' });
   renderer.setClearColor(0x000000, 0);
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.toneMapping = THREE.NoToneMapping;
   const canvas = renderer.domElement;
   canvas.className = 'earth-hero__canvas';
+  if (compactSurface) canvas.dataset.renderer = 'compact';
   canvas.tabIndex = 0;
   canvas.setAttribute('role', 'group');
   canvas.setAttribute('aria-roledescription', 'interactive globe');
@@ -81,6 +79,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   let suspended = false;
   let descentFocusY = 0;
   let descentAlignment = 0;
+  let clippedTop = 0;
   let framedLatitude = 0;
   let descentTarget = options.descentTarget;
   let texturesReady = false;
@@ -98,10 +97,10 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   const initialPitch = pitch;
   const textures: THREE.Texture[] = [];
   const materials: THREE.ShaderMaterial[] = [];
-  const width = options.quality === 'low' || (options.quality !== 'high' && host.clientWidth < 700) ? 2048 : 4096;
-  const authored = options.textureSet !== 'original';
-  const geometry = new THREE.SphereGeometry(1, 160, 96);
-  const terrainGeometry = authored ? new THREE.SphereGeometry(1, width === 4096 ? 512 : 256, width === 4096 ? 256 : 128) : geometry;
+  const renderSize = new THREE.Vector2();
+  const width = compact ? 2048 : 4096;
+  const geometry = new THREE.SphereGeometry(1, compact ? 96 : 160, compact ? 64 : 96);
+  const terrainGeometry = authored ? new THREE.SphereGeometry(1, compact ? 192 : 512, compact ? 96 : 256) : geometry;
   const reliefScale = authored ? 0.009 : 0;
   terrainGeometry.boundingSphere = new THREE.Sphere(new THREE.Vector3(), 1 + reliefScale);
   const sun = new THREE.Vector3(-0.25, 0.93, 0.38).normalize();
@@ -123,7 +122,7 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     if (!canRender()) { previousTime = 0; return; }
     const dt = previousTime ? Math.min((now - previousTime) / 1000, 0.05) : 0;
     previousTime = now;
-    const descentActive = camera.zoom > 1;
+    const descentActive = camera.zoom > 1 || descentAlignment > 0;
     if (!state.dragging && !descentActive) {
       if (Math.abs(velocity) > 0.0001 && !state.reducedMotion) {
         longitude += velocity * dt;
@@ -181,6 +180,14 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     camera.updateProjectionMatrix();
   }
 
+  function updateScissor() {
+    if (!compactSurface) return;
+    renderer.getSize(renderSize);
+    // WebGL's scissor starts at the bottom, so cutting the top reduces height.
+    renderer.setScissor(0, 0, renderSize.x, Math.max(0, renderSize.y - clippedTop));
+    renderer.setScissorTest(clippedTop > 0);
+  }
+
   function resize() {
     const width = host.clientWidth;
     const height = host.clientHeight;
@@ -201,8 +208,10 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     // Aim the study site near mid-screen after zooming around the lower hero focal point.
     const closeUpY = descentFocusY + (height * 0.36) / (radiusPx * 3.8);
     framedLatitude = Math.asin(THREE.MathUtils.clamp(closeUpY - position.position.y, -0.98, 0.98));
-    renderer.setPixelRatio(Math.min(devicePixelRatio || 1, width < 700 ? 1.25 : 1.5));
-    renderer.setSize(width, height);
+    const pixelRatio = Math.min(devicePixelRatio || 1, compact ? 1.25 : 1.5);
+    renderer.setDrawingBufferSize(width, height, pixelRatio);
+    updateScissor();
+    if (surface) surface.uniforms.uFrameHeight.value = canvas.height;
     invalidate();
   }
 
@@ -298,7 +307,12 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     host.dataset.context = 'lost'; delete host.dataset.ready;
     emit(); visibility();
   }
-  function restored() { state.contextLost = false; delete host.dataset.context; visibility(); }
+  function restored() {
+    state.contextLost = false;
+    delete host.dataset.context;
+    updateScissor();
+    visibility();
+  }
   canvas.addEventListener('pointerdown', down);
   canvas.addEventListener('pointermove', move);
   canvas.addEventListener('pointerup', up);
@@ -322,19 +336,24 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
   // on the 8K-derived terrain/cloud detail instead of oversized color fields.
   const artWidth = Math.min(width, 2048);
   const layers = authored ? [
-    { key: 'day', file: 'world-v2/albedo', resolution: artWidth },
+    { key: 'day', file: compactSurface ? 'mobile/surface' : 'world-v2/albedo', resolution: artWidth },
     { key: 'night', file: 'world-v2/lights', resolution: artWidth },
-    { key: 'clouds', file: 'world-v2/clouds', resolution: artWidth },
+    { key: 'clouds', file: compactSurface ? 'mobile/clouds' : 'world-v2/clouds', resolution: artWidth },
     { key: 'water', file: 'world-v2/water', resolution: width },
     { key: 'normal', file: 'world-v2/normal', resolution: width },
     { key: 'height', file: 'relief/height', resolution: width },
-    { key: 'roughness', file: 'world-v2/roughness', resolution: artWidth },
-    { key: 'detail', file: 'world-v2/detail', resolution: width },
-    { key: 'cloudDetail', file: 'world-v2/cloud-detail', resolution: width },
-    { key: 'lightDetail', file: 'world-v2/light-detail', resolution: width },
   ] : ['day', 'night', 'clouds', 'water'].map(key => ({ key, file: key, resolution: width }));
+  if (authored && !compactSurface) {
+    layers.push(
+      { key: 'detail', file: 'world-v2/detail', resolution: width },
+      { key: 'cloudDetail', file: 'world-v2/cloud-detail', resolution: width },
+      { key: 'roughness', file: 'world-v2/roughness', resolution: artWidth },
+      { key: 'lightDetail', file: 'world-v2/light-detail', resolution: width },
+    );
+  }
   if (options.loadReference !== false) layers.push({ key: 'reference', file: 'reference', resolution: 1775 });
   const loader = new THREE.TextureLoader();
+  const maxAnisotropy = renderer.capabilities.getMaxAnisotropy();
   let landDetail: THREE.Texture | undefined;
   let requestedRegion: DescentTarget['region'] | undefined;
   let detailRequest = 0;
@@ -344,10 +363,12 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     if (!authored || !region || requestedRegion === region) return;
     requestedRegion = region;
     const request = ++detailRequest;
-    loader.load(`${base}/world-v2/${region}-detail.webp`, texture => {
+    const folder = compactSurface ? 'mobile' : 'world-v2';
+    loader.load(`${base}/${folder}/${region}-detail.webp`, texture => {
       if (disposed || request !== detailRequest) { texture.dispose(); return; }
       texture.colorSpace = THREE.SRGBColorSpace;
-      texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+      texture.anisotropy = Math.min(maxAnisotropy, 8);
+      if (compactSurface && !state.contextLost) renderer.initTexture(texture);
       landDetail = texture;
       if (surface) {
         surface.uniforms.uLandingDetail.value = texture;
@@ -369,17 +390,20 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       if (surface) surface.uniforms.uLandingDetail.value = surface.uniforms.uDetail.value;
       landDetail?.dispose();
       landDetail = undefined;
-      if (camera.zoom > 1) loadLandDetail();
+      if (compactSurface || camera.zoom > 1) loadLandDetail();
     }
     invalidate();
   }
 
+  // Warm the first region with the mobile globe so the descent does not
+  // have to upload a new map just as the visitor starts scrolling.
+  if (compactSurface) loadLandDetail();
   const ready = (async () => {
     const results = await Promise.allSettled(layers.map(async ({ key, file, resolution }) => {
       const texture = await loader.loadAsync(key === 'reference' ? `${base}/reference.png` : `${base}/${file}-${resolution}.webp`);
       texture.colorSpace = ['day', 'night', 'detail', 'lightDetail', 'reference'].includes(key) ? THREE.SRGBColorSpace : THREE.NoColorSpace;
       texture.wrapS = key === 'reference' ? THREE.ClampToEdgeWrapping : THREE.RepeatWrapping;
-      texture.anisotropy = Math.min(renderer.capabilities.getMaxAnisotropy(), 8);
+      texture.anisotropy = Math.min(maxAnisotropy, compactSurface ? 4 : 8);
       textures.push(texture);
       return { key, texture };
     }));
@@ -406,7 +430,8 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
       uReferenceRotation: { value: new THREE.Matrix3().setFromMatrix4(rotation) },
     });
     surface = new THREE.ShaderMaterial({
-      vertexShader: vertex, fragmentShader: surfaceFragment,
+      vertexShader: vertex, fragmentShader: compactSurface ? compactSurfaceFragment : surfaceFragment,
+      transparent: compactSurface,
       defines: { TERRAIN: 1 },
       uniforms: {
         ...referenceUniforms(),
@@ -416,34 +441,39 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
         uLandingDetail: { value: landDetail || maps.detail || day },
         uLandingBounds: { value: descentTarget ? detailBounds(descentTarget.region) : new THREE.Vector4() },
         uLandingClarity: { value: 0 }, uLandingDetailStrength: { value: 0 },
+        uCloudDetail: { value: maps.cloudDetail || cloud }, uFrameHeight: { value: canvas.height },
         uHeight: { value: maps.height || water }, uReliefScale: { value: reliefScale },
         uDetailMipOffset: { value: Math.log2(width / 4096) },
         uArtDirected: { value: authored ? 1 : 0 }, uTexel: { value: new THREE.Vector2(1 / width, 2 / width) },
         uSun: { value: sun }, uCloudOffset: { value: 0 }, uLights: { value: authored ? 1.0 : 1.15 },
       },
     });
-    cloudMaterial = new THREE.ShaderMaterial({
-      vertexShader: vertex, fragmentShader: cloudFragment,
-      transparent: true, depthWrite: false,
-      uniforms: { ...referenceUniforms(), uClouds: { value: cloud }, uCloudDetail: { value: maps.cloudDetail || cloud },
-        uLandingClarity: { value: 0 },
-        uArtDirected: { value: authored ? 1 : 0 }, uDetailMipOffset: { value: Math.log2(width / 4096) }, uSun: { value: sun } },
-    });
-    const atmosphereMaterial = new THREE.ShaderMaterial({
-      vertexShader: vertex, fragmentShader: atmosphereFragment,
-      transparent: true, side: THREE.BackSide, depthWrite: false,
-      uniforms: { uCenter: { value: position.position }, uReferenceFinish: { value: state.finish === 'reference' ? 1 : 0 },
-        uArtDirected: { value: authored ? 1 : 0 } },
-    });
-    materials.push(surface, cloudMaterial, atmosphereMaterial);
+    materials.push(surface);
     const globe = new THREE.Mesh(terrainGeometry, surface);
     globe.name = 'Earth surface';
-    clouds = new THREE.Mesh(geometry, cloudMaterial);
-    clouds.name = 'Independent cloud shell'; clouds.scale.setScalar(authored ? 1.013 : 1.004); clouds.renderOrder = 2;
-    const atmosphere = new THREE.Mesh(geometry, atmosphereMaterial);
-    atmosphere.name = 'Horizon atmosphere'; atmosphere.scale.setScalar(1.08); atmosphere.renderOrder = 1;
-    earth.add(globe, clouds);
-    position.add(atmosphere);
+    earth.add(globe);
+    if (!compactSurface) {
+      cloudMaterial = new THREE.ShaderMaterial({
+        vertexShader: vertex, fragmentShader: cloudFragment,
+        transparent: true, depthWrite: false,
+        uniforms: { ...referenceUniforms(), uClouds: { value: cloud }, uCloudDetail: { value: maps.cloudDetail || cloud },
+          uLandingClarity: { value: 0 },
+          uArtDirected: { value: authored ? 1 : 0 }, uDetailMipOffset: { value: Math.log2(width / 4096) }, uSun: { value: sun } },
+      });
+      const atmosphereMaterial = new THREE.ShaderMaterial({
+        vertexShader: vertex, fragmentShader: atmosphereFragment,
+        transparent: true, side: THREE.BackSide, depthWrite: false,
+        uniforms: { uCenter: { value: position.position }, uReferenceFinish: { value: state.finish === 'reference' ? 1 : 0 },
+          uArtDirected: { value: authored ? 1 : 0 } },
+      });
+      materials.push(cloudMaterial, atmosphereMaterial);
+      clouds = new THREE.Mesh(geometry, cloudMaterial);
+      clouds.name = 'Independent cloud shell'; clouds.scale.setScalar(authored ? 1.013 : 1.004); clouds.renderOrder = 2;
+      const atmosphere = new THREE.Mesh(geometry, atmosphereMaterial);
+      atmosphere.name = 'Horizon atmosphere'; atmosphere.scale.setScalar(1.08); atmosphere.renderOrder = 1;
+      earth.add(clouds);
+      position.add(atmosphere);
+    }
     texturesReady = true;
     lastInteraction = performance.now();
     invalidate();
@@ -473,20 +503,36 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
 
   return {
     ready, dispose, reset, setAutoRotate, setFinish, setDescentTarget,
-    setDescentView(zoom: number, alignment: number) {
-      if (camera.zoom === zoom && descentAlignment === alignment) return;
-      if (camera.zoom === 1 || zoom === 1) {
+    setDescentView(zoom: number, alignment: number, scrollFrameTime?: number, clipTop = 0) {
+      const clipChanged = clipTop !== clippedTop;
+      if (camera.zoom === zoom && descentAlignment === alignment && !clipChanged) return;
+      const wasDescending = camera.zoom > 1 || descentAlignment > 0;
+      const isDescending = zoom > 1 || alignment > 0;
+      if (wasDescending !== isDescending) {
         previousTime = 0;
         velocity = 0;
       }
       camera.zoom = zoom;
       descentAlignment = alignment;
-      if (zoom > 1) loadLandDetail();
+      if (clipChanged) {
+        clippedTop = clipTop;
+        updateScissor();
+      }
+      if (isDescending) loadLandDetail();
       updateProjection();
-      invalidate();
+      // Scroll has its own animation callback. Draw its camera and CSS fades
+      // on that refresh instead of queueing the canvas for the next one.
+      if (compactSurface && scrollFrameTime !== undefined && canRender()) {
+        if (frame) cancelAnimationFrame(frame);
+        render(scrollFrameTime);
+      } else invalidate();
     },
     getState: () => ({ ...state }),
-    setSuspended(value: boolean) { suspended = value; visibility(); },
+    setSuspended(value: boolean) {
+      if (suspended === value) return;
+      suspended = value;
+      visibility();
+    },
     metrics: () => ({ ...state, frames, longitude, pitch, cloudSpin, quality: width, textureSet: authored ? 'authored' : 'original',
       mapResolutions: Object.fromEntries(layers.map(layer => [layer.key, layer.resolution])),
       drawCalls: renderer.info.render.calls, triangles: renderer.info.render.triangles,

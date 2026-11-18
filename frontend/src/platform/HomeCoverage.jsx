@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 
 import { loadImage } from "../services/imageCache.js";
 import desktopArt from "./coverage-desktop-art.js";
+import { COMPACT_DESCENT_QUERY } from "./earth/home-descent.js";
 import crops from "./media/coverage/crops.webp";
 import cropsCompact from "./media/coverage/crops-810.webp";
 import cropsWireframe from "./media/coverage/crops-wireframe.webp";
@@ -204,14 +205,17 @@ function useTerrainFrame(photoFrame) {
     }
 
     const observer = typeof ResizeObserver === "function" ? new ResizeObserver(measure) : null;
+    const onViewportResize = () => {
+      if (!observer || desktopQuery?.matches) measure();
+    };
     observer?.observe(frame);
     desktopQuery?.addEventListener?.("change", measure);
-    window.addEventListener("resize", measure);
+    window.addEventListener("resize", onViewportResize);
     watchDensity();
     return () => {
       desktopQuery?.removeEventListener?.("change", measure);
       densityQuery?.removeEventListener?.("change", watchDensity);
-      window.removeEventListener("resize", measure);
+      window.removeEventListener("resize", onViewportResize);
       observer?.disconnect();
     };
   }, [photoFrame]);
@@ -233,7 +237,8 @@ function flightDirection(from, to) {
 
 function CoveragePhoto({ topic, art, phase, onAnimationEnd }) {
   const touch = window.matchMedia?.("(any-pointer: coarse)")?.matches;
-  const loading = phase === "fading" || touch ? "eager" : "lazy";
+  const compact = window.matchMedia?.(COMPACT_DESCENT_QUERY)?.matches;
+  const loading = phase === "fading" || (touch && !compact) ? "eager" : "lazy";
 
   return (
     <img className="pf-coverage-photo" data-topic={topic.id} data-phase={phase}
@@ -337,6 +342,18 @@ export default function HomeCoverage({ onLandingChange }) {
   const [focused, setFocused] = useState(null);
   const topic = TOPICS[selected];
 
+  function showObservation(event) {
+    if (event.detail === 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
+    const detail = document.getElementById(event.currentTarget.hash.slice(1));
+    if (!detail) return;
+
+    event.preventDefault();
+    detail.focus({ preventScroll: true });
+    detail.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
   function moveFocus(event, current) {
     const count = TOPICS.length;
     let next;
@@ -387,8 +404,9 @@ export default function HomeCoverage({ onLandingChange }) {
           ))}
         </div>
         <div className="pf-coverage-actions">
-          <a className="pf-coverage-details-link" href="#pf-coverage-detail" aria-label={`View details for ${topic.title}`}>
-            View details <ArrowDown size={15} aria-hidden="true" />
+          <a className="pf-coverage-details-link" href="#pf-coverage-detail"
+            aria-label={`See observation for ${topic.title}`} onClick={showObservation}>
+            See observation <ArrowDown size={15} aria-hidden="true" />
           </a>
           <Link className="pf-coverage-gallery" to="/docs/data/study-sites#land-change-gallery">
             <span className="pf-coverage-gallery-full">Browse the land-change gallery</span>
