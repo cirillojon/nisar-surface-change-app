@@ -17,10 +17,14 @@ radar-card obstacle. Change its horizon/radius together; do not independently
 move the canvas with CSS. `globe-obstacle.js` handles the rotated cards' bounding
 boxes and clear return paths around both the globe and headline.
 
-Runtime textures are local at `public/earth`. Only the required 2K color maps
-and 2K/4K detail/height maps are shipped. The original authoring pack and texture
-preparation scripts remain in the sibling `nisar-earth-hero` project. Attribution
-and source manifests are included with the textures; credits also appear in the
-site footer. This is illustrative artwork, not a live NISAR data layer.
+Runtime textures are local at `public/earth`. The phone uses a single WebGL pass
+with its own baked surface palette and cloud density, a canvas capped at 1.25×,
+and pre-uploaded regional detail. During the descent it draws the globe in the
+same animation callback as the heading and fade. Earth is illustrative artwork.
+
+Regenerate `public/earth/mobile` from the shipped world maps with
+`python scripts/build_mobile_globe.py` from the repository root (NumPy and
+Pillow). The original authoring pack remains in the sibling `nisar-earth-hero`
+project. The runtime texture folders include attribution and source manifests.
 
 Checks: `npx tsc --noEmit`, `npm run build`, `npm run lint`, `npm test`.

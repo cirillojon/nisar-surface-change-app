@@ -166,6 +166,65 @@ void main() {
 }
 `;
 
+// Mobile composes the clouds, terrain light, and limb in one pass. The bottom
+// falls to transparent in the canvas itself, so there is no panel edge to mask.
+export const compactSurfaceFragment = /* glsl */ `
+uniform sampler2D uDay;
+uniform sampler2D uNight;
+uniform sampler2D uClouds;
+uniform sampler2D uWater;
+uniform sampler2D uNormal;
+uniform sampler2D uLandingDetail;
+uniform vec4 uLandingBounds;
+uniform vec3 uSun;
+uniform float uCloudOffset;
+uniform float uLandingClarity;
+uniform float uLandingDetailStrength;
+uniform float uFrameHeight;
+varying vec2 vUv;
+varying vec3 vNormal;
+varying vec3 vTangent;
+void main() {
+  vec3 n = normalize(vNormal);
+  float facing = max(n.z, 0.0);
+  float water = texture2D(uWater, vUv).r;
+  vec3 t = normalize(vTangent - n * dot(n, vTangent));
+  vec3 b = cross(n, t);
+  vec3 slopes = texture2D(uNormal, vUv).rgb * 2.0 - 1.0;
+  slopes.xy *= mix(1.65, 2.05, uLandingClarity) * (1.0 - water);
+  vec3 groundNormal = normalize(mat3(t, b, n) * slopes);
+
+  vec3 terrain = texture2D(uDay, vUv).rgb;
+  if (uLandingDetailStrength > 0.0) {
+    vec2 uv = (vUv - uLandingBounds.xy) / uLandingBounds.zw;
+    vec2 edge = min(uv, 1.0 - uv);
+    float mixDetail = smoothstep(0.0, 0.10, min(edge.x, edge.y)) * uLandingDetailStrength;
+    terrain = mix(terrain, texture2D(uLandingDetail, uv, -0.35).rgb, mixDetail);
+  }
+
+  vec3 key = normalize(vec3(-0.72, 0.38, 0.58));
+  float smoothLight = 0.24 + 0.9 * max(dot(n, key), 0.0);
+  float reliefLight = 0.24 + 0.9 * max(dot(groundNormal, key), 0.0);
+  float terrainShade = clamp(reliefLight / smoothLight, 0.32, 1.48);
+  float sun = max(dot(n, uSun), 0.0);
+  vec3 color = terrain * mix(terrainShade, 1.0, water) * (0.24 + sun * 0.92);
+  vec3 lights = texture2D(uNight, vUv).rgb;
+  color += lights * vec3(1.0, 0.65, 0.30) * 0.48 * mix(1.0, 0.15, uLandingClarity);
+
+  vec2 cloudUv = vUv + vec2(uCloudOffset, 0.0);
+  float cloud = smoothstep(0.11, 0.78, texture2D(uClouds, cloudUv).r);
+  cloud *= mix(0.94, 0.18, uLandingClarity) * smoothstep(0.08, 0.26, facing);
+  color = mix(color, vec3(0.83, 0.91, 1.0) * (0.32 + sun * 0.86), cloud);
+  float rim = pow(1.0 - facing, 3.8);
+  color = mix(color, mix(vec3(0.025, 0.19, 0.46), vec3(0.10, 0.69, 1.0), rim * rim), rim * 0.38);
+  color *= mix(0.43, 1.03, smoothstep(0.25, 0.95, n.y));
+  float exit = smoothstep(0.0, 0.23, gl_FragCoord.y / uFrameHeight);
+  float silhouette = smoothstep(0.0, 0.07, facing);
+  gl_FragColor = vec4(color, exit * silhouette);
+  #include <colorspace_fragment>
+}
+`;
+
 export const cloudFragment = /* glsl */ `
 ${referenceProjection}
 uniform sampler2D uClouds;

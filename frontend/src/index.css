@@ -62,17 +62,14 @@
 }
 
 html {
-  scrollbar-color: color-mix(in srgb, var(--scrollbar-thumb) 32%, transparent) transparent;
-  scrollbar-gutter: stable;
+  scrollbar-width: none;
 }
 
-@media (hover: hover) and (pointer: fine) {
-  :where(.sidebar:hover .sidebar-scroll, .workspace:hover, .chain-body:hover, .chain-about-body:hover, .scene-comparison-body:hover) {
-    scrollbar-color: var(--scrollbar-thumb) transparent;
-  }
+html::-webkit-scrollbar {
+  display: none;
 }
 
-:where(.sidebar-scroll, .workspace, .chain-body, .chain-about-body, .scene-comparison-body):is(:focus-visible, :has(:focus-visible)) {
+:where([data-scrollbar-active]) {
   scrollbar-color: var(--scrollbar-thumb) transparent;
 }
 
@@ -80,6 +77,15 @@ html {
   * {
     scrollbar-width: auto;
     scrollbar-color: auto;
+  }
+
+  html {
+    scrollbar-width: auto;
+    scrollbar-gutter: stable;
+  }
+
+  html::-webkit-scrollbar {
+    display: revert;
   }
 }
 
@@ -1663,8 +1669,25 @@ code {
   .tour-bubble-folded .tour-progress {
     display: none;
   }
+  /* Docked to the top or bottom edge, away from the target, whatever the
+     measured place was. */
+  .tour-bubble[data-dock] {
+    position: fixed;
+    inset-inline: 8px !important;
+    width: auto !important;
+    max-height: none;
+    overflow: visible;
+    transition: none;
+  }
+  .tour-bubble[data-dock="bottom"] {
+    top: auto !important;
+    inset-block-end: max(8px, env(safe-area-inset-bottom));
+  }
+  .tour-bubble[data-dock="top"] {
+    top: max(8px, env(safe-area-inset-top)) !important;
+  }
   .tour-bubble-folded.tour-bubble-intro {
-    max-height: min(max(32svh, 220px), calc(100svh - 24px));
+    max-height: none;
   }
   .tour-bubble .tour-step-count {
     margin-block: 0 2px;
