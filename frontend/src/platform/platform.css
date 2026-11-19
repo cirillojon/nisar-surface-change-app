@@ -40,6 +40,48 @@ html[data-mode="docs"] body {
   flex-direction: column;
 }
 
+.pf-scrollbar-thumb {
+  position: fixed;
+  inset-block-start: 4px;
+  inset-inline-end: 0;
+  z-index: 1150;
+  inline-size: 12px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.pf-scrollbar-thumb::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-end: 3px;
+  inline-size: 3px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--fg) 52%, transparent);
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 18%);
+}
+
+.pf-scrollbar-thumb:is([data-scrollbar-active], [data-dragging]) {
+  opacity: 1;
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .pf-scrollbar-thumb:is([data-scrollbar-active], [data-dragging]) {
+    pointer-events: auto;
+    cursor: grab;
+  }
+
+  .pf-scrollbar-thumb[data-dragging] {
+    cursor: grabbing;
+  }
+}
+
+@media (forced-colors: active) {
+  .pf-scrollbar-thumb {
+    display: none;
+  }
+}
+
 .pf-skip {
   position: absolute;
   left: -9999px;

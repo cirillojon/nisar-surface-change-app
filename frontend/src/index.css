@@ -62,7 +62,11 @@
 }
 
 html {
-  scrollbar-gutter: stable;
+  scrollbar-width: none;
+}
+
+html::-webkit-scrollbar {
+  display: none;
 }
 
 :where([data-scrollbar-active]) {
@@ -73,6 +77,15 @@ html {
   * {
     scrollbar-width: auto;
     scrollbar-color: auto;
+  }
+
+  html {
+    scrollbar-width: auto;
+    scrollbar-gutter: stable;
+  }
+
+  html::-webkit-scrollbar {
+    display: revert;
   }
 }
 
