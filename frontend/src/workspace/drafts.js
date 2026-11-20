@@ -129,9 +129,14 @@ export function viewDraft({
   if (aoi) {
     return {
       kind: "view",
-      title: aoi.drawn ? "My drawn area" : "Area around a map click",
+      title: aoi.label ?? (aoi.drawn ? "My drawn area" : "Area around a map click"),
       notes: "",
-      view: { mode: "investigate", bbox: aoi.bbox, name: aoi.drawn ? "An area you drew" : "An area around a map click" },
+      view: {
+        mode: "investigate",
+        bbox: aoi.bbox,
+        name: aoi.label ?? (aoi.drawn ? "An area you drew" : "An area around a map click"),
+        ...(aoi.label ? { label: aoi.label } : {}),
+      },
       evidence: {
         caption: "NISAR passes over this area, as listed by NASA's catalog (CMR) when it was opened; values come from the passes you viewed.",
         date: areaSeries?.date ?? null,

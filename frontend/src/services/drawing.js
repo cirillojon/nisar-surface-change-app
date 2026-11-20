@@ -36,3 +36,13 @@ export function addPoint(points, point, pxFromLast = Infinity) {
 
 /** A line can be finished once it has two points and is no longer than the limit. */
 export const canFinish = (points) => points.length >= MIN_LINE_POINTS && lineKm(points) <= MAX_LINE_KM;
+
+/** What the drawing bar says about a line of `points` (`hint` replaces the instructions). */
+export function lineStatus(points, hint = null) {
+  const km = lineKm(points);
+  if (km > MAX_LINE_KM) return { text: `${km.toFixed(1)} km is over the ${MAX_LINE_KM} km limit: undo a point.`, warning: true };
+  if (hint) return { text: hint, warning: false };
+  if (points.length === 0) return { text: "Click the map to start a line.", warning: false };
+  if (points.length === 1) return { text: "Click to add the next point.", warning: false };
+  return { text: `${points.length} points, ${km.toFixed(1)} km. Add more, or finish.`, warning: false };
+}

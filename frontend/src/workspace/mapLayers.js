@@ -27,6 +27,46 @@ export function aoiAround(latitude, longitude) {
   };
 }
 
+// The largest box a searched place opens with, in degrees a side: a whole
+// country or ocean would ask NASA's catalog for every pass on Earth's side.
+export const PLACE_MAX_SPAN_DEG = 3;
+
+// Into ±180° (left as is when already there, so it stays exact).
+const wrapLon = (longitude) => (Math.abs(longitude) <= 180 ? longitude : ((((longitude + 180) % 360) + 360) % 360) - 180);
+
+/**
+ * The search area for a place found by name: its own box, at least as big as
+ * the box around a map click, and at most PLACE_MAX_SPAN_DEG a side (centred
+ * on the place, `clipped` then). `label` names it.
+ */
+export function areaForPlace({ name, latitude, longitude, bbox }) {
+  const lon = wrapLon(longitude);
+  const lat = Math.max(-89.5, Math.min(89.5, latitude));
+  const [west, south, east, north] = bbox ?? [lon, lat, lon, lat];
+  // A box across the antimeridian (west > east) is treated as too wide.
+  const lonSpan = west <= east ? east - west : 360;
+  const latSpan = north - south;
+  const clipped = lonSpan > PLACE_MAX_SPAN_DEG || latSpan > PLACE_MAX_SPAN_DEG;
+  const half = (span) => Math.min(PLACE_MAX_SPAN_DEG, Math.max(2 * AOI_HALF_DEG, span)) / 2;
+  // A box that fits is kept around its own middle; one that doesn't is centred on the place.
+  const cLon = clipped || west > east ? lon : (west + east) / 2;
+  const cLat = clipped ? lat : (south + north) / 2;
+  const hLon = half(lonSpan);
+  const hLat = half(latSpan);
+  return {
+    latitude: lat,
+    longitude: lon,
+    bbox: [
+      round3(Math.max(cLon - hLon, -180)),
+      round3(Math.max(cLat - hLat, -90)),
+      round3(Math.min(cLon + hLon, 180)),
+      round3(Math.min(cLat + hLat, 90)),
+    ],
+    label: name,
+    clipped,
+  };
+}
+
 /**
  * A height-profile line ([[lon, lat], ...]) on the map: a box to zoom to and
  * the line with its A and B ends. Both null without a line.

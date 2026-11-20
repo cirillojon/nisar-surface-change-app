@@ -174,7 +174,10 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     else previousTime = 0;
   }
 
-  function updateProjection() {
+  type Frame = Partial<Pick<THREE.OrthographicCamera, 'left' | 'right' | 'top' | 'bottom' | 'zoom'>>;
+  /** Applies a new frame or zoom to the camera, then refreshes its projection. */
+  function updateProjection(frame: Frame = {}) {
+    Object.assign(camera, frame);
     // Keep the surface just below the horizon fixed as the framing gets closer.
     camera.position.y = descentFocusY * (1 - 1 / camera.zoom);
     camera.updateProjectionMatrix();
@@ -198,10 +201,8 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
     const radiusPx = layout?.radius ?? Math.max(width * 0.568, height * (1775 * 0.568 / 887));
     const halfHeight = height / radiusPx / 2;
     const halfWidth = width / radiusPx / 2;
-    camera.left = -halfWidth; camera.right = halfWidth;
-    camera.top = halfHeight; camera.bottom = -halfHeight;
     descentFocusY = (height / 2 - height * (options.descentFocus ?? 0.82)) / radiusPx;
-    updateProjection();
+    updateProjection({ left: -halfWidth, right: halfWidth, top: halfHeight, bottom: -halfHeight });
     // Reference: solid horizon at 36.6% of frame height; planet center below crop.
     position.position.x = ((layout?.x ?? width / 2) - width / 2) / radiusPx;
     position.position.y = (height / 2 - (layout?.y ?? height * 0.366 + radiusPx)) / radiusPx;
@@ -512,14 +513,13 @@ export function createEarthHero(host: HTMLElement, options: EarthHeroOptions = {
         previousTime = 0;
         velocity = 0;
       }
-      camera.zoom = zoom;
       descentAlignment = alignment;
       if (clipChanged) {
         clippedTop = clipTop;
         updateScissor();
       }
       if (isDescending) loadLandDetail();
-      updateProjection();
+      updateProjection({ zoom });
       // Scroll has its own animation callback. Draw its camera and CSS fades
       // on that refresh instead of queueing the canvas for the next one.
       if (compactSurface && scrollFrameTime !== undefined && canRender()) {

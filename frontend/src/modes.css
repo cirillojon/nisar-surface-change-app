@@ -17,6 +17,102 @@
   background: var(--paper);
   box-shadow: 0 1px 4px var(--map-control-shadow);
 }
+.map-draw-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+}
+
+/* Find a place: a search field in the map's tool bar, its results below. */
+.place-search {
+  position: relative;
+  display: flex;
+  flex: 1 1 11rem;
+  align-items: center;
+  gap: 6px;
+  min-inline-size: 0;
+  max-inline-size: 16rem;
+  padding-inline: 8px 4px;
+  border-radius: calc(var(--card-radius) - 3px);
+  background: var(--bg-elevated);
+}
+.place-search > svg {
+  flex: none;
+  color: var(--fg-muted);
+}
+.place-input {
+  flex: 1;
+  min-inline-size: 0;
+  min-height: calc(var(--control-height) - 4px);
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-ui);
+}
+.place-input:focus {
+  outline: none;
+}
+.place-search:focus-within {
+  box-shadow: 0 0 0 2px var(--accent);
+}
+.place-results {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-start: -4px;
+  /* As wide as the map allows, right of its zoom buttons. */
+  inline-size: min(22rem, calc(100cqi - var(--map-control-size) - 34px));
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--paper);
+  box-shadow: 0 6px 20px var(--map-control-shadow);
+}
+.place-results ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.place-results li {
+  display: grid;
+  gap: 2px;
+  padding: 7px 9px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.place-results li[aria-selected="true"] {
+  background: var(--accent-soft);
+}
+.place-name {
+  font-weight: 600;
+  font-size: var(--text-ui);
+}
+.place-label {
+  overflow: hidden;
+  color: var(--fg-muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.place-note {
+  margin: 0;
+  padding: 8px 9px;
+  color: var(--fg-muted);
+  font-size: var(--text-ui);
+}
+.place-credit {
+  margin: 4px 0 0;
+  padding: 4px 9px 2px;
+  border-top: 1px solid var(--border);
+  color: var(--fg-muted);
+  font-size: 11px;
+}
+.place-credit a {
+  color: inherit;
+}
+
 .map-draw-tools .map-action {
   min-height: calc(var(--control-height) - 4px);
   padding: 4px 8px;
@@ -1183,4 +1279,131 @@
   .finding-hyps > li {
     break-inside: avoid;
   }
+}
+
+/* ── 2D map / 3D globe ── */
+.map-view-toggle {
+  position: absolute;
+  z-index: 500;
+  inset-block-end: 12px;
+  inset-inline-start: 10px;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--paper);
+  box-shadow: 0 1px 4px var(--map-control-shadow);
+}
+.map-view-toggle button {
+  min-inline-size: 2.75rem;
+  min-height: calc(var(--control-height) - 6px);
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: calc(var(--card-radius) - 3px);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: var(--text-ui);
+  font-weight: 600;
+  cursor: pointer;
+}
+.map-view-toggle button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.map-view-toggle button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+@media (hover: hover) and (pointer: fine) {
+  .map-view-toggle button:not([aria-pressed="true"], :disabled):hover {
+    background: var(--bg-elevated);
+    color: var(--fg);
+  }
+}
+
+/* The globe (CesiumJS): it fills the map frame, its controls in the 2D map's column and colours. */
+.globe-map {
+  background: #000;
+}
+.globe-canvas,
+.globe-canvas .cesium-widget {
+  position: absolute;
+  inset: 0;
+}
+.globe-canvas .cesium-widget canvas {
+  display: block;
+}
+.globe-canvas .cesium-widget-credits {
+  inset-inline-end: 6px;
+  inset-inline-start: auto;
+  inset-block-end: 4px;
+  max-inline-size: 70%;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--paper) 75%, transparent);
+  color: var(--fg-muted);
+  font-size: 11px;
+  text-align: end;
+}
+.globe-canvas .cesium-widget-credits a {
+  color: inherit;
+}
+.globe-controls {
+  position: absolute;
+  z-index: 2;
+  inset-block-start: calc(10px + var(--map-tools-offset, 0px));
+  inset-inline-start: 10px;
+  display: flex;
+  flex-direction: column;
+  inline-size: var(--map-control-size);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--paper);
+  box-shadow: 0 1px 4px var(--map-control-shadow);
+}
+.globe-controls button {
+  block-size: var(--map-control-size);
+  padding: 0;
+  border: 0;
+  border-block-end: 1px solid var(--border);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.globe-controls button:last-child {
+  border-block-end: 0;
+}
+.globe-controls button[aria-pressed="false"] {
+  color: var(--fg-muted);
+  text-decoration: line-through;
+}
+.globe-controls svg {
+  display: block;
+  margin: auto;
+}
+@media (hover: hover) and (pointer: fine) {
+  .globe-controls button:hover {
+    background: var(--bg-elevated);
+  }
+}
+.globe-tooltip {
+  position: absolute;
+  z-index: 3;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--paper);
+  color: var(--fg);
+  font-size: 12px;
+  white-space: nowrap;
+  pointer-events: none;
+  transform: translate(12px, -50%);
+  box-shadow: 0 2px 8px var(--map-control-shadow);
 }

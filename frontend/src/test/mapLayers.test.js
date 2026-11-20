@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { AOI_HALF_DEG, aoiAround, footprintOverlay, profileLayers } from "../workspace/mapLayers.js";
+import { AOI_HALF_DEG, PLACE_MAX_SPAN_DEG, aoiAround, areaForPlace, footprintOverlay, profileLayers } from "../workspace/mapLayers.js";
 
 describe("aoiAround", () => {
   it("draws a box of ±AOI_HALF_DEG around the click, rounded to 0.001°", () => {
@@ -76,5 +76,32 @@ describe("footprintOverlay", () => {
     expect(footprintOverlay({ site, siteLayer: "colour", hidden: true, toUrl })).toBeNull();
     expect(footprintOverlay({ site: null, siteLayer: "colour", hidden: false, toUrl })).toBeNull();
     expect(footprintOverlay({ site: { ...site, footprint: {} }, siteLayer: "colour", hidden: false, toUrl })).toBeNull();
+  });
+});
+
+describe("areaForPlace", () => {
+  it("keeps a place's own box when it fits one search", () => {
+    const area = areaForPlace({ name: "Lake Chad", latitude: 13.2, longitude: 14.1, bbox: [13, 12.3, 15.2, 14.4] });
+    expect(area).toEqual({ latitude: 13.2, longitude: 14.1, bbox: [13, 12.3, 15.2, 14.4], label: "Lake Chad", clipped: false });
+  });
+
+  it("widens a point or a small town to the box around a map click", () => {
+    const area = areaForPlace({ name: "Hilo", latitude: 19.7, longitude: -155.08, bbox: [-155.1, 19.69, -155.06, 19.71] });
+    expect(area.bbox[2] - area.bbox[0]).toBeCloseTo(2 * AOI_HALF_DEG);
+    expect(area.bbox[3] - area.bbox[1]).toBeCloseTo(2 * AOI_HALF_DEG);
+    expect(area.clipped).toBe(false);
+  });
+
+  it("opens the middle of a country, centred on its point", () => {
+    const area = areaForPlace({ name: "Bangladesh", latitude: 24, longitude: 90.3, bbox: [88, 20.6, 92.7, 26.6] });
+    expect(area.clipped).toBe(true);
+    expect(area.bbox).toEqual([90.3 - PLACE_MAX_SPAN_DEG / 2, 24 - PLACE_MAX_SPAN_DEG / 2, 90.3 + PLACE_MAX_SPAN_DEG / 2, 24 + PLACE_MAX_SPAN_DEG / 2]);
+  });
+
+  it("treats a box across the antimeridian as too wide, and stays on the map", () => {
+    const area = areaForPlace({ name: "Fiji", latitude: -17.7, longitude: 178.9, bbox: [174.6, -21, -178.2, -12.4] });
+    expect(area.clipped).toBe(true);
+    expect(area.bbox[2]).toBe(180);
+    expect(area.bbox[0]).toBeCloseTo(177.4);
   });
 });

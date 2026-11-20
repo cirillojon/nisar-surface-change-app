@@ -19,6 +19,7 @@ const TOOL_LABELS = {
   list_land_change: "Browsing the land-change gallery",
   height_profile: "Measuring ground motion along the line",
   search_docs: "Searching the docs",
+  find_place: "Looking up the place",
   open_in_workspace: "Preparing a map link",
 };
 

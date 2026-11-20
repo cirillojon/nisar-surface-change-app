@@ -37,7 +37,8 @@ INSTRUCTIONS = """Tools for NISAR (NASA–ISRO radar satellite) surface-change d
 Start with list_stories (curated places, each with a question and physical hypotheses) or
 list_sites / list_land_change. get_story gives the five chapters (question, what NISAR measured,
 hypotheses, what it can't see, future uses); build_finding turns one moment into a citable card;
-export_site_series returns CSV. For a new area, coverage_check says which products have passes and how
+export_site_series returns CSV. For a place named in words, find_place gives its coordinates and a
+search_bbox. For a new area, coverage_check says which products have passes and how
 often, then search_granules lists them. explain_site_change lines related series up in time (context,
 not causes). search_docs explains the science. NISAR products are provisional.
 Always present hypotheses as hypotheses, with their alternative and test; never state a cause as fact."""
@@ -101,9 +102,9 @@ PROMPTS = {
     "scout_area": types.Prompt(
         name="scout_area",
         title="Can NISAR answer my question here?",
-        description="Run the coverage check over a box and say what NISAR could and couldn't support.",
+        description="Run the coverage check over a box (or a named place) and say what NISAR could and couldn't support.",
         arguments=[
-            types.PromptArgument(name="bbox", description="min_lon,min_lat,max_lon,max_lat", required=True),
+            types.PromptArgument(name="bbox", description="min_lon,min_lat,max_lon,max_lat, or a place name", required=True),
             types.PromptArgument(name="question", description="What you want to know", required=False),
         ],
     ),
@@ -239,7 +240,8 @@ async def on_get_prompt(ctx, params: types.GetPromptRequestParams) -> types.GetP
     elif params.name == "scout_area":
         q = f" The question is: {args['question']}." if args.get("question") else ""
         text = (
-            f"Can NISAR help in the area {args.get('bbox', '')}?{q} Call coverage_check, then say which products "
+            f"Can NISAR help in the area {args.get('bbox', '')}?{q} If that is a place name rather than "
+            "coordinates, call find_place first and use its search_bbox. Call coverage_check, then say which products "
             "have passes, how often on one frame, the quality mix, and what kinds of change each could support. "
             "If a series is feasible, suggest the next tool (search_granules or the workspace). Be explicit "
             "about what NISAR could not tell."
@@ -269,7 +271,7 @@ async def on_get_prompt(ctx, params: types.GetPromptRequestParams) -> types.GetP
 def build_server() -> Server:
     return Server(
         "nisar-explorer",
-        version="1.1.0",
+        version="1.2.0",
         title="NISAR Surface Change Explorer",
         description="NISAR radar surface-change data, the NASA catalog and science docs.",
         instructions=INSTRUCTIONS,
