@@ -22,7 +22,7 @@ from typing import Any, Callable
 
 import requests
 
-from app import chains, db, geocode, nisar, stories
+from app import auto, chains, db, geocode, nisar, stories
 from app.change_types import change_type_list
 from app.models import Site
 from app.validators import validate_bbox, validate_optional_date
@@ -295,8 +295,9 @@ def list_land_change(kind: str | None = None) -> dict:
     if not LANDCHANGE_PATH.is_file():
         return {"sites": []}
     data = json.loads(LANDCHANGE_PATH.read_text(encoding="utf-8"))
+    curated = {s["slug"] for s in data.get("sites", [])}
     rows = []
-    for s in data.get("sites", []):
+    for s in data.get("sites", []) + [p for p in auto.gallery_places() if p["slug"] not in curated]:
         if s.get("hidden"):
             continue
         if kind and kind.lower() not in (s.get("kind") or "").lower():
@@ -306,7 +307,8 @@ def list_land_change(kind: str | None = None) -> dict:
             "slug": s.get("slug"), "name": s.get("name"), "kind": s.get("kind"),
             "region": s.get("region"), "headline": s.get("headline"),
             "status": {"visible": "clearly visible", "likely": "likely, verify",
-                       "not_visible": "nothing visible yet"}.get(s.get("status"), s.get("status")),
+                       "not_visible": "nothing visible yet",
+                       auto.STATUS: auto.STATUS_LABEL.lower()}.get(s.get("status"), s.get("status")),
             "look_for": s.get("look_for"), "reason": s.get("reason"), "bbox": s.get("bbox"),
             "passes": len(passes),
             "first_date": passes[0].get("date") if passes else None,
@@ -402,15 +404,16 @@ def search_docs(query: str, limit: int = 4) -> dict:
 
 # ─── stories, findings, coverage (the workspace's three modes) ────────────
 
-def _story_call(fn, *args):
+def _story_call(fn, *args, **kwargs):
     try:
-        return fn(*args)
+        return fn(*args, **kwargs)
     except stories.StoryError as exc:
         raise ToolError(str(exc)) from None
 
 
-def list_stories_tool(theme: str | None = None) -> dict:
-    return stories.list_stories(theme)
+def list_stories_tool(theme: str | None = None, since: str | None = None, until: str | None = None,
+                      origin: str | None = None, sort: str = "default") -> dict:
+    return _story_call(stories.list_stories, theme, since=since, until=until, origin=origin, sort=sort)
 
 
 def get_story_tool(story: str) -> dict:
@@ -578,10 +581,16 @@ TOOLS: list[Tool] = [
     Tool("list_stories", "List stories",
          "The workspace's curated stories (floods, crops, subsidence, the Amazon, Greenland ice, volcanoes, "
          "landslides), grouped by theme. Each story asks a question "
-         "and offers labeled physical hypotheses.",
-         {"type": "object", "properties": {"theme": {
-             "type": "string", "enum": ["water", "food", "ground", "ice", "forest"],
-             "description": "Only stories of this theme."}}},
+         "and offers labeled physical hypotheses. Also lists auto-detected stories (origin 'auto'): "
+         "templated, numbers-only changes the daily watch job found in new passes, not reviewed by a person "
+         "and with no hypotheses. Each story's 'date' is the pass it is about; filter with since/until.",
+         {"type": "object", "properties": {
+             "theme": {"type": "string", "enum": ["water", "food", "ground", "ice", "forest"],
+                       "description": "Only stories of this theme."},
+             "since": {"type": "string", "format": "date", "description": "Only stories about passes on or after this date."},
+             "until": {"type": "string", "format": "date", "description": "Only stories about passes on or before this date."},
+             "origin": {"type": "string", "enum": ["curated", "auto"], "description": "Curated or auto-detected stories only."},
+             "sort": {"type": "string", "enum": ["default", "newest"], "description": "'newest' sorts by date, newest first."}}},
          list_stories_tool),
     Tool("get_story", "Get a story",
          "One story in five chapters: the question, what NISAR measured (moments with numbers and dates), "

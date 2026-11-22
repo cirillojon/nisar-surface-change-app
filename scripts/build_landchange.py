@@ -24,29 +24,24 @@ from __future__ import annotations
 
 import argparse
 import json
-import math
 import sys
 from collections import defaultdict
 from concurrent.futures import ProcessPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-import numpy as np
-import pyproj
-from PIL import Image
-
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from app import nisar  # noqa: E402
-from app.nisar_render import encode_webp, gcov_rgb, open_remote  # noqa: E402
+from app.nisar_render import encode_webp  # noqa: E402
+# Shared with the automated pipeline, so both draw places the same way.
+from pipeline.render import (  # noqa: E402,F401
+    DB_HI, DB_LO, MAX_PX, best_frame, hh_png, render_pass,
+)
+from pipeline.render import grid as _grid  # noqa: E402
 
 OUT_PATH = ROOT / "app" / "data" / "landchange.json"
 IMAGE_DIR = ROOT / "app" / "data" / "scenes" / "landchange"
-GRID = "science/LSAR/GCOV/grids/frequencyA"
-PIX_M = 20.0          # finest pixel (frequency A posting)
-MAX_PX = 450          # longest image side (a site may set "max_px")
-DB_LO, DB_HI = -30.0, 5.0
-MIN_VALID = 0.5       # skip passes with less of the window imaged
 
 SITES = {
     "kilauea": {
@@ -206,84 +201,6 @@ NOT_VISIBLE = [
 ]
 
 
-def _grid(lon, lat, half_km, max_px=MAX_PX):
-    px = max(PIX_M, half_km * 2000 / max_px)
-    n = int(round(half_km * 2000 / px))
-    dlon = half_km / (111.32 * math.cos(math.radians(lat)))
-    dlat = half_km / 110.57
-    lons = lon - dlon + (np.arange(n) + 0.5) * 2 * dlon / n
-    lats = lat + dlat - (np.arange(n) + 0.5) * 2 * dlat / n
-    return np.meshgrid(lons, lats), [lon - dlon, lat - dlat, lon + dlon, lat + dlat], px
-
-
-def render_pass(args):
-    """One pass → (date, rgb, hh_db, valid fraction, note) or an error note."""
-    slug, granule, lon, lat, half, max_px = args
-    try:
-        (LON, LAT), _, _ = _grid(lon, lat, half, max_px)
-        h5, fobj = open_remote(granule["data_url"], timeout=60)
-        with h5:
-            g = h5[GRID]
-            pols = {p.decode() for p in g["listOfPolarizations"][()]}
-            co = "HH" if "HH" in pols else "VV"
-            cx = {"HH": "HV", "VV": "VH"}[co]
-            cx = cx if cx in pols else None
-            epsg = int(g["projection"][()])
-            x, y = g["xCoordinates"][()], g["yCoordinates"][()]
-            gx, gy = pyproj.Transformer.from_crs(4326, epsg, always_xy=True).transform(LON, LAT)
-            cols = np.floor((gx - x[0]) / (x[1] - x[0]) + 0.5).astype(int)
-            rows = np.floor((gy - y[0]) / (y[1] - y[0]) + 0.5).astype(int)
-            ok = (cols >= 0) & (cols < x.size) & (rows >= 0) & (rows < y.size)
-            if not ok.any():
-                return slug, granule, None, "outside the image"
-            r0, r1 = rows[ok].min(), rows[ok].max() + 1
-            c0, c1 = cols[ok].min(), cols[ok].max() + 1
-            bands = {}
-            for p in [co] + ([cx] if cx else []):
-                win = g[p * 2][r0:r1, c0:c1]
-                arr = np.full(LON.shape, np.nan)
-                arr[ok] = win[rows[ok] - r0, cols[ok] - c0]
-                bands[p] = arr
-        hh = bands[co]
-        valid = np.isfinite(hh) & (hh > 0)
-        if valid.mean() < MIN_VALID:
-            return slug, granule, None, f"only {valid.mean():.0%} of the window imaged"
-        with np.errstate(divide="ignore", invalid="ignore"):
-            db = 10 * np.log10(hh)
-        if cx:
-            rgb = gcov_rgb(hh, bands[cx])
-        else:
-            v = np.clip((np.nan_to_num(db, nan=-30) + 25) / 25, 0, 1) ** 0.8 * 255
-            rgb = np.dstack([v, v, v])
-        return slug, granule, (rgb, db, valid, co + ("+" + cx if cx else "")), f"{fobj.bytes_read / 1e6:.0f} MB"
-    except Exception as exc:  # noqa: BLE001 — report and keep going
-        return slug, granule, None, str(exc)[:100]
-
-
-def hh_png(db, valid):
-    """Half-resolution 8-bit dB layer (2x2 mean in power)."""
-    ny, nx = (db.shape[0] // 2) * 2, (db.shape[1] // 2) * 2
-    p = np.where(valid, 10 ** (np.nan_to_num(db) / 10), np.nan)[:ny, :nx]
-    p = p.reshape(ny // 2, 2, nx // 2, 2)
-    with np.errstate(invalid="ignore", divide="ignore"):
-        mean = np.nanmean(p, axis=(1, 3))
-        d = 10 * np.log10(mean)
-    q = np.clip(np.round((d - DB_LO) / (DB_HI - DB_LO) * 254), 0, 254)
-    q = np.where(np.isfinite(d), q, 255).astype(np.uint8)
-    return Image.fromarray(q, "L")
-
-
-def best_frame(granules):
-    by = defaultdict(list)
-    for g in granules:
-        by["_".join(g["title"].split("_")[5:8])].append(g)
-    frame = max(by, key=lambda k: len({g["start"][:10] for g in by[k]}))
-    per_day = {}
-    for g in sorted(by[frame], key=lambda g: (g.get("quality") == "validated", g["title"])):
-        per_day[g["start"][:10]] = g  # one per day, validated preferred
-    return frame, [per_day[d] for d in sorted(per_day)]
-
-
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("--only", action="append")
@@ -312,7 +229,7 @@ def main(argv=None):
             if data is None:
                 print(f"  {slug} {day}: skipped ({note})", flush=True)
                 continue
-            rgb, db, valid, pols = data
+            rgb, db, valid, pols = data[:4]
             folder = IMAGE_DIR / slug
             folder.mkdir(parents=True, exist_ok=True)
             (folder / f"{day}.webp").write_bytes(encode_webp(rgb, valid))

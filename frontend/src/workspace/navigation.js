@@ -8,6 +8,9 @@
  *   Investigate  the selection's details, else the list of places
  *   My findings  what the viewer saved and wrote (never the curated stories)
  *
+ * The story list has two views: by theme (the default) and Latest, newest
+ * first with filters (`?list=latest`).
+ *
  * A panel's back link ("← All stories") clears the selection and returns to
  * the list; "Hide panel" only hides. The default workspace is Stories, its
  * list, nothing selected, the whole world on the map.
@@ -37,6 +40,10 @@ export function parseFinding(value) {
   const n = moment === undefined || moment === "" ? null : Number(moment);
   return slug ? { slug, moment: Number.isInteger(n) ? n : null } : null;
 }
+export const STORY_LISTS = ["theme", "latest"];
+/** The story list a link asks for (`?list=latest`), else "theme". */
+export const storyListFrom = (value) => (STORY_LISTS.includes(value) ? value : "theme");
+
 export const findingParam = (f) => (f ? `${f.slug}${f.moment != null ? `:${f.moment}` : ""}` : null);
 
 /** A link can seed the timeline and open the two passes together. */
@@ -78,6 +85,7 @@ export function readWorkspaceUrl(searchParams) {
     place: get("place"),
     comparison: parseComparison(get("compare")),
     finding: get("finding"),
+    list: get("list"),
     demo: params.has("demo"),
   };
 }
@@ -86,8 +94,11 @@ export function readWorkspaceUrl(searchParams) {
  * The workspace's query parameters for a selection:
  * `?mode=…` plus `&site=…&date=…` or `&place=…`, and `&finding=…` in Stories.
  * A comparison carries its own two dates and optional image layer.
+ * `list` ("latest") is kept in Stories while the list shows (nothing open).
  */
-export function workspaceParams({ mode, site = null, date = null, place = null, finding = null, comparison = null }) {
+export function workspaceParams({
+  mode, site = null, date = null, place = null, finding = null, comparison = null, list = "theme",
+}) {
   const params = { mode };
   if (site) {
     params.site = site;
@@ -97,6 +108,7 @@ export function workspaceParams({ mode, site = null, date = null, place = null, 
   }
   if (mode === "stories" && finding) params.finding = findingParam(finding);
   if ((site || place) && comparison) params.compare = comparisonParam(comparison);
+  if (mode === "stories" && list !== "theme" && !site && !place && !finding) params.list = list;
   return params;
 }
 
@@ -110,7 +122,7 @@ export function historyAction(current, next) {
   const from = new URLSearchParams(current);
   const to = new URLSearchParams(next);
   if (!from.has("mode")) return "replace";
-  const same = ["mode", "site", "place", "finding"].every((k) => from.get(k) === to.get(k));
+  const same = ["mode", "site", "place", "finding", "list"].every((k) => from.get(k) === to.get(k));
   return same ? "replace" : "push";
 }
 

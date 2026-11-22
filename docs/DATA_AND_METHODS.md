@@ -52,6 +52,11 @@ A _pass_ is one date on which NISAR imaged a site.
   side, and says that nothing is tested.
 - **The record is short.** Each site has 10 to 29 passes from one year,
   most of them provisional.
+- **Some stories are found by a program, and say so.** Stories labeled
+  "Auto-detected, not reviewed" are written by NISAR Watch, a daily job
+  that checks new passes for lasting change. They hold only measured
+  numbers, no hypotheses, and no person has checked them
+  ([Section 12](#12-auto-detected-stories-nisar-watch)).
 
 ## 2. NISAR measurements
 
@@ -613,3 +618,38 @@ or DataCite) on 14 November 2026.
 
 Earlier project notes or slides that quote "69% of normal", or "ERA5"
 for the daily rain, carry the same two errors.
+
+## 12. Auto-detected stories (NISAR Watch)
+
+Since November 2026 a daily job ([AUTOMATION.md](AUTOMATION.md)) renders
+new NISAR GCOV passes for a watch list of places and for places near
+recently reported events, and publishes lasting change it measures as
+**auto-detected stories** (`app/data/auto/`). They differ from the
+curated stories in four ways:
+
+- **Found by thresholds, not by a person.** A change is published only if
+  it passes one of three detectors (a step in median HH, HV or open
+  water; a steady pace; a compact changed patch in the HH change map),
+  each judged against the place's own noise, and only once the next pass
+  shows at least half of it still there. The thresholds and every
+  rejection reason are in [AUTOMATION.md, Section 4](AUTOMATION.md#4-detectors).
+- **Numbers only.** The text is a template filled with measured values:
+  dates, areas, decibels, percentages, paces. There are no hypotheses,
+  and `tests/test_pipeline.py` checks the wording and recomputes the
+  numbers from the committed data as `tests/test_stories.py` does for
+  curated stories.
+- **Events are context.** A place added because of a reported event names
+  it, with a link, as "Reported nearby", followed by "Shown for context;
+  the radar record alone doesn't show what drove any change." Event
+  sources: NASA EONET (<https://eonet.gsfc.nasa.gov>), the USGS
+  significant-earthquakes feed (<https://earthquake.usgs.gov/earthquakes/feed/>),
+  and GDACS (<https://www.gdacs.org>, a joint UN–European Commission
+  system).
+- **Not reviewed.** Every one is labeled "Auto-detected, not reviewed"
+  in the workspace, the API, the MCP tools and the evidence card. A
+  wrong one is retracted (it disappears from the app and is never
+  rewritten); a checked one can be promoted to a curated story.
+
+They can be fooled where a box-level radar measure can: wet snow,
+freezing, wind on water, farming, or a change of viewing geometry that
+the mode check misses.

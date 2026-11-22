@@ -6,7 +6,7 @@ from datetime import date
 
 import pytest
 
-from app import stories
+from app import auto, stories
 from app.stories import STORIES_PATH
 
 CONTENT = json.loads(STORIES_PATH.read_text(encoding="utf-8"))
@@ -63,7 +63,9 @@ def test_story_slugs_exist_in_their_sources():
 
 def test_list_stories(client):
     body = client.get("/api/stories").get_json()
-    assert body["count"] == len(CONTENT["stories"])
+    curated = [s for s in body["stories"] if s["origin"] == "curated"]
+    assert [s["slug"] for s in curated] == [s["slug"] for s in CONTENT["stories"]]
+    assert body["count"] == len(curated) + len([s for s in auto.all_stories() if s["status"] == "active"])
     water = client.get("/api/stories?theme=water").get_json()
     assert water["stories"] and all(s["theme"] == "water" for s in water["stories"])
 

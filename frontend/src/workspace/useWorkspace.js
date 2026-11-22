@@ -21,7 +21,7 @@ import { findingQuery } from "../services/queries.js";
 import { TOUR_BOX, TOUR_IMAGERY, TOUR_LINE, tourSeen } from "../services/tour.js";
 import { useStableCallback } from "../services/useStableCallback.js";
 import { siteQuery, useCatalog, useLandChange, useSite, useStories } from "./data/queries.js";
-import { DEFAULT_MODE, findingParam, modeForPlace, modeFrom, parseFinding } from "./navigation.js";
+import { DEFAULT_MODE, findingParam, modeForPlace, modeFrom, parseFinding, storyListFrom } from "./navigation.js";
 import { useSelection } from "./state/selection.js";
 import { useWorkspaceUrl } from "./state/useWorkspaceUrl.js";
 import { useTour } from "./tour/useTour.js";
@@ -76,6 +76,8 @@ function useWorkspaceUi(searchParams) {
   const [homeKey, setHomeKey] = useState(0);
   const [mode, setMode] = useState(() => modeFrom(searchParams.get("mode"), DEFAULT_MODE, { hasFinding: Boolean(finding) }));
   const [openFinding, setOpenFinding] = useState(() => parseFinding(finding));
+  // The story list's view: "theme" or "latest" (`?list=latest`).
+  const [storyList, setStoryList] = useState(() => storyListFrom(searchParams.get("list")));
   // The finding being saved, and the note after a save.
   const [saveDraft, setSaveDraft] = useState(null);
   const [savedNote, setSavedNote] = useState(null);
@@ -84,7 +86,7 @@ function useWorkspaceUi(searchParams) {
     ...view,
     overlayOpacity, setOverlayOpacity, panelOpen, setPanelOpen, drawing, setDrawing,
     timelineHost, setTimelineHost, drawHost, setDrawHost, momentHost, setMomentHost, homeKey, setHomeKey,
-    mode, setMode, openFinding, setOpenFinding, saveDraft, setSaveDraft, savedNote, setSavedNote,
+    mode, setMode, openFinding, setOpenFinding, storyList, setStoryList, saveDraft, setSaveDraft, savedNote, setSavedNote,
   };
 }
 
@@ -252,6 +254,12 @@ function followUrl(ws, request, { pop, home }) {
     ui.setMode("stories");
     ui.setPanelOpen(true);
   }
+  // The story list's view. A URL names it only while nothing is open, so a
+  // missing one after a place or finding opened (or a plain /workspace link)
+  // keeps the viewer's choice.
+  if ((pop || request.mode) && !request.site && !request.place && !request.finding) {
+    ui.setStoryList(storyListFrom(request.list));
+  }
   // Back or Forward to a URL without a place or finding: close what is
   // open, so the panel shows the list the URL describes.
   if (pop && !request.site && !request.place && (v.selectedSiteId != null || v.landSlug)) act.clearDrawing();
@@ -313,6 +321,7 @@ function useWorkspaceNavigation(ws) {
       date: v.site ? v.shownDate : sel.pendingDate,
       place: v.landSlug,
       finding: ui.openFinding,
+      list: ui.storyList,
       comparison: v.site ? ws.images.comparison : sel.comparison,
     },
     onNavigate: (request, how) => followUrl(ws, request, how),

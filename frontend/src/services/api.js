@@ -126,6 +126,18 @@ export const fetchSme2Scene = ({ granule, bbox }) =>
 /** Themes and every story's summary. */
 export const fetchStories = () => get("/api/stories");
 
+/**
+ * Stories newest first (by the end of the period each one shows), a page at a
+ * time: `{ stories, total, next_offset, latest_detection, themes }`. Filters:
+ * theme, since / until (YYYY-MM-DD), origin ("curated" | "auto").
+ */
+export const fetchStoryFeed = ({ theme, since, until, origin, limit = 20, offset = 0 } = {}) => {
+  const params = Object.fromEntries(
+    Object.entries({ theme, since, until, origin, limit, offset }).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+  );
+  return get("/api/stories/feed", { params });
+};
+
 /** One story: question, moments, hypotheses, limits and future uses. */
 export const fetchStory = (slug) => get(`/api/stories/${encodeURIComponent(slug)}`);
 

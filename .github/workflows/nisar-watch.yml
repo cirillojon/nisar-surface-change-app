@@ -1,0 +1,192 @@
+name: NISAR Watch
+
+# Finds change in new NISAR passes and publishes it as auto-detected stories
+# (docs/AUTOMATION.md). Daily: poll the event feeds, render each watched
+# place's new GCOV passes, run the change detectors, write templated stories
+# to app/data/auto/, check them with the tests, then open (or refresh) a PR
+# from the data/auto branch into the base branch (default `future`). The PR
+# waits for a person to merge it unless auto-merge is switched on.
+#
+# Secrets:   EARTHDATA_TOKEN (required; NASA Earthdata Login token).
+#            NISAR_WATCH_TOKEN (optional; fine-grained PAT or GitHub App token
+#            with contents + pull-requests write). With it the PR runs CI;
+#            without it the PR is opened with GITHUB_TOKEN, which doesn't.
+# Base:      `future` while it has commits not yet in main, then main once
+#            future is merged (step "Pick the base branch").
+# Variables: NISAR_WATCH_BASE (optional): always use this branch instead.
+#            NISAR_WATCH_AUTO_MERGE (optional): `true` to merge the PR when
+#            CI passes (needs NISAR_WATCH_TOKEN and "Allow auto-merge").
+#            Off unless set.
+
+on:
+  schedule:
+    - cron: "0 6 * * *" # daily, 06:00 UTC
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Only this target slug (auto-…); empty for every target"
+        required: false
+        default: ""
+      dry_run:
+        description: "Search only: render, write and publish nothing"
+        type: boolean
+        default: false
+      no_events:
+        description: "Skip the event feeds (EONET, USGS, GDACS)"
+        type: boolean
+        default: false
+      max_passes:
+        description: "New passes to render in this run"
+        required: false
+        default: "150"
+
+concurrency:
+  group: nisar-watch
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+env:
+  BRANCH: data/auto
+
+jobs:
+  watch:
+    name: Watch for change
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+    steps:
+      - name: Check secrets
+        id: check
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+        run: |
+          if [ -n "$EARTHDATA_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::EARTHDATA_TOKEN not set; skipping (docs/AUTOMATION.md, Setup)."
+          fi
+
+      - name: Pick the base branch
+        id: base
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OVERRIDE: ${{ vars.NISAR_WATCH_BASE }}
+        # `future` while it holds work not yet in the default branch (main);
+        # the default branch once future has been merged into it (or deleted).
+        # The repository variable NISAR_WATCH_BASE overrides both.
+        run: |
+          default=$(gh api "repos/$REPO" -q .default_branch)
+          if [ -n "$OVERRIDE" ]; then
+            base=$OVERRIDE; why="set by the repository variable NISAR_WATCH_BASE"
+          elif ! out=$(gh api "repos/$REPO/compare/$default...future" -q .ahead_by 2>&1); then
+            if echo "$out" | grep -q "HTTP 404"; then
+              base=$default; why="there is no future branch"
+            else
+              echo "::error::Couldn't compare future with $default: $out"; exit 1
+            fi
+          elif [ "$out" -gt 0 ]; then
+            base=future; why="future has $out commits not yet in $default"
+          else
+            base=$default; why="future has been merged into $default"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "::notice::Building on and opening the PR against $base: $why."
+
+      - uses: actions/checkout@v5
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          ref: ${{ steps.base.outputs.base }}
+          token: ${{ secrets.NISAR_WATCH_TOKEN || github.token }}
+
+      - uses: actions/setup-python@v5
+        if: steps.check.outputs.enabled == 'true'
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        if: steps.check.outputs.enabled == 'true'
+        run: pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Check Earthdata token
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+        run: python -m pipeline check-token
+
+      - name: Run the pipeline
+        if: steps.check.outputs.enabled == 'true'
+        shell: bash # -o pipefail, so a failed run isn't hidden by tee
+        env:
+          EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+          TARGET: ${{ inputs.target }}
+          DRY_RUN: ${{ inputs.dry_run }}
+          NO_EVENTS: ${{ inputs.no_events }}
+          MAX_PASSES: ${{ inputs.max_passes || '150' }}
+        run: |
+          args=(run --max-passes "$MAX_PASSES")
+          if [ -n "$TARGET" ]; then
+            [[ "$TARGET" =~ ^[a-z0-9-]+$ ]] || { echo "::error::bad target slug"; exit 1; }
+            args+=(--target "$TARGET")
+          fi
+          [ "$DRY_RUN" = "true" ] && args+=(--dry-run)
+          [ "$NO_EVENTS" = "true" ] && args+=(--no-events)
+          python -m pipeline "${args[@]}" | tee "$RUNNER_TEMP/summary.md"
+
+      - name: Check the stories
+        # The same tests CI runs: wording, numbers against the data, images on disk.
+        if: steps.check.outputs.enabled == 'true' && inputs.dry_run != true
+        env:
+          FLASK_ENV: development
+        run: pytest -q tests/test_pipeline.py tests/test_stories.py tests/test_landchange.py
+
+      - name: Open or refresh the data PR
+        if: steps.check.outputs.enabled == 'true' && inputs.dry_run != true
+        env:
+          GH_TOKEN: ${{ secrets.NISAR_WATCH_TOKEN || github.token }}
+          BASE: ${{ steps.base.outputs.base }}
+          AUTO_MERGE: ${{ secrets.NISAR_WATCH_TOKEN != '' && vars.NISAR_WATCH_AUTO_MERGE == 'true' }}
+        run: |
+          if [ -z "$(git status --porcelain app/data/auto app/data/scenes/auto)" ]; then
+            echo "Nothing new."
+            exit 0
+          fi
+          git config user.name "nisar-watch[bot]"
+          git config user.email "nisar-watch@users.noreply.github.com"
+          # Always rebuilt from the base branch: an unmerged earlier run is redone, not lost.
+          git switch -C "$BRANCH"
+          git add app/data/auto app/data/scenes/auto
+          git commit -q -m "NISAR Watch: $(date -u +%F)" -m "Automated by .github/workflows/nisar-watch.yml"
+          git push -f origin "$BRANCH"
+          gh label create auto-data --color 0E8A16 --description "NISAR Watch data" --force >/dev/null
+          if gh pr view "$BRANCH" --json state -q .state 2>/dev/null | grep -q OPEN; then
+            gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/summary.md"
+          else
+            gh pr create --base "$BASE" --head "$BRANCH" --label auto-data \
+              --title "NISAR Watch: new passes and auto-detected stories" \
+              --body-file "$RUNNER_TEMP/summary.md"
+          fi
+          if [ "$AUTO_MERGE" = "true" ]; then
+            gh pr merge "$BRANCH" --auto --squash
+          else
+            echo "::notice::Auto-merge is off: the PR into $BASE waits for a person to merge it."
+          fi
+
+      - name: Report a failure
+        if: failure() && steps.check.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          title="NISAR Watch is failing"
+          n=$(gh issue list --state open --search "in:title \"$title\"" --json number -q '.[0].number')
+          if [ -n "$n" ]; then
+            gh issue comment "$n" --body "Failed again: $RUN_URL"
+          else
+            gh issue create --title "$title" --body "The daily run failed: $RUN_URL. See docs/AUTOMATION.md, Troubleshooting."
+          fi

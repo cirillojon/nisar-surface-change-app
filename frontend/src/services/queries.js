@@ -6,7 +6,7 @@
 // an earlier key never lands in a newer view. Freshness and retries are set
 // once, in queryClient.js.
 
-import { queryOptions } from "@tanstack/react-query";
+import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
 
 import {
   fetchBrowseBounds,
@@ -23,6 +23,7 @@ import {
   fetchSme2Scene,
   fetchStories,
   fetchStory,
+  fetchStoryFeed,
   searchGranules,
   searchPlaces,
   startProfile,
@@ -58,6 +59,15 @@ export const landChangeQuery = () => queryOptions({ queryKey: ["landchange"], qu
 
 /** Curated stories: themes and every story's summary. */
 export const storiesQuery = () => queryOptions({ queryKey: ["stories"], queryFn: fetchStories });
+
+/** Every story newest first, filtered (theme, origin, since, until), a page at a time. */
+export const storyFeedQuery = (filters, limit) =>
+  infiniteQueryOptions({
+    queryKey: ["story-feed", filters, limit],
+    queryFn: ({ pageParam }) => fetchStoryFeed({ ...filters, limit, ...(pageParam ? { offset: pageParam } : {}) }),
+    initialPageParam: 0,
+    getNextPageParam: (page) => page.next_offset ?? undefined,
+  });
 
 /** One story: question, moments, hypotheses, limits and future uses. */
 export const storyQuery = (slug) =>

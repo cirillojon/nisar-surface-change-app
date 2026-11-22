@@ -530,6 +530,13 @@ tour. Not done yet:
 - More ancillary layers: optical imagery (Sentinel-2) and population.
 - A second year of passes, to tell seasonal change from one-off change.
 
+New passes are picked up by **NISAR Watch** ([AUTOMATION.md](AUTOMATION.md)):
+a daily GitHub Actions job that renders new passes for a watch list and
+for places near reported events (NASA EONET, USGS, GDACS), runs change
+detectors, and publishes what holds as auto-detected, unreviewed stories
+in the Stories tab's **Latest** list. Turning one into a curated story
+(hypotheses, sources) is still a person's job.
+
 ---
 
 ## 7. Contributing

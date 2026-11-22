@@ -15,6 +15,8 @@ export default function PanelLists({
   stories,
   story,
   onSelectStory,
+  storyList,
+  onStoryListChange,
   openFinding,
   onCloseFinding,
   onChangeFindingMoment,
@@ -54,7 +56,13 @@ export default function PanelLists({
         </div>
       )}
       {mode === "stories" && view !== "finding" && (
-        <StoryList data={stories} selected={story?.slug} onSelect={onSelectStory} />
+        <StoryList
+          data={stories}
+          selected={story?.slug}
+          onSelect={onSelectStory}
+          view={storyList}
+          onViewChange={onStoryListChange}
+        />
       )}
       {mode === "investigate" && (
         <PlacesList

@@ -42,6 +42,9 @@ cd frontend && npm run dev           # http://localhost:5173
 The Vite dev server proxies `/api/*` to the backend, so you can use
 relative URLs from the frontend.
 
+To try NISAR Watch (auto-detected stories) against this local setup, see
+[AUTOMATION.md §7](AUTOMATION.md#7-running-it-locally).
+
 ### Windows without WSL
 
 ```powershell
