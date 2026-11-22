@@ -271,6 +271,9 @@
   border-color: var(--accent, currentColor);
   font-weight: 600;
 }
+.story-latest {
+  min-width: 0;
+}
 .story-filters {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -281,10 +284,23 @@
   display: flex;
   flex-direction: column;
   gap: 2px;
+  min-width: 0;
 }
 .story-filters select,
 .story-filters input {
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: var(--control-height);
+  padding: 6px 8px;
+  color: var(--fg);
+  background: var(--bg-elevated);
+  border: 1px solid var(--control-border);
+  border-radius: 6px;
+}
+.story-filters input[type="date"] {
+  padding-inline: 6px;
+  font-variant-numeric: tabular-nums;
 }
 
 /* An auto-detected story: what was measured, and that no person checked it. */
