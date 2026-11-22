@@ -72,11 +72,13 @@ Push to `main`:
 - Vercel builds and publishes `frontend/`.
 
 [`nisar-watch.yml`](../.github/workflows/nisar-watch.yml) runs daily and
-opens a PR from `data/auto` with new passes and auto-detected stories
+opens a PR from `data/auto` into `future` (repository variable
+`NISAR_WATCH_BASE`) with new passes and auto-detected stories
 ([AUTOMATION.md](AUTOMATION.md)). It needs the `EARTHDATA_TOKEN`
-repository secret; with `NISAR_WATCH_TOKEN` too, the PR runs CI and
-merges itself, and the merge deploys through `fly-deploy.yml` like any
-other change to `app/`.
+repository secret (separate from the Fly secret of the same name). A
+person merges the PR; it deploys through `fly-deploy.yml` once it reaches
+`main`, like any other change to `app/`. Auto-merge is off unless
+`NISAR_WATCH_AUTO_MERGE` is `true`.
 
 On the machine, `bin/start prod` runs migrations, loads `app/data/` into
 SQLite (`app-data/data.db`), then starts gunicorn. The data files are part

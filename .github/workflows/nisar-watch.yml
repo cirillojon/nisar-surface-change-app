@@ -4,13 +4,18 @@ name: NISAR Watch
 # (docs/AUTOMATION.md). Daily: poll the event feeds, render each watched
 # place's new GCOV passes, run the change detectors, write templated stories
 # to app/data/auto/, check them with the tests, then open (or refresh) a PR
-# from the data/auto branch. With NISAR_WATCH_TOKEN set the PR runs CI and
-# merges itself when green, and the merge deploys through fly-deploy.yml.
+# from the data/auto branch into the base branch (default `future`). The PR
+# waits for a person to merge it unless auto-merge is switched on.
 #
-# Secrets: EARTHDATA_TOKEN (required; NASA Earthdata Login token).
-#          NISAR_WATCH_TOKEN (optional; fine-grained PAT or GitHub App token
-#          with contents + pull-requests write). Without it the PR is opened
-#          with GITHUB_TOKEN, which doesn't trigger CI, and waits for a person.
+# Secrets:   EARTHDATA_TOKEN (required; NASA Earthdata Login token).
+#            NISAR_WATCH_TOKEN (optional; fine-grained PAT or GitHub App token
+#            with contents + pull-requests write). With it the PR runs CI;
+#            without it the PR is opened with GITHUB_TOKEN, which doesn't.
+# Variables: NISAR_WATCH_BASE (optional): the branch to build on and open the
+#            PR against; `future` if unset.
+#            NISAR_WATCH_AUTO_MERGE (optional): `true` to merge the PR when
+#            CI passes (needs NISAR_WATCH_TOKEN and "Allow auto-merge").
+#            Off unless set.
 
 on:
   schedule:
@@ -45,6 +50,7 @@ permissions:
 
 env:
   BRANCH: data/auto
+  BASE: ${{ vars.NISAR_WATCH_BASE || 'future' }}
 
 jobs:
   watch:
@@ -66,7 +72,7 @@ jobs:
       - uses: actions/checkout@v5
         if: steps.check.outputs.enabled == 'true'
         with:
-          ref: main
+          ref: ${{ env.BASE }}
           token: ${{ secrets.NISAR_WATCH_TOKEN || github.token }}
 
       - uses: actions/setup-python@v5
@@ -115,7 +121,7 @@ jobs:
         if: steps.check.outputs.enabled == 'true' && inputs.dry_run != true
         env:
           GH_TOKEN: ${{ secrets.NISAR_WATCH_TOKEN || github.token }}
-          AUTO_MERGE: ${{ secrets.NISAR_WATCH_TOKEN != '' }}
+          AUTO_MERGE: ${{ secrets.NISAR_WATCH_TOKEN != '' && vars.NISAR_WATCH_AUTO_MERGE == 'true' }}
         run: |
           if [ -z "$(git status --porcelain app/data/auto app/data/scenes/auto)" ]; then
             echo "Nothing new."
@@ -123,7 +129,7 @@ jobs:
           fi
           git config user.name "nisar-watch[bot]"
           git config user.email "nisar-watch@users.noreply.github.com"
-          # Always rebuilt from main: an unmerged earlier run is redone, not lost.
+          # Always rebuilt from the base branch: an unmerged earlier run is redone, not lost.
           git switch -C "$BRANCH"
           git add app/data/auto app/data/scenes/auto
           git commit -q -m "NISAR Watch: $(date -u +%F)" -m "Automated by .github/workflows/nisar-watch.yml"
@@ -132,14 +138,14 @@ jobs:
           if gh pr view "$BRANCH" --json state -q .state 2>/dev/null | grep -q OPEN; then
             gh pr edit "$BRANCH" --body-file "$RUNNER_TEMP/summary.md"
           else
-            gh pr create --base main --head "$BRANCH" --label auto-data \
+            gh pr create --base "$BASE" --head "$BRANCH" --label auto-data \
               --title "NISAR Watch: new passes and auto-detected stories" \
               --body-file "$RUNNER_TEMP/summary.md"
           fi
           if [ "$AUTO_MERGE" = "true" ]; then
             gh pr merge "$BRANCH" --auto --squash
           else
-            echo "::notice::NISAR_WATCH_TOKEN not set: the PR waits for a person to run CI and merge."
+            echo "::notice::Auto-merge is off: the PR into $BASE waits for a person to merge it."
           fi
 
       - name: Report a failure

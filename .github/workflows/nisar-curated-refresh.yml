@@ -31,6 +31,10 @@ permissions:
   contents: write
   pull-requests: write
 
+env:
+  # The branch to build on and open the PR against (repository variable; `future` if unset).
+  BASE: ${{ vars.NISAR_WATCH_BASE || 'future' }}
+
 jobs:
   refresh:
     name: Refresh curated data
@@ -42,7 +46,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
         with:
-          ref: main
+          ref: ${{ env.BASE }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -103,5 +107,5 @@ jobs:
             cat "$RUNNER_TEMP/tests.txt"
             echo '```'
           } > "$RUNNER_TEMP/body.md"
-          gh pr create --base main --head "$branch" --title "Curated refresh: new NISAR passes" \
+          gh pr create --base "$BASE" --head "$branch" --title "Curated refresh: new NISAR passes" \
             --body-file "$RUNNER_TEMP/body.md" --draft

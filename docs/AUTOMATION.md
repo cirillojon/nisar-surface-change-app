@@ -17,8 +17,8 @@ research.
    │               persistence check                                    pipeline/detect.py
    ├─ 4. publish   templated, numbers-only stories                      pipeline/publish.py
    ├─ 5. test      tests/test_pipeline.py, test_stories.py, test_landchange.py
-   └─ 6. PR        data/auto branch → PR (auto-merges with NISAR_WATCH_TOKEN)
-                   → main → fly-deploy.yml → live in the Latest feed
+   └─ 6. PR        data/auto branch → PR into the base branch (`future`);
+                   a person merges it → main → fly-deploy.yml → Latest feed
 ```
 
 Git stays the database: everything the job learns is a JSON file or an
@@ -119,8 +119,8 @@ change, which had gone by the next pass.
 ## 5. Publishing, retracting and promoting
 
 **New and updated stories** are written to `app/data/auto/stories.json`
-and committed to the `data/auto` branch, rebuilt from `main` on every
-run. The PR body is the run summary: targets, passes rendered, candidates
+and committed to the `data/auto` branch, rebuilt from the base branch on
+every run. The PR body is the run summary: targets, passes rendered, candidates
 and their reasons, new and updated stories, feed errors.
 
 **Retract** a story that is wrong (snow, a processing artifact, a known
@@ -140,13 +140,24 @@ status to `"superseded"`.
    Token. Add it as the repository secret `EARTHDATA_TOKEN`. Tokens last
    60 days; the job warns 10 days before expiry and fails once it has
    expired (`python -m pipeline check-token`).
-2. **Optional: `NISAR_WATCH_TOKEN`.** A fine-grained personal access
+2. **Let Actions open PRs.** Settings → Actions → General → Workflow
+   permissions → *Allow GitHub Actions to create and approve pull
+   requests*.
+3. **Base branch.** Both workflows build on, and open their PRs against,
+   the repository variable `NISAR_WATCH_BASE`, or `future` if it is unset.
+   The scheduled run itself only starts from the default branch (`main`),
+   so the workflow file must be there too. Data merged into `future`
+   reaches production when `future` is merged into `main`.
+4. **Optional: `NISAR_WATCH_TOKEN`.** A fine-grained personal access
    token (or GitHub App token) with *Contents* and *Pull requests* write
-   on this repository. With it, the data PR runs CI and merges itself when
-   green, and `fly-deploy.yml` ships it. Without it, the PR is opened with
-   `GITHUB_TOKEN`, which doesn't trigger CI, and waits for a person.
-   Turn on *Allow auto-merge* in the repository settings.
-3. The workflow skips with a notice while `EARTHDATA_TOKEN` is missing.
+   on this repository. With it, the data PR runs CI. Without it, the PR is
+   opened with `GITHUB_TOKEN`, which doesn't trigger CI.
+5. **Optional: auto-merge.** Off by default: every data PR waits for a
+   person. To have it merge when CI passes, set the repository variable
+   `NISAR_WATCH_AUTO_MERGE` to `true`, set `NISAR_WATCH_TOKEN`, turn on
+   *Allow auto-merge*, and require the CI checks on the base branch (without
+   required checks, auto-merge merges at once).
+6. The workflow skips with a notice while `EARTHDATA_TOKEN` is missing.
 
 Run it by hand from Actions → NISAR Watch → Run workflow, with an
 optional target, a dry run, no event feeds, or a pass budget.
