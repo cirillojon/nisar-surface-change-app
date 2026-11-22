@@ -97,6 +97,19 @@ def test_urgent_response_metadata_is_parsed_and_mixed_gslc_pair_is_rejected():
     assert urgent["processing_variant"] == "UR"
     with pytest.raises(nisar.NisarPairingError, match="urgent-response and standard"):
         nisar.require_gslc_pair_compatible(urgent, standard)
+    with pytest.raises(nisar.NisarPairingError, match="urgent-response and standard"):
+        nisar.require_gslc_pair_compatible(
+            urgent, standard, orbit_type=("FOE", "FOE"),
+            ionosphere_correction=("applied", "applied"), alignment_verified=True,
+        )
+
+
+def test_pair_product_names_carry_both_cycles():
+    g = nisar.granule_name_metadata(
+        "NISAR_L2_PR_GUNW_004_019_A_011_005_4000_SH_20251030T120539_20251030T120613_"
+        "20251111T120539_20251111T120614_P05023_N_F_J_001"
+    )
+    assert (g["cycle"], g["secondary_cycle"], g["track"], g["frame"]) == ("004", "005", "019", "011")
 
 
 def test_gslc_pair_guard_requires_matching_provenance_and_verified_alignment():

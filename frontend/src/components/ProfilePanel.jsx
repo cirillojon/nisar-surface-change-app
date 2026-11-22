@@ -257,12 +257,12 @@ function Result({ result }) {
         <p className="muted">
           Every NISAR interferogram (GUNW) on this frame, read only along the line (median of ~240 m
           around each point every {((pts.dist_km[1] - pts.dist_km[0]) * 1000).toFixed(0)} m). Corrected
-          for {result.corrections === "none" ? "nothing" : result.corrections}
-          (fixed default; alternatives are diagnostics, not selected by fit) (
+          for {result.corrections}, a fixed default rather than the set that fits best. Scatter about a
+          straight line under each alternative, for comparison:{" "}
           {Object.entries(result.scatter_mm)
             .map(([k, v]) => `${k} ${v ?? "–"} mm`)
             .join(", ")}
-          ).{" "}
+          .{" "}
           {result.provenance_warnings?.map((warning) => `${warning} `)}
           Gaps between runs of pairs are bridged with a straight-line fit.{" "}
           {pts.measured_pct}% of points measured. Elevation: Copernicus GLO-90 DEM. Provisional data,

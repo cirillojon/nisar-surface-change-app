@@ -55,15 +55,15 @@ Drag a rectangle (**Cancel** or Escape stops), then pick a product in the panel.
 | GOFF, GSLC | Listed for download |
 | SME2 | Soil moisture, with values per day (needs a server Earthdata token) |
 
-The app does not pair GSLCs. An external user report warns that urgent-response
-and standard GSLCs may not align; this is not a Handbook specification. Before
-pairing any geocoded images, verify orbit/correction provenance and alignment.
+The app does not pair GSLCs. Urgent-response GSLCs use a forecast orbit and skip
+corrections that standard GSLCs get, and users report that mixed pairs don't line up.
+Before pairing any geocoded images, verify orbit/correction provenance and alignment.
 
 **Time slider** steps by day; **Mosaic** shows the newest data everywhere.
 
 ### Draw line
 
-Click to add points. A bar over the map counts them and has **Undo**, **Finish line** and **Cancel**; double-click or Enter also finishes, and Escape cancels. A line needs two points and can be up to 100 km long. It shows terrain and relative line-of-sight motion every ~200 m at every date, plus a space–time chart (red sank, blue rose). A new line takes 1–4 minutes and needs a server Earthdata token. The optional vertical projection assumes motion is purely vertical. A largest drop or rise that stands alone between gaps is flagged: treat it with caution.
+Click to add points. A bar over the map counts them and has **Undo**, **Finish line** and **Cancel**; double-click or Enter also finishes, and Escape cancels. A line needs two points and can be up to 100 km long. It shows terrain and ground motion every ~200 m at every date, plus a space–time chart (red sank, blue rose). A new line takes 1–4 minutes and needs a server Earthdata token. Values are relative to the line's median. **Height change** (the default) assumes purely vertical motion (line of sight ÷ cos of the incidence angle); switch to **Along the radar's view** for the measured line-of-sight component. A largest drop or rise that stands alone between gaps is flagged: treat it with caution.
 
 ## My findings
 

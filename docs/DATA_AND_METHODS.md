@@ -94,7 +94,7 @@ The DOIs are the ones registered for each collection in CMR.
 | --- | --- | --- |
 | HH and HV backscatter (dB) | Median over valid HH/HV pixels in the site's box, from GCOV frequency B where both layers are available; positive linear power is converted with 10 log10. Grid spacing and bandwidth vary with acquisition mode. | One number for the whole box. Punjab's box includes the city of Ludhiana. |
 | Open water (%) | Share of pixels with HH below −18 dB, over the part of the box that every pass of the site imaged (the shared footprint; `scripts/shared_footprint.py`). | A single threshold. It misses wind-roughened water and water under vegetation, so it understates flooding in the Okavango. |
-| Line-of-sight displacement (mm) | The longest unbroken chain of interferogram pairs on one frame. For each pair: unwrapped phase minus the ionosphere phase screen, converted to mm using the app's phase convention, referenced to a stable point, then summed. Both points use the median of a ±0.01° box. | One-dimensional motion along the radar's line of sight, not vertical or 3-D motion. Relative to the reference point. Tropospheric delay is not corrected. The sign follows the app's current NISAR product interpretation (+ toward, − away); the Handbook's general phase equation alone does not independently validate product-specific polarity. |
+| Line-of-sight displacement (mm) | The longest unbroken chain of interferogram pairs on one frame. For each pair: unwrapped phase minus the ionosphere phase screen, converted to mm using the app's phase convention, referenced to a stable point, then summed. Both points use the median of a ±0.01° box. | One-dimensional motion along the radar's line of sight, not vertical or 3-D motion. Relative to the reference point. Tropospheric delay is not corrected. The sign is + toward, − away, checked against known subsidence (Mexico City) and uplift (Campi Flegrei); the Handbook's general phase equation does not by itself fix the product-specific sign. |
 
 For GCOV the pipeline reads the product's `HHHH` / `HVHV` layers where
 available, applies 10 log10 to positive linear power, and does not perform an
@@ -108,19 +108,29 @@ granules are provisional, early-mission products; the first table in
 [Section 5](#5-the-numbers) gives the count per site, and how many
 passes saw less than 95% of the box.
 
-SME2 is a Level-3 volumetric soil-moisture retrieval, nominally posted at
-about 200 m and at 400 m in the Sahara (Handbook, SME2 product description).
-The live renderer masks fill/non-finite values and swath edges, but does not
-read or apply SME2 retrieval-quality flags; its values must be treated as
+SME2 is a Level-3 volumetric soil-moisture retrieval posted on a 200 m
+EASE-Grid 2.0; products from 5+5 MHz acquisitions are aggregated to 400 m but
+still posted at 200 m. Its accuracy goal is 0.06 m³/m³ over unflagged areas
+with vegetation water content below 5 kg/m², and retrievals over dense
+vegetation or during rain are flagged as potentially unreliable ([ASF NISAR
+SME2 guide](https://nisar-docs.asf.alaska.edu/sme2/)). The live renderer masks
+fill/non-finite values and swath edges, but does not read or apply SME2
+retrieval-quality flags, so flagged pixels are included; treat values as
 provisional. The mission's 12-day repeat cycle does not mean every place is
 observed twice every 12 days; local cadence depends on track and acquisition
 geometry.
 
 The app's GSLC search is catalog-only and no code path pairs GSLC images.
-The urgent-response/standard GSLC alignment warning is based on an external
-user report, not a Handbook specification; verify orbit/correction provenance
-and alignment before any such pairing. The app does not process SSAR/S-band
-products.
+Urgent-response (UR) products are processed with Forecast Orbit Ephemeris and
+without the ionospheric (TEC) geolocation and tropospheric corrections applied
+to standard (PR) products; they sit in separate per-level urgent-response
+collections that this app does not search, and are kept for only 30 days
+([ASF NISAR Urgent Response guide](https://nisar-docs.asf.alaska.edu/urgent-response/)).
+The observation that UR/PR GSLC pairs misalign and lose coherence comes from
+an external user report, not the Handbook. `app.nisar.require_gslc_pair_compatible`
+refuses UR/PR pairs outright and requires matching orbit/correction provenance
+and verified alignment for any other pair. The app does not process
+SSAR/S-band products.
 
 ## 3. Moments
 

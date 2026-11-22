@@ -316,7 +316,7 @@ def _links(slug: str, source: str, moment: int | None) -> dict:
     links = {
         "workspace": f"/workspace?mode=stories&finding={slug}" + (f":{moment}" if moment is not None else ""),
         "api": f"/api/findings/{slug}{query}",
-        "geojson": f"/api/stories/{slug}/export.geojson",
+        "geojson": f"/api/stories/{slug}/export.geojson{query}",
         "mcp": {"tool": "build_finding", "arguments": args},
     }
     if source == "site":
@@ -406,9 +406,9 @@ def build_finding(slug: str, moment: int | None = None) -> dict:
     }
 
 
-def story_geojson(slug: str) -> dict:
-    """A story's bounding-box geometry and reproducibility metadata as GeoJSON."""
-    finding = build_finding(slug)
+def story_geojson(slug: str, moment: int | None = None) -> dict:
+    """A finding's bounding-box geometry and reproducibility metadata as GeoJSON."""
+    finding = build_finding(slug, moment)
     bbox = finding["site"].get("bbox")
     if not bbox or len(bbox) != 4:
         raise StoryError(f"No bounding box is available for {slug!r}.")
@@ -427,6 +427,7 @@ def story_geojson(slug: str) -> dict:
             "geometry": geometry,
             "properties": {
                 "story": finding["story"],
+                "moment": finding["moment"],
                 "site": finding["site"],
                 "geometry_basis": "site bounding box; not the NISAR pixel footprint",
                 "claim": finding["claim"],

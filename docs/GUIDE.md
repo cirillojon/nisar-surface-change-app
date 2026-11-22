@@ -309,7 +309,7 @@ Glaciers (GOFF) need offset-tracking work. See §6.
 | `GUNW` | Geocoded unwrapped interferogram | Phase and ancillary layers; infer relative line-of-sight motion | Earthquakes, volcanoes, subsidence |
 | `GOFF` | Geocoded pixel offsets           | Image-matched offsets; useful for larger motion | Glaciers, landslides |
 | `GSLC` | Geocoded single-look complex     | Complex imagery (amplitude + phase) | Custom processing; search only in this app |
-| `SME2` | Soil moisture (Level 3)          | Volumetric retrieval; nominal ~200 m posting (~400 m in Sahara) | Agriculture and flood context |
+| `SME2` | Soil moisture (Level 3)          | Volumetric retrieval on a 200 m grid (5+5 MHz passes aggregated to 400 m); accuracy goal 0.06 m³/m³ | Agriculture and flood context |
 
 These are product types, not direct physical-motion vectors. This app
 currently processes LSAR products only; it does not process SSAR/S-band data.
@@ -430,10 +430,11 @@ take a few minutes. Commit `app/data/` when you're happy with the result.
 4. **GUNW sites** (interferograms): take the longest unbroken chain of
    pairs (the mission's repeat cycle is 12 days; actual pair intervals
    come from the granule dates). For each pair, subtract NISAR's ionosphere
-   phase screen and convert phase to mm with −λ/4π (λ = 24.2 cm). The
-   output convention is positive toward and negative away; the Handbook's
-   general equation alone does not independently validate the product-specific
-   phase polarity. Then subtract the median at the
+   phase screen and convert phase to mm with −λ/4π (λ = 24.2 cm). We
+   checked the sign against known subsidence (Mexico City) and uplift
+   (Campi Flegrei): positive = toward the satellite, negative = away. The
+   Handbook's general phase equation does not by itself fix the
+   product-specific sign. Then subtract the median at the
    stable `reference` point, keeping only pixels in the reference's
    unwrapped connected component, and add up the pairs. Record the
    cumulative value at the site point, and write a red/blue cumulative

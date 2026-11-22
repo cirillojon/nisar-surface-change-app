@@ -1350,6 +1350,16 @@
             },
             "description": "Story slug, from `/api/stories`.",
             "example": "okavango-flood-pulse"
+          },
+          {
+            "name": "moment",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0
+            },
+            "description": "Moment index; default is the story's key moment."
           }
         ],
         "responses": {

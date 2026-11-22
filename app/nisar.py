@@ -66,8 +66,9 @@ PRODUCTS = {
     },
     "SME2": {
         "label": "Soil moisture (SME2)",
-        "description": "Level-3 soil-moisture retrieval in volumetric units. Nominal posting is "
-                       "about 200 m, with 400 m in the Sahara; this app does not apply SME2 retrieval-quality flags.",
+        "description": "Level-3 volumetric soil-moisture retrieval on a 200 m grid (5+5 MHz passes are "
+                       "aggregated to 400 m); accuracy goal 0.06 m³/m³ where unflagged and vegetation "
+                       "is light. This app does not apply SME2 retrieval-quality flags.",
         "collections": ["NISAR_L3_SME2_PROVISIONAL_V1"],
     },
 }
@@ -378,19 +379,30 @@ def parse_granule(entry: dict, product: str) -> dict:
     }
 
 
+_PAIR_PRODUCTS = ("RIFG", "RUNW", "GUNW", "ROFF", "GOFF")
+
+
 def granule_name_metadata(title: str) -> dict:
-    """Fields encoded in NISAR granule names; absent when the name is unfamiliar."""
+    """Fields encoded in NISAR granule names; ``None`` when the name is unfamiliar.
+
+    Layout per ASF's NISAR naming conventions: ``NISAR_<level>_<PR|UR>_<product>_
+    <cycle>_<track>_<A|D>_<frame>_...``. Pair products (GUNW, GOFF, ...) name the
+    reference cycle there and the secondary cycle right after the frame.
+    """
     parts = title.split("_")
-    if len(parts) < 8 or parts[0] != "NISAR" or parts[1] not in ("L2", "L3"):
+    if len(parts) < 8 or parts[0] != "NISAR" or parts[1] not in ("L1", "L2", "L3"):
         return {
             "processing_variant": None, "urgent_response": None,
-            "cycle": None, "track": None, "orbit_direction": None, "frame": None,
+            "cycle": None, "secondary_cycle": None,
+            "track": None, "orbit_direction": None, "frame": None,
         }
     variant = parts[2] if parts[2] in ("PR", "UR") else None
+    pair = parts[3] in _PAIR_PRODUCTS and len(parts) > 8
     return {
         "processing_variant": variant,
         "urgent_response": True if variant == "UR" else False if variant == "PR" else None,
         "cycle": parts[4],
+        "secondary_cycle": parts[8] if pair else None,
         "track": parts[5],
         "orbit_direction": parts[6] if parts[6] in ("A", "D") else None,
         "frame": parts[7],
@@ -407,6 +419,11 @@ def require_gslc_pair_compatible(
 ) -> None:
     """Fail closed unless a GSLC pair has matching provenance and verified alignment.
 
+    ASF documents that UR products use Forecast Orbit Ephemeris and skip the
+    ionospheric (TEC) geolocation and tropospheric corrections that PR products
+    get (https://nisar-docs.asf.alaska.edu/urgent-response/), so UR and PR
+    GSLCs are never paired here, even if a caller reports alignment.
+
     The application does not currently construct GSLC pairs. This guard is for
     any future pair-processing path; it deliberately requires callers to pass
     the relevant HDF5 provenance rather than infer it from a filename.
@@ -417,7 +434,8 @@ def require_gslc_pair_compatible(
         raise NisarPairingError("GSLC urgent-response provenance is unknown; do not pair these products.")
     if first["urgent_response"] != second["urgent_response"]:
         raise NisarPairingError(
-            "Do not pair urgent-response and standard GSLCs without verified alignment."
+            "Do not pair urgent-response and standard GSLCs: they use different orbits and "
+            "corrections. Wait for the standard GSLC, or pair urgent-response with urgent-response."
         )
     for field in ("track", "orbit_direction", "frame"):
         if not first.get(field) or first.get(field) != second.get(field):

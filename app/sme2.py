@@ -212,9 +212,10 @@ def import_local_file(path: str | Path, bbox: list[float]) -> dict:
         "collection": None,
     }
     key = frame_key(title)
-    meta = _render(key, granule)
     meta_path = cache_dir() / key / "meta.json"
-    meta_path.write_text(json.dumps(meta), encoding="utf-8")
+    with _lock_for(key):
+        meta = _render(key, granule)
+        meta_path.write_text(json.dumps(meta), encoding="utf-8")
     return meta
 
 

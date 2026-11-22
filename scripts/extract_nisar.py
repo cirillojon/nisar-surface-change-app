@@ -374,9 +374,10 @@ def run_gunw(site, frame, granules, previous, workers, refresh):
             valid = cc == np.bincount(ref_cc).argmax()
             phase = px["unwrappedPhase"] - px["ionospherePhaseScreen"]
             valid &= np.isfinite(phase)
-            # Current product interpretation: +phase maps to negative LOS
-            # displacement (+ toward, - away). Keep polarity explicit; the
-            # Handbook's generic equation is not a product-specific sign check.
+            # +phase maps to negative LOS displacement (+ toward, - away).
+            # Checked against known subsidence (Mexico City) and uplift
+            # (Campi Flegrei); the Handbook's generic phase equation alone
+            # does not fix the product-specific sign.
             disp = -phase * float(px["wavelength"]) / (4 * np.pi) * 1000.0
             disp -= np.median(disp[ref_win & valid])
             disp = np.where(valid, disp, 0.0)

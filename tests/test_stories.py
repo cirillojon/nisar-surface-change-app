@@ -138,7 +138,7 @@ def test_finding_is_reproducible_and_honest(client, loaded):
     assert [h["id"] for h in f["hypotheses"]] == ["dry-season-loss"]
     assert f["hypothesis_label"].startswith("Hypothesis")
     assert f["links"]["workspace"] == "/workspace?mode=stories&finding=okavango-flood-pulse:1"
-    assert f["links"]["geojson"] == "/api/stories/okavango-flood-pulse/export.geojson"
+    assert f["links"]["geojson"] == "/api/stories/okavango-flood-pulse/export.geojson?moment=1"
     assert f["links"]["mcp"] == {"tool": "build_finding", "arguments": {"story": "okavango-flood-pulse", "moment": 1}}
     assert "ASF DAAC" in f["citation"]
 
@@ -156,6 +156,13 @@ def test_story_geojson_download_has_bbox_and_reproducibility_metadata(client, lo
     assert feature["geometry"]["type"] == "Polygon"
     assert feature["properties"]["geometry_basis"] == "site bounding box; not the NISAR pixel footprint"
     assert feature["properties"]["evidence"]["passes"]
+
+    # The download matches the card it came from, not just the key moment.
+    card = client.get("/api/findings/okavango-flood-pulse?moment=1").get_json()
+    moment_feature = client.get(card["links"]["geojson"]).get_json()["features"][0]
+    assert moment_feature["properties"]["moment"] == 1
+    assert moment_feature["properties"]["claim"] == card["claim"]
+    assert client.get("/api/stories/okavango-flood-pulse/export.geojson?moment=99").status_code == 400
 
 
 def test_finding_defaults_to_the_key_moment_and_rejects_bad_ones(client, loaded):
