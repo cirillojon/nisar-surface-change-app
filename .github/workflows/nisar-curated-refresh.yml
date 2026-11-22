@@ -31,10 +31,6 @@ permissions:
   contents: write
   pull-requests: write
 
-env:
-  # The branch to build on and open the PR against (repository variable; `future` if unset).
-  BASE: ${{ vars.NISAR_WATCH_BASE || 'future' }}
-
 jobs:
   refresh:
     name: Refresh curated data
@@ -44,9 +40,36 @@ jobs:
       EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
       ONLY: ${{ inputs.only }}
     steps:
+      - name: Pick the base branch
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OVERRIDE: ${{ vars.NISAR_WATCH_BASE }}
+        # `future` while it holds work not yet in the default branch (main);
+        # the default branch once future has been merged into it (or deleted).
+        # The repository variable NISAR_WATCH_BASE overrides both.
+        run: |
+          default=$(gh api "repos/$REPO" -q .default_branch)
+          if [ -n "$OVERRIDE" ]; then
+            base=$OVERRIDE; why="set by the repository variable NISAR_WATCH_BASE"
+          elif ! out=$(gh api "repos/$REPO/compare/$default...future" -q .ahead_by 2>&1); then
+            if echo "$out" | grep -q "HTTP 404"; then
+              base=$default; why="there is no future branch"
+            else
+              echo "::error::Couldn't compare future with $default: $out"; exit 1
+            fi
+          elif [ "$out" -gt 0 ]; then
+            base=future; why="future has $out commits not yet in $default"
+          else
+            base=$default; why="future has been merged into $default"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "::notice::Building on and opening the PR against $base: $why."
+
       - uses: actions/checkout@v5
         with:
-          ref: ${{ env.BASE }}
+          ref: ${{ steps.base.outputs.base }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -84,6 +107,7 @@ jobs:
       - name: Open a PR for review
         env:
           GH_TOKEN: ${{ github.token }}
+          BASE: ${{ steps.base.outputs.base }}
           OUTCOME: ${{ steps.tests.outcome }}
         run: |
           if [ -z "$(git status --porcelain app/data)" ]; then

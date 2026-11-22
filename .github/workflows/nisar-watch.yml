@@ -11,8 +11,9 @@ name: NISAR Watch
 #            NISAR_WATCH_TOKEN (optional; fine-grained PAT or GitHub App token
 #            with contents + pull-requests write). With it the PR runs CI;
 #            without it the PR is opened with GITHUB_TOKEN, which doesn't.
-# Variables: NISAR_WATCH_BASE (optional): the branch to build on and open the
-#            PR against; `future` if unset.
+# Base:      `future` while it has commits not yet in main, then main once
+#            future is merged (step "Pick the base branch").
+# Variables: NISAR_WATCH_BASE (optional): always use this branch instead.
 #            NISAR_WATCH_AUTO_MERGE (optional): `true` to merge the PR when
 #            CI passes (needs NISAR_WATCH_TOKEN and "Allow auto-merge").
 #            Off unless set.
@@ -50,7 +51,6 @@ permissions:
 
 env:
   BRANCH: data/auto
-  BASE: ${{ vars.NISAR_WATCH_BASE || 'future' }}
 
 jobs:
   watch:
@@ -69,10 +69,38 @@ jobs:
             echo "::notice::EARTHDATA_TOKEN not set; skipping (docs/AUTOMATION.md, Setup)."
           fi
 
+      - name: Pick the base branch
+        id: base
+        if: steps.check.outputs.enabled == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OVERRIDE: ${{ vars.NISAR_WATCH_BASE }}
+        # `future` while it holds work not yet in the default branch (main);
+        # the default branch once future has been merged into it (or deleted).
+        # The repository variable NISAR_WATCH_BASE overrides both.
+        run: |
+          default=$(gh api "repos/$REPO" -q .default_branch)
+          if [ -n "$OVERRIDE" ]; then
+            base=$OVERRIDE; why="set by the repository variable NISAR_WATCH_BASE"
+          elif ! out=$(gh api "repos/$REPO/compare/$default...future" -q .ahead_by 2>&1); then
+            if echo "$out" | grep -q "HTTP 404"; then
+              base=$default; why="there is no future branch"
+            else
+              echo "::error::Couldn't compare future with $default: $out"; exit 1
+            fi
+          elif [ "$out" -gt 0 ]; then
+            base=future; why="future has $out commits not yet in $default"
+          else
+            base=$default; why="future has been merged into $default"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "::notice::Building on and opening the PR against $base: $why."
+
       - uses: actions/checkout@v5
         if: steps.check.outputs.enabled == 'true'
         with:
-          ref: ${{ env.BASE }}
+          ref: ${{ steps.base.outputs.base }}
           token: ${{ secrets.NISAR_WATCH_TOKEN || github.token }}
 
       - uses: actions/setup-python@v5
@@ -121,6 +149,7 @@ jobs:
         if: steps.check.outputs.enabled == 'true' && inputs.dry_run != true
         env:
           GH_TOKEN: ${{ secrets.NISAR_WATCH_TOKEN || github.token }}
+          BASE: ${{ steps.base.outputs.base }}
           AUTO_MERGE: ${{ secrets.NISAR_WATCH_TOKEN != '' && vars.NISAR_WATCH_AUTO_MERGE == 'true' }}
         run: |
           if [ -z "$(git status --porcelain app/data/auto app/data/scenes/auto)" ]; then

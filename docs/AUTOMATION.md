@@ -17,8 +17,9 @@ research.
    │               persistence check                                    pipeline/detect.py
    ├─ 4. publish   templated, numbers-only stories                      pipeline/publish.py
    ├─ 5. test      tests/test_pipeline.py, test_stories.py, test_landchange.py
-   └─ 6. PR        data/auto branch → PR into the base branch (`future`);
-                   a person merges it → main → fly-deploy.yml → Latest feed
+   └─ 6. PR        data/auto branch → PR into the base branch (`future`
+                   until it is merged into main, then main); a person merges
+                   it → main → fly-deploy.yml → live in the Latest feed
 ```
 
 Git stays the database: everything the job learns is a JSON file or an
@@ -143,15 +144,28 @@ status to `"superseded"`.
 2. **Let Actions open PRs.** Settings → Actions → General → Workflow
    permissions → *Allow GitHub Actions to create and approve pull
    requests*.
-3. **Base branch.** Both workflows build on, and open their PRs against,
-   the repository variable `NISAR_WATCH_BASE`, or `future` if it is unset.
-   The scheduled run itself only starts from the default branch (`main`),
-   so the workflow file must be there too. Data merged into `future`
-   reaches production when `future` is merged into `main`.
-4. **Optional: `NISAR_WATCH_TOKEN`.** A fine-grained personal access
-   token (or GitHub App token) with *Contents* and *Pull requests* write
-   on this repository. With it, the data PR runs CI. Without it, the PR is
-   opened with `GITHUB_TOKEN`, which doesn't trigger CI.
+3. **Base branch: nothing to set.** Each run picks the branch it builds
+   on and opens its PR against (the run's notice says which and why):
+   - `future` while it has commits not yet in the default branch (`main`);
+   - `main` once `future` has been merged into it, or deleted.
+
+   So merging `future` into `main` switches the data PRs to `main` with
+   no change to the workflows. Merge `future` with a **merge commit**: a
+   squash or rebase merge leaves `future`'s own commits outside `main`,
+   so it would still count as unmerged (delete the branch afterwards, or
+   set the variable). To pin a branch, set the repository variable
+   `NISAR_WATCH_BASE` (Settings → Secrets and variables → Actions →
+   Variables). The scheduled run only starts from `main`, so the
+   workflow files must be on `main`.
+4. **Optional: `NISAR_WATCH_TOKEN`.** GitHub doesn't run workflows for a
+   PR opened with the job's built-in `GITHUB_TOKEN`, so the data PRs get
+   no CI checks without it; they are still opened, and CI runs once a
+   person pushes to the branch or merges. To have CI run on them: create
+   a fine-grained personal access token (GitHub → Settings → Developer
+   settings → Fine-grained tokens) for this repository only, with
+   *Contents: Read and write* and *Pull requests: Read and write*, and add
+   it as the repository secret `NISAR_WATCH_TOKEN` (Settings → Secrets and
+   variables → Actions → New repository secret). It is not needed on Fly.
 5. **Optional: auto-merge.** Off by default: every data PR waits for a
    person. To have it merge when CI passes, set the repository variable
    `NISAR_WATCH_AUTO_MERGE` to `true`, set `NISAR_WATCH_TOKEN`, turn on

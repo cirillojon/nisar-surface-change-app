@@ -72,8 +72,8 @@ Push to `main`:
 - Vercel builds and publishes `frontend/`.
 
 [`nisar-watch.yml`](../.github/workflows/nisar-watch.yml) runs daily and
-opens a PR from `data/auto` into `future` (repository variable
-`NISAR_WATCH_BASE`) with new passes and auto-detected stories
+opens a PR from `data/auto` into `future` (or `main` once `future` is
+merged into it; [AUTOMATION.md §6](AUTOMATION.md#6-setup)) with new passes and auto-detected stories
 ([AUTOMATION.md](AUTOMATION.md)). It needs the `EARTHDATA_TOKEN`
 repository secret (separate from the Fly secret of the same name). A
 person merges the PR; it deploys through `fly-deploy.yml` once it reaches
