@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../services/api.js", () => ({
   fetchStory: vi.fn(),
+  fetchStoryFeed: vi.fn(),
   fetchFinding: vi.fn(),
   fetchCoverageCheck: vi.fn(),
   absoluteApiUrl: (path) => `http://api.test${path}`,
@@ -12,7 +13,7 @@ import CoverageCheck from "../components/CoverageCheck.jsx";
 import FindingCard from "../components/FindingCard.jsx";
 import StoryList from "../components/StoryList.jsx";
 import StoryPanel from "../components/StoryPanel.jsx";
-import { fetchCoverageCheck, fetchFinding, fetchStory } from "../services/api.js";
+import { fetchCoverageCheck, fetchFinding, fetchStory, fetchStoryFeed } from "../services/api.js";
 import { readNotebook, storyMarkdown, useNotebook } from "../services/notebook.js";
 
 const hypothesis = {
@@ -117,7 +118,91 @@ describe("StoryList", () => {
   });
 });
 
+describe("StoryList: Latest", () => {
+  const themes = [{ id: "water", label: "Water" }, { id: "ground", label: "Ground" }];
+  const auto = {
+    slug: "auto-langtang", theme: "ground", origin: "auto", name: "Langtang Lirung", date: "2026-08-31",
+    title: "A 0.47 km² patch turns darker at Langtang Lirung", status_label: "Auto-detected, not reviewed",
+  };
+  const curated = { slug: "jamuna", theme: "water", origin: "curated", name: "Jamuna River", date: "2026-07-09", title: "A braided river" };
+
+  it("switches views, lists stories newest first by month, and badges the auto-detected ones", async () => {
+    fetchStoryFeed.mockResolvedValue({ stories: [auto, curated], total: 3, next_offset: 2, latest_detection: "2026-09-13" });
+    const onViewChange = vi.fn();
+    const { rerender } = render(
+      <StoryList data={{ themes, stories: [auto, curated] }} onSelect={() => {}} view="theme" onViewChange={onViewChange} />,
+    );
+    // By theme, an auto story is badged too.
+    expect(within(screen.getByRole("region", { name: "Ground" })).getByText("Auto-detected, not reviewed")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Latest" }));
+    expect(onViewChange).toHaveBeenCalledWith("latest");
+
+    await act(async () => rerender(
+      <StoryList data={{ themes, stories: [auto, curated] }} onSelect={() => {}} view="latest" onViewChange={onViewChange} />,
+    ));
+    expect(screen.getByRole("button", { name: "Latest" })).toHaveAttribute("aria-pressed", "true");
+    expect(fetchStoryFeed).toHaveBeenLastCalledWith({ theme: "", origin: "", since: "", until: "", limit: 20 });
+    const months = screen.getAllByRole("heading", { level: 2 }).map((h) => h.textContent);
+    expect(months).toEqual(["August 2026", "July 2026"]);
+    const aug = screen.getByRole("region", { name: "August 2026" });
+    expect(within(aug).getByText("Auto-detected, not reviewed")).toBeVisible();
+    expect(within(aug).getByText("Aug 31, 2026")).toBeVisible();
+    expect(screen.getByText(/last found a change on Sep 13, 2026/)).toBeVisible();
+
+    fetchStoryFeed.mockResolvedValueOnce({ stories: [{ ...curated, slug: "older", date: "2026-07-01" }], total: 3, next_offset: null });
+    await act(async () => fireEvent.click(screen.getByRole("button", { name: "Show more" })));
+    expect(fetchStoryFeed).toHaveBeenLastCalledWith(expect.objectContaining({ offset: 2 }));
+    expect(screen.getByText(/3 of 3/)).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Show more" })).toBeNull();
+  });
+
+  it("filters by who found the story and by dates", async () => {
+    fetchStoryFeed.mockResolvedValue({ stories: [auto], total: 1, next_offset: null });
+    render(<StoryList data={{ themes, stories: [auto] }} onSelect={() => {}} view="latest" onViewChange={() => {}} />);
+    await act(async () => {});
+    await act(async () => fireEvent.change(screen.getByLabelText("Found by"), { target: { value: "auto" } }));
+    expect(fetchStoryFeed).toHaveBeenLastCalledWith(expect.objectContaining({ origin: "auto" }));
+    await act(async () => fireEvent.change(screen.getByLabelText("From"), { target: { value: "2026-09-01" } }));
+    expect(fetchStoryFeed).toHaveBeenLastCalledWith(expect.objectContaining({ origin: "auto", since: "2026-09-01" }));
+    fetchStoryFeed.mockResolvedValue({ stories: [], total: 0, next_offset: null });
+    await act(async () => fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-09-30" } }));
+    expect(screen.getByText("No stories match.")).toBeVisible();
+    await act(async () => fireEvent.change(screen.getByLabelText("To"), { target: { value: "2026-08-01" } }));
+    expect(screen.getByRole("alert")).toHaveTextContent("“From” is after “To”.");
+  });
+});
+
 describe("StoryPanel", () => {
+  it("shows an auto-detected story's measurements, its event and that no one reviewed it", async () => {
+    fetchStory.mockResolvedValue({
+      ...story,
+      slug: "auto-langtang",
+      source: "landchange",
+      origin: "auto",
+      title: "A 0.47 km² patch turns darker at Langtang Lirung",
+      summary: "Between 19 Aug 2026 and 31 Aug 2026, 0.47 km² turned darker in HH.",
+      hypotheses: [],
+      detected_at: "2026-09-13",
+      updated_at: "2026-09-25",
+      event: { title: "M6.1 earthquake, Nepal", date: "2026-08-25", source: "USGS", url: "https://earthquake.usgs.gov/x" },
+      detection: {
+        kind: "patch", metric: "hh_db", start: "2026-08-19", end: "2026-08-31", days_apart: 12,
+        area_km2: 0.47, offset_km: 2.2, direction: "southwest", mean_change_db: -6.4, direction_db: "darker",
+        held_share: 1, held_on: "2026-09-12", usual_patch_px: 1, pairs: 23, patch_px: 73,
+      },
+      saw: { status: "auto", suggested: ["2026-08-19", "2026-08-31"], look_for: "The change map." },
+    });
+    render(<StoryPanel slug="auto-langtang" />);
+    expect(await screen.findByRole("heading", { name: "What was measured" })).toBeVisible();
+    expect(screen.getByText("Auto-detected, not reviewed")).toBeVisible();
+    expect(screen.getByRole("note")).toHaveTextContent(/Found by NISAR Watch on Sep 13, 2026 \(updated Sep 25, 2026\)\. No person has reviewed it/);
+    expect(screen.getByRole("link", { name: "M6.1 earthquake, Nepal" })).toHaveAttribute("href", "https://earthquake.usgs.gov/x");
+    expect(screen.getByText("0.47 km², 2.2 km southwest of the centre")).toBeVisible();
+    expect(screen.getByText("−6.4 dB (darker)")).toBeVisible();
+    expect(screen.getByText("100% on Sep 12, 2026")).toBeVisible();
+    expect(screen.queryByRole("heading", { name: "Possible explanations" })).toBeNull();
+  });
+
   it("keeps the title and action row mounted while the details load", async () => {
     let resolveStory;
     fetchStory.mockReturnValue(new Promise((resolve) => { resolveStory = resolve; }));

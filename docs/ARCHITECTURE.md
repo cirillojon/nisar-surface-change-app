@@ -103,9 +103,19 @@ through `GET /api/area-context` and have no moments.
 
 ```
 app/data/stories.json (hand-edited) ─┐
-site moments (app/chains.py) ────────┼─► app/stories.py ─► /api/stories, /api/findings, /api/coverage-check
-app/data/landchange.json ────────────┘                  └─► app/tools.py ─► /api/tools ─► mcp_server/
+site moments (app/chains.py) ────────┤
+app/data/landchange.json ────────────┼─► app/stories.py ─► /api/stories, /api/stories/feed, /api/findings, /api/coverage-check
+app/data/auto/ (NISAR Watch) ────────┘  (via app/auto.py) └─► app/tools.py ─► /api/tools ─► mcp_server/
 ```
+
+Auto-detected stories (`app/data/auto/stories.json`, written by the
+`pipeline/` package on a daily GitHub Actions schedule, see
+[AUTOMATION.md](AUTOMATION.md)) are gallery places with `origin: "auto"`.
+`app/auto.py` loads them (cached on the files' mtime) and `stories.py`
+merges them into the same content and gallery, so every endpoint, tool
+and finding card serves them with no special case beyond their
+"Auto-detected, not reviewed" label. A curated story with the same slug
+wins. Only `status: "active"` stories are shown.
 
 The workspace has three modes (`?mode=stories|investigate|findings`).
 What is on the map (a study site, a gallery place, a drawn area or line)
@@ -123,8 +133,12 @@ selection, or its list when it has none (`src/workspace/navigation.js`):
 
 The tabs:
 
-- **Stories** (`StoryList`, `StoryPanel`): twelve stories, each a study
-  site or gallery place, listed with one of the place's own NISAR passes
+- **Stories** (`StoryList`, `StoryPanel`): the curated stories plus
+  NISAR Watch's auto-detected ones, each a study site or gallery place,
+  shown by theme or as **Latest** (`?list=latest`: newest first by the
+  period shown, filtered by theme, origin and dates, from
+  `/api/stories/feed`). An auto story's panel shows what was measured and
+  that no person reviewed it, instead of hypotheses. Each is listed with one of the place's own NISAR passes
   as a thumbnail. `stories.json` holds the question, hypotheses
   (linked to the moments they address), limits and what the record
   points toward. The evidence is not repeated in the panel: a site's

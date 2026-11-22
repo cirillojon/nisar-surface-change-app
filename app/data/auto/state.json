@@ -1,0 +1,5 @@
+{
+ "_note": "NISAR Watch cursor: granules processed per target, and event targets. Written by python -m pipeline.",
+ "targets": {},
+ "events": []
+}

@@ -158,6 +158,62 @@
   margin-top: 2px;
   line-height: 1.35;
 }
+.story-item-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+/* By theme / Latest, and Latest's filters. */
+.story-view-switch {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.story-view-switch [aria-pressed="true"] {
+  border-color: var(--accent, currentColor);
+  font-weight: 600;
+}
+.story-filters {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 10px;
+  margin-bottom: 8px;
+}
+.story-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.story-filters select,
+.story-filters input {
+  width: 100%;
+}
+
+/* An auto-detected story: what was measured, and that no person checked it. */
+.story-auto-note {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--accent, #6366f1);
+  border-radius: var(--radius);
+  background: var(--bg-elevated);
+}
+.story-detection {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 6px 0 0;
+}
+.story-detection > div {
+  display: contents;
+}
+.story-detection dt {
+  color: var(--fg-muted);
+}
+.story-detection dd {
+  margin: 0;
+}
 
 /* A place's own NISAR pass, small, so a list row is recognised at a glance. */
 .place-thumb {

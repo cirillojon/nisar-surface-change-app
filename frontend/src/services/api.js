@@ -242,6 +242,21 @@ export const fetchStories = () =>
     return r.data;
   });
 
+/**
+ * Stories newest first (by the end of the period each one shows), a page at a
+ * time: `{ stories, total, next_offset, latest_detection, themes }`. Filters:
+ * theme, since / until (YYYY-MM-DD), origin ("curated" | "auto").
+ */
+export const fetchStoryFeed = ({ theme, since, until, origin, limit = 20, offset = 0 } = {}) => {
+  const params = Object.fromEntries(
+    Object.entries({ theme, since, until, origin, limit, offset }).filter(([, v]) => v !== undefined && v !== null && v !== ""),
+  );
+  return cached(`story-feed:${new URLSearchParams(params)}`, TEN_MINUTES, async () => {
+    const r = await api.get("/api/stories/feed", { params });
+    return r.data;
+  });
+};
+
 /** One story: question, moments, hypotheses, limits and future uses. */
 export const fetchStory = (slug) =>
   cached(`story:${slug}`, TEN_MINUTES, async () => {

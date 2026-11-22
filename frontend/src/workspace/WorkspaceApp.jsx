@@ -59,6 +59,7 @@ import {
   panelView,
   parseFinding,
   workspaceParams,
+  storyListFrom,
 } from "./navigation.js";
 
 // Half-width in degrees of the search box drawn around a map click.
@@ -186,6 +187,8 @@ export default function WorkspaceApp({ active = true }) {
   const [mode, setMode] = useState(() =>
     modeFrom(searchParams.get("mode"), DEFAULT_MODE, { hasFinding: Boolean(searchParams.get("finding")) }));
   const [stories, setStories] = useState(null);
+  // The story list's view: "theme" or "latest" (`?list=latest`).
+  const [storyList, setStoryList] = useState(() => storyListFrom(searchParams.get("list")));
   const [openFinding, setOpenFinding] = useState(() => parseFinding(searchParams.get("finding")));
   // True while the shown pass was asked for by a link or a finding, so the
   // chart panel doesn't move off it to the site's first moment.
@@ -811,6 +814,13 @@ export default function WorkspaceApp({ active = true }) {
   const urlMode = searchParams.get("mode");
   const urlPlace = searchParams.get("place");
   const urlFinding = searchParams.get("finding");
+  const urlList = searchParams.get("list");
+  useEffect(() => {
+    // A link (or Back) names the list only while nothing is open, so a missing one
+    // after a place or finding opened keeps the view the viewer chose.
+    if (active && !urlSite && !urlPlace && !urlFinding) setStoryList(storyListFrom(urlList));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, urlList]);
   // A mode, place or finding asked for by a link while the workspace is open
   // (an old `mode=findings` link opens Stories or My findings).
   useEffect(() => {
@@ -904,12 +914,14 @@ export default function WorkspaceApp({ active = true }) {
       if (pendingPlaceRef.current !== landSlug) return;
       pendingPlaceRef.current = null;
     }
-    const next = workspaceParams({ mode, site: site?.slug, date: shownDate, place: landSlug, finding: openFinding });
+    const next = workspaceParams({
+      mode, site: site?.slug, date: shownDate, place: landSlug, finding: openFinding, list: storyList,
+    });
     if (new URLSearchParams(next).toString() === searchParams.toString()) return;
     // Opening a place, tab or finding adds a step Back can undo; dates don't.
     setSearchParams(next, { replace: historyAction(searchParams, next) === "replace" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [active, site, siteError, shownDate, mode, landSlug, openFinding, landChange]);
+  }, [active, site, siteError, shownDate, mode, landSlug, openFinding, landChange, storyList]);
 
   // What the AI assistant knows about the current view.
   useEffect(() => {
@@ -1438,7 +1450,13 @@ export default function WorkspaceApp({ active = true }) {
                 </div>
               )}
               {mode === "stories" && view !== "finding" && (
-                <StoryList data={stories} selected={story?.slug} onSelect={selectStory} />
+                <StoryList
+                  data={stories}
+                  selected={story?.slug}
+                  onSelect={selectStory}
+                  view={storyList}
+                  onViewChange={setStoryList}
+                />
               )}
               {mode === "investigate" && (
                 <PlacesList

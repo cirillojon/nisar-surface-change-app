@@ -20,6 +20,58 @@ function firstSentence(text = "") {
   return head ?? text;
 }
 
+const signed = (v) => `${v > 0 ? "+" : v < 0 ? "−" : ""}${Math.abs(v)}`;
+const METRIC_LABEL = { hh_db: "HH", hv_db: "HV", water_pct: "open water" };
+// The numbers NISAR Watch measured, by detector field; fields not listed aren't shown.
+const DETECTION_ROWS = [
+  ["metric", "Measured in", (v) => METRIC_LABEL[v] ?? v],
+  ["days_apart", "Passes compared", (v, c) => `${dayFmt.format(day(c.start))} and ${dayFmt.format(day(c.end))} (${v} days apart)`],
+  ["area_km2", "Changed patch", (v, c) => `${v} km²${c.offset_km != null ? `, ${c.direction === "centre" ? "at the centre" : `${c.offset_km} km ${c.direction} of the centre`}` : ""}`],
+  ["mean_change_db", "Average change", (v, c) => `${signed(v)} dB${c.direction_db ? ` (${c.direction_db})` : ""}`],
+  ["change", "Step", (v, c) => `${c.before} → ${c.after} ${c.unit} (${signed(v)}; usual noise ${c.noise})`],
+  ["rate_per_month", "Pace", (v, c) => `${signed(v)} ± ${c.se_per_month} ${c.unit} a month over ${c.passes} passes (R² ${c.r2})`],
+  ["held_share", "Still there on the next pass", (v, c) => `${Math.round(v * 100)}%${c.held_on ? ` on ${dayFmt.format(day(c.held_on))}` : ""}`],
+  ["usual_patch_px", "Usual largest patch", (v, c) => `${v} px in ${c.pairs} pairs (this one: ${c.patch_px} px)`],
+];
+
+/** An auto-detected story: who found it, that no one reviewed it, and the measured numbers. */
+function AutoDetection({ story }) {
+  const c = story.detection ?? {};
+  const rows = DETECTION_ROWS.filter(([key]) => c[key] != null);
+  const ev = story.event;
+  const updated = story.updated_at && story.updated_at !== story.detected_at;
+  return (
+    <>
+      <div className="story-auto-note small" role="note">
+        <p>
+          <strong>Found by NISAR Watch</strong>
+          {story.detected_at && <> on {dayFmt.format(day(story.detected_at))}</>}
+          {updated && <> (updated {dayFmt.format(day(story.updated_at))})</>}.
+          {" "}No person has reviewed it: the numbers are measured; what caused the change is not known.
+        </p>
+        {ev && (
+          <p>
+            Reported nearby: {ev.url ? <a href={ev.url} target="_blank" rel="noreferrer">{ev.title}</a> : ev.title}
+            {ev.date && <> ({dayFmt.format(day(ev.date))}, {ev.source})</>}. Shown for context; the radar alone
+            doesn&apos;t show what drove the change.
+          </p>
+        )}
+      </div>
+      {story.summary && <p className="story-summary">{story.summary}</p>}
+      {rows.length > 0 && (
+        <dl className="story-detection small">
+          {rows.map(([key, label, fmt]) => (
+            <div key={key}>
+              <dt>{label}</dt>
+              <dd>{fmt(c[key], c)}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+    </>
+  );
+}
+
 /** Keep the evidence and key caveat visible with the explanation. */
 function Hypothesis({ h, moments, selectedDate, onMoment, imagePair, onCompareImages }) {
   const [open, setOpen] = useState(false);
@@ -249,6 +301,7 @@ export default function StoryPanel({
   const heading = summary ?? story;
   const title = heading?.title ?? "Story";
   const isSite = story?.source === "site";
+  const isAuto = story?.origin === "auto";
   const moments = story?.saw?.moments ?? [];
   const site = story?.site ?? {};
   // Only a place the gallery grades as unconfirmed needs flagging.
@@ -338,7 +391,17 @@ export default function StoryPanel({
     <article className="story-panel" aria-label={title}>
       {header}
 
-      <section className="story-chapter" aria-labelledby="story-why-h">
+      {isAuto && (
+        <section className="story-chapter" aria-labelledby="story-measured-h">
+          <div className="story-chapter-head">
+            <h3 id="story-measured-h">What was measured</h3>
+            <span>Not reviewed</span>
+          </div>
+          <AutoDetection story={story} />
+        </section>
+      )}
+
+      {(!isAuto || story.hypotheses.length > 0) && <section className="story-chapter" aria-labelledby="story-why-h">
         <div className="story-chapter-head">
           <h3 id="story-why-h">Possible explanations</h3>
           <span>Untested</span>
@@ -357,7 +420,7 @@ export default function StoryPanel({
             />
           ))}
         </ul>
-      </section>
+      </section>}
 
       <details className="story-chapter story-about">
         <summary><h3>Method &amp; limits</h3></summary>

@@ -1373,6 +1373,11 @@ code {
   border-color: #f59e0b;
   color: var(--warning);
 }
+/* Found by NISAR Watch: no person has reviewed it. */
+.land-badge-auto {
+  border-color: var(--accent, #6366f1);
+  color: var(--accent, #6366f1);
+}
 .land-checked {
   padding-left: 18px;
 }

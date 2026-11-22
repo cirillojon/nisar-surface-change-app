@@ -47,6 +47,7 @@ import {
   modeFrom,
   panelView,
   parseFinding,
+  storyListFrom,
   workspaceParams,
 } from "../workspace/navigation.js";
 
@@ -86,6 +87,16 @@ describe("the navigation model", () => {
       finding: "okavango-flood-pulse:1",
     });
     expect(workspaceParams({ mode: "investigate", site: "okavango-flood-pulse", finding })).not.toHaveProperty("finding");
+  });
+
+  it("keeps the Latest story list in the link while the list shows", () => {
+    expect(workspaceParams({ mode: "stories", list: "latest" })).toEqual({ mode: "stories", list: "latest" });
+    expect(workspaceParams({ mode: "stories", list: "theme" })).toEqual({ mode: "stories" });
+    expect(workspaceParams({ mode: "stories", place: "kilauea", list: "latest" })).toEqual({ mode: "stories", place: "kilauea" });
+    expect(workspaceParams({ mode: "investigate", list: "latest" })).toEqual({ mode: "investigate" });
+    expect(storyListFrom("latest")).toBe("latest");
+    expect(storyListFrom("random")).toBe("theme");
+    expect(historyAction("mode=stories", { mode: "stories", list: "latest" })).toBe("push");
   });
 
   it("reads a finding link back, with or without a moment", () => {

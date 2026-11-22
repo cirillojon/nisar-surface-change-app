@@ -166,7 +166,8 @@ All endpoints are public and read-only. Errors come back as `{"error": "..."}`.
 | POST   | `/api/nisar/profiles`      | `{"line": [[lon, lat], ...]}`; starts a height-profile job          |
 | GET    | `/api/nisar/profiles/<id>` | Job state and, when done, the result                                |
 | GET    | `/api/landchange`          | The land-change gallery                                             |
-| GET    | `/api/stories`             | `?theme=`; themes and every story                                   |
+| GET    | `/api/stories`             | `?theme=&since=&until=&origin=curated\|auto&sort=theme\|newest`; themes and every story |
+| GET    | `/api/stories/feed`        | Stories newest first, paged (`&limit=` ≤100 `&offset=`), same filters; `latest_detection` |
 | GET    | `/api/stories/<slug>`      | One story: question, moments, hypotheses, limits, future uses       |
 | GET    | `/api/stories/<slug>/series.csv` | A study site's values, one row per pass and metric             |
 | GET    | `/api/findings/<slug>`     | `?moment=N`; one moment as a finding card                           |
@@ -185,12 +186,15 @@ scripts/build_landchange.py   Builds the land-change gallery (offline)
 scripts/build_driver_data.py  Fetches the rain and river flow shown beside each site
 scripts/shared_footprint.py   Open water over the part of each box every pass imaged
 scripts/chain_evidence.py     Prints every number behind the site stories (tables in DATA_AND_METHODS)
+pipeline/                     NISAR Watch: daily job that finds change in new passes (docs/AUTOMATION.md)
 app/
   data/               sites.json (hand-edited), nisar_observations.json + scenes/ (generated),
-                      landchange.json, drivers.json (generated), stories.json (hand-edited)
+                      landchange.json, drivers.json (generated), stories.json (hand-edited),
+                      watchlist.json (hand-edited), auto/ (written by NISAR Watch)
   change_types.py     Change categories and metrics (product, units, legends, radar explainer)
   chains.py           Site story per site: moments computed from NISAR, related series
   stories.py          Stories, findings, CSV export and the coverage check (data: data/stories.json)
+  auto.py             Auto-detected stories and places from data/auto/ (merged in by stories.py)
   tools.py            Shared tool registry: REST /api/tools, the MCP server and the assistant
   drivers.py          Rain and river flow series (public sources, no key)
   sme2.py             Soil-moisture images and values for drawn areas
@@ -214,7 +218,7 @@ frontend/src/
   content/docs/       The docs pages (MDX)
   services/api.js     All backend calls
 tests/                pytest      frontend/src/test/   vitest
-docs/                 GUIDE, DEVELOPMENT, ARCHITECTURE, DATA_AND_METHODS, DEPLOYMENT, TROUBLESHOOTING, NISAR_HERO
+docs/                 GUIDE, DEVELOPMENT, ARCHITECTURE, DATA_AND_METHODS, AUTOMATION, DEPLOYMENT, TROUBLESHOOTING, NISAR_HERO
 ```
 
 ## Documentation
@@ -228,6 +232,8 @@ The same material is in the app under **Docs**. In the repository:
 - [`docs/DATA_AND_METHODS.md`](docs/DATA_AND_METHODS.md): sources and
   citations, how each value and moment is computed, what each site
   shows, and the limits.
+- [`docs/AUTOMATION.md`](docs/AUTOMATION.md): NISAR Watch, the daily job that finds
+  change in new passes and publishes it as auto-detected stories.
 - [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md): Fly.io + Vercel setup and auto-deploys.
 - [`docs/TROUBLESHOOTING.md`](docs/TROUBLESHOOTING.md): common failures.
 - [`docs/NISAR_HERO.md`](docs/NISAR_HERO.md): the home page's radar time-lapse.
