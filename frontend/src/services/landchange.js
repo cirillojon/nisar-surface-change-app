@@ -190,6 +190,8 @@ export const STATUS_LABEL = {
   visible: "Clearly visible",
   likely: "Likely: verify",
   not_visible: "Nothing visible yet",
+  // Found and written by NISAR Watch (docs/AUTOMATION.md); no person has checked it.
+  auto: "Auto-detected, not reviewed",
 };
 
 /** The pass a gallery place is pictured by: its suggested "after" date, else its last. */

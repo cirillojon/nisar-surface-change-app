@@ -1,6 +1,8 @@
 """Stories, findings and coverage: what the workspace's three modes call.
 
-  • ``GET /api/stories``                    — themes and the story list (``?theme=``)
+  • ``GET /api/stories``                    — themes and the story list
+    (``?theme=&since=&until=&origin=curated|auto&sort=default|newest``)
+  • ``GET /api/stories/feed``               — every story newest first, paged (the "Latest" view)
   • ``GET /api/stories/<slug>``             — one story: question, moments, hypotheses, limits, next
   • ``GET /api/stories/<slug>/series.csv``  — every NISAR value at a study site, as CSV
   • ``GET /api/findings/<slug>``            — one moment as a finding card (``?moment=N``)
@@ -30,7 +32,25 @@ def _error(exc, status=400):
 @stories_blueprint.route('/stories')
 @limiter.limit("120 per minute")
 def list_stories():
-    return jsonify(stories.list_stories(request.args.get('theme') or None))
+    a = request.args
+    try:
+        return jsonify(stories.list_stories(
+            a.get('theme') or None, since=a.get('since'), until=a.get('until'),
+            origin=a.get('origin') or None, sort=a.get('sort') or 'default'))
+    except stories.StoryError as exc:
+        return _error(exc)
+
+
+@stories_blueprint.route('/stories/feed')
+@limiter.limit("120 per minute")
+def story_feed():
+    a = request.args
+    try:
+        return jsonify(stories.story_feed(
+            a.get('theme') or None, since=a.get('since'), until=a.get('until'),
+            origin=a.get('origin') or None, limit=a.get('limit', 20), offset=a.get('offset', 0)))
+    except stories.StoryError as exc:
+        return _error(exc)
 
 
 @stories_blueprint.route('/stories/<slug>')

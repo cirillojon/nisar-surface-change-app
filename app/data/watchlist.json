@@ -1,0 +1,19 @@
+{
+ "_note": "Places NISAR Watch (python -m pipeline, docs/AUTOMATION.md) checks for change on every run. Slugs get an 'auto-' prefix. Curated gallery places and study sites are not listed here: they are refreshed by the reviewed nisar-curated-refresh workflow. Fields: slug, name, region, kind, lon, lat, half_km (window half-width), optional theme, frame (pin a track/frame), start (first pass date), note.",
+ "targets": [
+  {"slug": "mayon", "name": "Mayon", "region": "Albay, Philippines", "kind": "Volcano", "lon": 123.685, "lat": 13.257, "half_km": 6, "note": "Tried for the gallery and dropped: nothing visible yet. Watched for new lava or lahar deposits."},
+  {"slug": "fournaise", "name": "Piton de la Fournaise", "region": "Réunion", "kind": "Volcano", "lon": 55.708, "lat": -21.244, "half_km": 6, "note": "Tried for the gallery and dropped. One of the most frequently erupting volcanoes."},
+  {"slug": "nishinoshima", "name": "Nishinoshima", "region": "Ogasawara Islands, Japan", "kind": "Volcano", "lon": 140.874, "lat": 27.247, "half_km": 4, "note": "A volcanic island that has grown in recent eruptions. Tried for the gallery and dropped."},
+  {"slug": "home-reef", "name": "Home Reef", "region": "Tonga", "kind": "Volcano", "lon": -174.775, "lat": -18.992, "half_km": 3, "note": "A submarine volcano that has built short-lived islands. Tried for the gallery and dropped."},
+  {"slug": "sakurajima", "name": "Sakurajima", "region": "Kagoshima, Japan", "kind": "Volcano", "lon": 130.657, "lat": 31.585, "half_km": 5},
+  {"slug": "merapi", "name": "Merapi", "region": "Central Java, Indonesia", "kind": "Volcano", "lon": 110.446, "lat": -7.540, "half_km": 5},
+  {"slug": "fuego", "name": "Volcán de Fuego", "region": "Guatemala", "kind": "Volcano", "lon": -90.880, "lat": 14.473, "half_km": 5},
+  {"slug": "popocatepetl", "name": "Popocatépetl", "region": "Mexico", "kind": "Volcano", "lon": -98.622, "lat": 19.023, "half_km": 5},
+  {"slug": "reykjanes", "name": "Sundhnúkur crater row", "region": "Reykjanes Peninsula, Iceland", "kind": "Volcano", "lon": -22.40, "lat": 63.87, "half_km": 6, "note": "Repeated fissure eruptions near Grindavík since 2023."},
+  {"slug": "palm-jebel-ali", "name": "Palm Jebel Ali", "region": "Dubai, UAE", "kind": "Construction", "lon": 54.99, "lat": 24.99, "half_km": 5, "note": "Tried for the gallery and dropped: only the sea surface changed. Watched for construction on the palm."},
+  {"slug": "great-salt-lake", "name": "Great Salt Lake", "region": "Utah, USA", "kind": "Lake", "lon": -112.5, "lat": 41.1, "half_km": 20},
+  {"slug": "poyang", "name": "Poyang Lake", "region": "Jiangxi, China", "kind": "Lake", "lon": 116.3, "lat": 29.1, "half_km": 20, "note": "China's largest freshwater lake, which swells and shrinks with the Yangtze's seasons."},
+  {"slug": "manchar", "name": "Manchar Lake", "region": "Sindh, Pakistan", "kind": "Flood", "lon": 67.67, "lat": 26.42, "half_km": 15, "note": "Flooded widely in 2022; Indus floods spread over the plain around it."},
+  {"slug": "lake-chad", "name": "Lake Chad", "region": "Chad / Niger / Nigeria / Cameroon", "kind": "Wetland", "lon": 14.1, "lat": 13.3, "half_km": 20}
+ ]
+}

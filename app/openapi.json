@@ -1167,7 +1167,7 @@
         ],
         "operationId": "listStories",
         "summary": "List stories",
-        "description": "The themes and every story with its question. Each story also names its place (`name`) and one of that place's own NISAR passes to picture it (`thumb_url`, a path under `/api/scenes`, and `thumb_date`).",
+        "description": "The themes and every story with its question. Each story also names its place (`name`) and one of that place's own NISAR passes to picture it (`thumb_url`, a path under `/api/scenes`, and `thumb_date`). The list also holds auto-detected stories (`origin: \"auto\"`): templated, numbers-only changes the daily NISAR Watch job found in new passes, labeled `status_label` and not reviewed by a person. Every story has a `date`, the pass it is about, to filter on.",
         "x-rate-limit": "120 per minute",
         "parameters": [
           {
@@ -1183,6 +1183,53 @@
                 "ice",
                 "forest"
               ]
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "Only stories whose `date` is on or after this day.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "description": "Only stories whose `date` is on or before this day.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "origin",
+            "in": "query",
+            "required": false,
+            "description": "Curated or auto-detected stories only.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "curated",
+                "auto"
+              ]
+            }
+          },
+          {
+            "name": "sort",
+            "in": "query",
+            "required": false,
+            "description": "`newest` sorts by `date`, newest first.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "default",
+                "newest"
+              ],
+              "default": "default"
             }
           }
         ],
@@ -1210,6 +1257,149 @@
                       "type": "integer"
                     }
                   }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad filter.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/stories/feed": {
+      "get": {
+        "tags": [
+          "Stories & findings"
+        ],
+        "operationId": "storyFeed",
+        "summary": "Latest stories",
+        "description": "Every story (curated and auto-detected) newest first by `date`, a page at a time: the workspace's Latest view. `latest_detection` is when the watch job last published or updated a story.",
+        "x-rate-limit": "120 per minute",
+        "parameters": [
+          {
+            "name": "theme",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "string",
+              "enum": [
+                "water",
+                "food",
+                "ground",
+                "ice",
+                "forest"
+              ]
+            }
+          },
+          {
+            "name": "since",
+            "in": "query",
+            "required": false,
+            "description": "Only stories whose `date` is on or after this day.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "until",
+            "in": "query",
+            "required": false,
+            "description": "Only stories whose `date` is on or before this day.",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "origin",
+            "in": "query",
+            "required": false,
+            "description": "Curated or auto-detected stories only.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "curated",
+                "auto"
+              ]
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 20
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A page of stories.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "stories": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "count": {
+                      "type": "integer"
+                    },
+                    "total": {
+                      "type": "integer"
+                    },
+                    "offset": {
+                      "type": "integer"
+                    },
+                    "next_offset": {
+                      "type": [
+                        "integer",
+                        "null"
+                      ]
+                    },
+                    "latest_detection": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad filter or page.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
                 }
               }
             }

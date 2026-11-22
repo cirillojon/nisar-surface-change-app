@@ -10,6 +10,10 @@
   claim, the passes behind it, how confident the record is, hypotheses,
   series to compare with, and links to reproduce it (workspace, REST,
   MCP, CSV, printable brief at ``/brief/<slug>``).
+* **Auto-detected stories** (``app/auto.py``): templated, numbers-only
+  stories the NISAR Watch job publishes as new passes arrive, merged into
+  the list with ``origin: "auto"``. ``list_stories`` / ``story_feed`` filter
+  any story by the date of the passes it is about (``since`` / ``until``).
 * **Investigate** (``coverage_check``): for any drawn box, which NISAR
   products have passes, how often, on which tracks and at what quality,
   so a researcher can judge whether NISAR can answer their question.
@@ -31,7 +35,7 @@ from functools import lru_cache
 from pathlib import Path
 from statistics import median
 
-from app import chains, db, nisar
+from app import auto, chains, db, nisar
 from app.change_types import METRICS
 from app.models import Scene, Site
 
@@ -58,23 +62,32 @@ class StoryError(ValueError):
 # ─── content ──────────────────────────────────────────────
 
 @lru_cache(maxsize=1)
-def _content_cached(mtime: float) -> dict:
-    return json.loads(STORIES_PATH.read_text(encoding="utf-8"))
+def _content_cached(mtime: float, auto_mtime: float) -> dict:
+    data = json.loads(STORIES_PATH.read_text(encoding="utf-8"))
+    curated = {s["slug"] for s in data["stories"]}
+    # A promoted auto story is replaced by its curated version.
+    data["stories"] += [s for s in auto.stories() if s["slug"] not in curated]
+    return data
 
 
 def content() -> dict:
-    return _content_cached(STORIES_PATH.stat().st_mtime)
+    """Curated stories, then active auto-detected ones."""
+    return _content_cached(STORIES_PATH.stat().st_mtime, auto.mtime())
 
 
 @lru_cache(maxsize=1)
-def _landchange_cached(mtime: float) -> dict:
-    return json.loads(LANDCHANGE_PATH.read_text(encoding="utf-8"))
+def _landchange_cached(mtime: float, auto_mtime: float) -> dict:
+    data = (json.loads(LANDCHANGE_PATH.read_text(encoding="utf-8"))
+            if LANDCHANGE_PATH.is_file() else {"sites": []})
+    curated = {s["slug"] for s in data["sites"]}
+    data["sites"] += [p for p in auto.gallery_places() if p["slug"] not in curated]
+    return data
 
 
 def landchange() -> dict:
-    if not LANDCHANGE_PATH.is_file():
-        return {"sites": []}
-    return _landchange_cached(LANDCHANGE_PATH.stat().st_mtime)
+    """The gallery: curated places, then auto places that have an active story."""
+    mtime = LANDCHANGE_PATH.stat().st_mtime if LANDCHANGE_PATH.is_file() else 0.0
+    return _landchange_cached(mtime, auto.mtime())
 
 
 def _land_site(slug: str) -> dict | None:
@@ -162,8 +175,14 @@ def _theme_label(theme: str | None) -> str | None:
 
 def _summary(story: dict, sites: dict[str, dict] | None = None) -> dict:
     """A story's list entry. ``name``, ``thumb_url`` and ``thumb_date`` are the
-    place and one of its own NISAR pass images, to recognize it by."""
+    place and one of its own NISAR pass images, to recognize it by.
+
+    ``date`` is the pass the story is about (an auto story's later pass, a
+    gallery story's suggested "after" pass, a study site's newest pass), which
+    the feed sorts and filters on.
+    """
     out = {k: story.get(k) for k in ("slug", "source", "theme", "title", "question")}
+    out["origin"] = story.get("origin") or "curated"
     out["theme_label"] = _theme_label(story.get("theme"))
     out["hypotheses"] = len(story.get("hypotheses") or [])
     out["workspace_url"] = workspace_url(story["slug"], source=story["source"])
@@ -172,18 +191,81 @@ def _summary(story: dict, sites: dict[str, dict] | None = None) -> dict:
     else:
         picture = _land_picture(story["slug"])
     out.update(picture or {"name": None, "thumb_url": None, "thumb_date": None})
+    out["date"] = (story.get("period") or {}).get("end") or out.get("thumb_date")
+    if out["origin"] == "auto":
+        out["status_label"] = auto.STATUS_LABEL
+        out.update({k: story.get(k) for k in ("detected_at", "updated_at", "period", "event", "detector", "kind")})
     return out
 
 
-def list_stories(theme: str | None = None) -> dict:
-    data = content()
-    stories = [s for s in data["stories"] if not theme or s.get("theme") == theme]
+ORIGINS = ("curated", "auto")
+SORTS = ("default", "newest")
+
+
+def _as_day(value, name: str) -> str | None:
+    if value in (None, ""):
+        return None
+    try:
+        return date.fromisoformat(str(value)).isoformat()
+    except ValueError:
+        raise StoryError(f"{name} must be a date (YYYY-MM-DD)") from None
+
+
+def _filtered(theme=None, since=None, until=None, origin=None, sort="default") -> list[dict]:
+    since, until = _as_day(since, "since"), _as_day(until, "until")
+    if since and until and since > until:
+        raise StoryError("since must be on or before until")
+    if origin not in (None, "", *ORIGINS):
+        raise StoryError(f"origin must be one of {', '.join(ORIGINS)}")
+    if sort not in (None, "", *SORTS):
+        raise StoryError(f"sort must be one of {', '.join(SORTS)}")
+    stories = [s for s in content()["stories"] if not theme or s.get("theme") == theme]
+    if origin:
+        stories = [s for s in stories if (s.get("origin") or "curated") == origin]
     sites = _site_pictures()
+    rows = [_summary(s, sites) for s in stories]
+    if since:
+        rows = [r for r in rows if r["date"] and r["date"] >= since]
+    if until:
+        rows = [r for r in rows if r["date"] and r["date"] <= until]
+    if sort == "newest":
+        rows.sort(key=lambda r: (r["date"] or "", r.get("updated_at") or ""), reverse=True)
+    return rows
+
+
+def list_stories(theme: str | None = None, since: str | None = None, until: str | None = None,
+                 origin: str | None = None, sort: str = "default") -> dict:
+    """Stories, optionally filtered by theme, origin and the date of the passes they're about."""
+    rows = _filtered(theme, since, until, origin, sort)
     return {
-        "themes": data.get("themes", []),
-        "stories": [_summary(s, sites) for s in stories],
-        "count": len(stories),
+        "themes": content().get("themes", []),
+        "stories": rows,
+        "count": len(rows),
         "hypothesis_label": HYPOTHESIS_LABEL,
+        "auto_label": auto.STATUS_LABEL,
+    }
+
+
+FEED_LIMIT = 100
+
+
+def story_feed(theme: str | None = None, since: str | None = None, until: str | None = None,
+               origin: str | None = None, limit=20, offset=0) -> dict:
+    """Every story newest first (the "Latest" view), a page at a time."""
+    try:
+        limit, offset = int(limit), int(offset)
+    except (TypeError, ValueError):
+        raise StoryError("limit and offset must be integers") from None
+    if not 1 <= limit <= FEED_LIMIT or offset < 0:
+        raise StoryError(f"limit must be 1-{FEED_LIMIT} and offset 0 or more")
+    rows = _filtered(theme, since, until, origin, "newest")
+    page = rows[offset:offset + limit]
+    return {
+        "stories": page, "count": len(page), "total": len(rows), "offset": offset,
+        "next_offset": offset + limit if offset + limit < len(rows) else None,
+        "latest_detection": max((r.get("detected_at") or "" for r in rows), default="") or None,
+        "themes": content().get("themes", []),
+        "auto_label": auto.STATUS_LABEL,
     }
 
 
@@ -251,6 +333,8 @@ def get_story(slug: str) -> dict:
             "status": land.get("status"), "sources": land.get("sources") or [],
         }
         out["compare_with"] = []
+    if story.get("origin") == "auto":
+        out["status_label"] = auto.STATUS_LABEL
     out["workspace_url"] = workspace_url(slug, source=story["source"])
     return out
 
@@ -454,21 +538,32 @@ def _land_finding(story: dict, today: str) -> dict:
          "image_url": f"/api/scenes/{p['image']}" if p.get("image") else None}
         for p in window
     ]
-    status = {"visible": "Visible in the images", "likely": "Likely, not confirmed"}.get(
-        land.get("status"), land.get("status"))
+    status = {"visible": "Visible in the images", "likely": "Likely, not confirmed",
+              auto.STATUS: auto.STATUS_LABEL}.get(land.get("status"), land.get("status"))
+    is_auto = story.get("origin") == "auto"
+    claim = {
+        "headline": f"{land.get('headline')} ({status})",
+        "title": land.get("headline"), "display": status, "detail": land.get("look_for"),
+        "caption": land.get("look_for"), "start": start, "end": end, "measured": False,
+    }
+    if is_auto:
+        # An auto story's text is its measurement, so the claim is measured.
+        claim.update({"headline": f"{story['summary']} ({status})", "detail": story["summary"],
+                      "caption": story["summary"], "measured": True,
+                      "metric": (story.get("detection") or {}).get("metric")})
+    evidence = {"passes": passes, "record_passes": len(all_passes), "sources": land.get("sources") or []}
+    if is_auto:
+        evidence["detection"] = story.get("detection")
     return {
         "id": f"{slug}/0",
-        "story": {"slug": slug, "title": story["title"], "question": story["question"], "source": "landchange"},
+        "story": {"slug": slug, "title": story["title"], "question": story["question"], "source": "landchange",
+                  "origin": story.get("origin") or "curated"},
         "site": {"slug": slug, "name": land.get("name"), "product": "GCOV", "frame": land.get("frame"),
                  "bbox": land.get("bbox"), "channels": _land_channels(all_passes)["label"]},
-        "claim": {
-            "headline": f"{land.get('headline')} ({status})",
-            "title": land.get("headline"), "display": status, "detail": land.get("look_for"),
-            "caption": land.get("look_for"), "start": start, "end": end, "measured": False,
-        },
+        "claim": claim,
         "moments": [],
         "moment": None,
-        "evidence": {"passes": passes, "record_passes": len(all_passes), "sources": land.get("sources") or []},
+        "evidence": evidence,
         "confidence": _confidence(passes, all_passes),
         "hypotheses": story.get("hypotheses") or [],
         "hypothesis_label": HYPOTHESIS_LABEL,
@@ -622,5 +717,5 @@ def landchange_not_visible() -> list[dict]:
 __all__ = [
     "StoryError", "list_stories", "get_story", "build_finding", "series_csv",
     "story_geojson",
-    "coverage_check", "default_window", "resolve_story_slug", "landchange_not_visible",
+    "coverage_check", "default_window", "resolve_story_slug", "landchange_not_visible", "story_feed",
 ]

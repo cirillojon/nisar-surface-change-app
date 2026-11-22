@@ -86,6 +86,7 @@ const ALL_TABS = [
         pages: [
           { slug: "local-setup", title: "Run it locally" },
           { slug: "architecture", title: "Architecture & data pipeline" },
+          { slug: "automation", title: "NISAR Watch (automation)" },
           { slug: "deployment", title: "Deploy & troubleshoot" },
         ],
       },

@@ -73,6 +73,7 @@ import {
   panelView,
   parseFinding,
   readWorkspaceUrl,
+  storyListFrom,
   workspaceParams,
 } from "../workspace/navigation.js";
 
@@ -94,11 +95,12 @@ describe("the navigation model", () => {
 
   it("reads what a workspace link asks for", () => {
     expect(readWorkspaceUrl("mode=stories&site=sylhet&date=2026-07-14&finding=sylhet:2&demo=1")).toEqual({
-      mode: "stories", site: "sylhet", date: "2026-07-14", place: null, comparison: null, finding: "sylhet:2", demo: true,
+      mode: "stories", site: "sylhet", date: "2026-07-14", place: null, comparison: null, finding: "sylhet:2", list: null, demo: true,
     });
     expect(readWorkspaceUrl(new URLSearchParams("place=etna&site="))).toEqual({
-      mode: null, site: null, date: null, place: "etna", comparison: null, finding: null, demo: false,
+      mode: null, site: null, date: null, place: "etna", comparison: null, finding: null, list: null, demo: false,
     });
+    expect(readWorkspaceUrl("mode=stories&list=latest").list).toBe("latest");
   });
 
   it("writes a link that reopens the same view", () => {
@@ -121,6 +123,16 @@ describe("the navigation model", () => {
       finding: "okavango-flood-pulse:1",
     });
     expect(workspaceParams({ mode: "investigate", site: "okavango-flood-pulse", finding })).not.toHaveProperty("finding");
+  });
+
+  it("keeps the Latest story list in the link while the list shows", () => {
+    expect(workspaceParams({ mode: "stories", list: "latest" })).toEqual({ mode: "stories", list: "latest" });
+    expect(workspaceParams({ mode: "stories", list: "theme" })).toEqual({ mode: "stories" });
+    expect(workspaceParams({ mode: "stories", place: "kilauea", list: "latest" })).toEqual({ mode: "stories", place: "kilauea" });
+    expect(workspaceParams({ mode: "investigate", list: "latest" })).toEqual({ mode: "investigate" });
+    expect(storyListFrom("latest")).toBe("latest");
+    expect(storyListFrom("random")).toBe("theme");
+    expect(historyAction("mode=stories", { mode: "stories", list: "latest" })).toBe("push");
   });
 
   it("reads a finding link back, with or without a moment", () => {

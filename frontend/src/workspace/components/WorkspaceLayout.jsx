@@ -37,6 +37,8 @@ function ListPanel({ ws }) {
       stories={data.stories}
       story={v.story}
       onSelectStory={act.selectStory}
+      storyList={ui.storyList}
+      onStoryListChange={ui.setStoryList}
       openFinding={openFinding}
       onCloseFinding={() => ui.setOpenFinding(null)}
       onChangeFindingMoment={(moment) => ui.setOpenFinding({ ...openFinding, moment })}

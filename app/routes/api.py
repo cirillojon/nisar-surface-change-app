@@ -21,7 +21,7 @@ import requests
 from flask import Blueprint, abort, jsonify, request, send_from_directory
 from sqlalchemy import func
 
-from app import chains, db, drivers, geocode, limiter
+from app import auto, chains, db, drivers, geocode, limiter
 from app.change_types import CHANGE_TYPES, change_type_list
 from app.loader import SCENES_DIR
 from app.models import LoadJob, Scene, Site
@@ -191,7 +191,8 @@ def land_change():
     """Land-change gallery (``scripts/build_landchange.py`` output).
 
     Each pass gets ``image_url`` (what the map shows) and ``hh_url`` (8-bit
-    HH dB layer the browser uses for change maps). Sites marked ``hidden``
+    HH dB layer the browser uses for change maps). Auto-detected places
+    (``app/auto.py``) follow the curated ones with ``status: "auto"``. Sites marked ``hidden``
     (imagery for the guided tour) are left out of ``sites`` and returned by
     slug in ``imagery`` instead.
     """
@@ -203,6 +204,14 @@ def land_change():
         for p in site.get('passes', []):
             p['image_url'] = f"/api/scenes/{p['image']}"
             p['hh_url'] = f"/api/scenes/{p['hh']}"
+    curated = {s['slug'] for s in data.get('sites', [])}
+    for place in auto.gallery_places():
+        if place['slug'] in curated:
+            continue
+        for p in place.get('passes', []):
+            p['image_url'] = f"/api/scenes/{p['image']}"
+            p['hh_url'] = f"/api/scenes/{p['hh']}"
+        data['sites'].append(place)
     sites = data.get('sites', [])
     data['imagery'] = {s['slug']: s for s in sites if s.get('hidden')}
     data['sites'] = [s for s in sites if not s.get('hidden')]
