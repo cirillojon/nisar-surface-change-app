@@ -159,14 +159,95 @@ can make a hand-written caption untrue, and the failing tests show which.
 
 ## 7. Running it locally
 
+You can run the whole loop on your machine with no Fly deploy and no
+GitHub Actions. The pipeline writes the same files the daily job commits,
+and the dev server shows them as soon as they change.
+
+**1. Start the app** (see [DEVELOPMENT.md](DEVELOPMENT.md) for first-time setup):
+
 ```bash
-export EARTHDATA_TOKEN=...            # or ~/.netrc for urs.earthdata.nasa.gov
-python -m pipeline targets            # what would be watched (polls the event feeds)
-python -m pipeline run --dry-run      # search only: what would be rendered
-python -m pipeline run --target auto-mayon --no-events
-python -m pipeline detect             # re-run detection and publishing on the committed data
-pytest tests/test_pipeline.py
+# Terminal 1: backend. .env (copied from .env.example) sets FLASK_ENV=development.
+bin/start dev                         # http://localhost:8880
+
+# Terminal 2: frontend
+cd frontend && npm run dev            # http://localhost:5173
 ```
+
+Open <http://localhost:5173/workspace?mode=stories&list=latest>. The
+**Latest** list shows the curated stories, newest first. No auto-detected
+story is listed yet.
+
+**2. Give the pipeline a token.** Put `EARTHDATA_TOKEN=...` in `.env` (the
+pipeline reads it through the app's `load_dotenv`), or export it in a
+third terminal. Make a token at <https://urs.earthdata.nasa.gov> under
+*Generate Token*.
+
+```bash
+source .venv/bin/activate
+python -m pipeline check-token        # set, and days until it expires
+```
+
+**3. Look before writing anything:**
+
+```bash
+python -m pipeline targets --no-events   # the watch list only (no network)
+python -m pipeline targets               # plus places near recent events (EONET, USGS, GDACS)
+python -m pipeline run --dry-run --no-events   # CMR search only: what would be rendered
+```
+
+**4. Run it for one place**, keeping it small:
+
+```bash
+python -m pipeline run --target auto-mayon --no-events --max-passes 20
+```
+
+This renders each new pass under `app/data/scenes/auto/<slug>/`, updates
+`app/data/auto/{places,stories,state}.json`, and prints the same Markdown
+summary the job puts on its PR. It lists every candidate and why it was
+published or held back (pending, spike, area-wide…). A second run skips
+passes it already has.
+
+**5. See the result.** There's no need to restart either server: the
+backend rereads `app/data/auto/*.json` when they change. Reload the page.
+
+- **Stories → Latest**: set *Found by* to *NISAR Watch (not reviewed)*. Open
+  a story to see its badge and the *What was measured* panel.
+- **Investigate**: the watched place is in the gallery with its new passes.
+- **API**:
+  ```bash
+  curl 'localhost:8880/api/stories/feed?origin=auto'
+  curl 'localhost:8880/api/stories?origin=auto&since=2026-01-01'
+  ```
+
+Many places have no story at first: a change has to stand out from the
+place's own noise and still be there on the next pass. To get more
+candidates, add more targets (`--target` is repeatable) or drop
+`--no-events`.
+
+**6. Iterate on the detectors without downloading again.** After editing
+`pipeline/detect.py` or `pipeline/publish.py`:
+
+```bash
+python -m pipeline detect             # detection and publishing on the passes already on disk (no network)
+pytest tests/test_pipeline.py tests/test_stories.py
+```
+
+**7. Check what the job would commit, then reset:**
+
+```bash
+git status --short app/data/auto app/data/scenes/auto
+git checkout app/data/auto && git clean -fd app/data/scenes/auto
+```
+
+**Without a token** you can still run `pytest tests/test_pipeline.py`. It
+replays the detectors on the committed gallery and checks that they
+re-find Langtang, Budhi Gandaki and Bang Pakong, and reject Etna's passing
+change. You can also run `python -m pipeline targets --no-events`, and use
+the Latest list with the curated stories.
+
+**To run the real workflow before merging**, push the branch and start
+*NISAR Watch* from the Actions tab (`workflow_dispatch`, with *dry run*
+first). It needs the `EARTHDATA_TOKEN` secret (§6).
 
 ## 8. Costs and limits
 
