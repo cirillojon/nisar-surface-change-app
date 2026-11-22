@@ -61,7 +61,7 @@ MAX_AREA_DEG = 30.0
 GRIDS = "science/LSAR/SME2/grids"
 # SME2 posts on a 200 m grid; trim one cell along swath edges.
 EDGE_ERODE_PX = 2
-# Fixed so the same colour means the same wetness on every pass and area.
+# Fixed so the same color means the same wetness on every pass and area.
 SOIL_MOISTURE_RANGE = (0.0, 0.5)  # m3/m3
 # Dry (brown) to wet (teal), ColorBrewer BrBG.
 SOIL_MOISTURE_STOPS = [

@@ -116,7 +116,7 @@ def test_find_place_tool_gives_a_search_box(client, monkeypatch):
     assert result["query"] == "lake chad"
     lake, country = result["results"]
     assert lake["search_bbox"] == [13.0, 12.3, 15.2, 14.5] and not lake["search_bbox_clipped"]
-    # A country is searched as a 3° box around its centre.
+    # A country is searched as a 3° box around its center.
     assert country["search_bbox"] == [-54.7, -11.8, -51.7, -8.8] and country["search_bbox_clipped"]
     assert result["attribution"] == geocode.ATTRIBUTION
     assert tools.validate_bbox(country["search_bbox"])

@@ -12,8 +12,8 @@ import { SME2_LAYERS, SME2_METRICS } from "../../services/sme2.js";
 export const pct = (share) =>
   share >= 0.995 ? "100%" : `${Math.max(0, share * 100).toFixed(share < 0.1 ? 1 : 0)}%`;
 
-/** How the explorer starts for a new set of results: the time slider, the newest day, colour. */
-export const freshExplorer = (key) => ({ key, mode: "time", index: null, layer: "colour", granuleId: null });
+/** How the explorer starts for a new set of results: the time slider, the newest day, color. */
+export const freshExplorer = (key) => ({ key, mode: "time", index: null, layer: "color", granuleId: null });
 
 /**
  * Days for sharp, pre-rendered imagery of this area (a gallery-style site):
@@ -180,7 +180,7 @@ export function layerOptionsOf({ sharp, isSme2, sme2 }) {
     {
       id: "soil_moisture",
       label: SME2_LAYERS.soil_moisture.label,
-      // Known only once passes have rendered: grey it out if none has it.
+      // Known only once passes have rendered: gray it out if none has it.
       disabled: loaded.length > 0 && !loaded.some((r) => r.images?.soil_moisture),
       reason: "none retrieved here",
     },

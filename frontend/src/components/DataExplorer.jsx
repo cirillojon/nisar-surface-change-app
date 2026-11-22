@@ -52,7 +52,7 @@ function MosaicPanel({ mosaic, product, opacity, onOpacityChange, legend, onSele
       <h3>Newest {product} data across the area</h3>
       <p className="small">
         Covers <strong>{pct(mosaic.coverage)}</strong> of the area with {n(mosaic.tiles.length, "image")} from{" "}
-        {n(mosaic.days.length, "date")}. Newer passes are on top; coloured outlines mark where each date takes over.
+        {n(mosaic.days.length, "date")}. Newer passes are on top; colored outlines mark where each date takes over.
       </p>
       {mosaic.coverage < 0.995 && (
         <p className="warning small">
@@ -172,7 +172,7 @@ function TimeView({ view, actions, player, docked }) {
  *
  * L2 products show NASA's browse images, unless sharp imagery was rendered
  * for this area (the guided tour's box, a gallery-style site); SME2 passes
- * are rendered by the backend (backscatter in the crop sites' colours, or
+ * are rendered by the backend (backscatter in the crop sites' colors, or
  * soil moisture). Backscatter images can be viewed as HH, HV or the
  * open-water mask (see services/layers.js). The view is the workspace's
  * (catalog/useExplorer.js, through CatalogContext): it also draws the map.

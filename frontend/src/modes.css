@@ -202,7 +202,7 @@
   }
 }
 
-/* ── Theme colours ── */
+/* ── Theme colors ── */
 .story-theme-dot {
   display: inline-block;
   width: 9px;
@@ -255,7 +255,7 @@
   line-height: 1.35;
 }
 
-/* A place's own NISAR pass, small, so a list row is recognised at a glance. */
+/* A place's own NISAR pass, small, so a list row is recognized at a glance. */
 .place-thumb {
   flex: none;
   width: 44px;
@@ -873,7 +873,7 @@
 }
 
 /* ── Saving a finding: the viewer's words, then the app's evidence ── */
-/* A native modal <dialog>: it sits in the top layer, centred, over a backdrop. */
+/* A native modal <dialog>: it sits in the top layer, centered, over a backdrop. */
 .save-dialog-host {
   width: min(520px, calc(100% - 32px));
   max-width: none;
@@ -1324,7 +1324,7 @@
   }
 }
 
-/* The globe (CesiumJS): it fills the map frame, its controls in the 2D map's column and colours. */
+/* The globe (CesiumJS): it fills the map frame, its controls in the 2D map's column and colors. */
 .globe-map {
   background: #000;
 }

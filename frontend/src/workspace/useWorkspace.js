@@ -378,7 +378,7 @@ function useSiteImages(ws) {
     setLayerFor(comparison);
     setSiteLayer(linkedLayer);
   }
-  const mapSiteUrl = useLayerMapper(siteLayers ? siteLayer : "colour", items);
+  const mapSiteUrl = useLayerMapper(siteLayers ? siteLayer : "color", items);
   return { siteLayers, mapSiteUrl, comparison };
 }
 

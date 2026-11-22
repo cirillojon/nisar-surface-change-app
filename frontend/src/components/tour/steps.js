@@ -27,13 +27,13 @@
  * `next` (a Next button), `keepsDialog` (leave the save dialog open; other
  * steps close it), `finish` (the last step), `waiting` (said while the
  * target hasn't appeared), `art` (an illustration in the bubble; the step
- * then carries no pitch-part label), `unlabelled` (no pitch-part label).
+ * then carries no pitch-part label), `unlabeled` (no pitch-part label).
  *
  * The Kīlauea drawing steps also use: `scene` ("none", "area" or "line":
  * what the map holds, put back when Back returns to the step), `midDraw`
  * (a step that only exists while the user is mid-drawing, so Back skips
  * over it), `needs(state)` (when false, go back a step: the drawing was
- * cancelled), `watch` (stay on the step after `done`, until Next), `nice`
+ * canceled), `watch` (stay on the step after `done`, until Next), `nice`
  * (what the bubble says then). `sequence` ([date, date]: done once the
  * land player's bar has shown them in that order; its yellow lines are put
  * on the bar with `setGuide`).
@@ -66,7 +66,7 @@ export const STEPS = [
     title: "A data repository, turned into Google Maps",
     body: "The problem: NISAR's public viewers are comprehensive, but hard to navigate and slow to turn into insight.",
     hint: "Our solution: see any area fast and connect the dots, with example stories to show how.",
-    unlabelled: true,
+    unlabeled: true,
     enter: (a) => a.showList(),
     next: true,
   },
@@ -251,7 +251,7 @@ export const STEPS = [
     nice: "Nice! The radar image before and after. Click Next.",
     waiting: "Loading the Langtang passes…",
     enter: (a) => {
-      a.openStory(LANGTANG, { date: LANGTANG_BEFORE, layer: "colour", panel: true });
+      a.openStory(LANGTANG, { date: LANGTANG_BEFORE, layer: "color", panel: true });
       a.setGuide([LANGTANG_BEFORE, LANGTANG_AFTER]);
     },
     sequence: [LANGTANG_BEFORE, LANGTANG_AFTER],

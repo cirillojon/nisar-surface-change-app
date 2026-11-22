@@ -14,7 +14,7 @@ export const SME2_METRICS = [
 export const SME2_LAYERS = {
   backscatter: {
     label: "Backscatter",
-    note: "SME2's HH/HV layers, coloured like the crop sites.",
+    note: "SME2's HH/HV layers, colored like the crop sites.",
   },
   soil_moisture: {
     label: "Soil moisture",

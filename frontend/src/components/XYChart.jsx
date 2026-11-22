@@ -26,7 +26,7 @@ function extent(values, pad = 0.08) {
   return [lo - p, hi + p];
 }
 
-/** A layer's key: its id, else its kind and colour (a chart has one of each). */
+/** A layer's key: its id, else its kind and color (a chart has one of each). */
 const layerKey = (l) => l.id ?? `${l.type}-${l.color}`;
 
 export default function XYChart({

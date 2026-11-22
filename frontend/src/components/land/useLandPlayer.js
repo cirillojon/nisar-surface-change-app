@@ -56,9 +56,9 @@ function useChangeMap(maps, from, to, removeShift, enabled) {
   return { result, pending: !(built || matches) };
 }
 
-/** Each pass's colour image, drawn grey where only HH was collected (no HV to show). */
+/** Each pass's color image, drawn gray where only HH was collected (no HV to show). */
 function passImages(passes) {
-  return passes.map((p) => ({ url: assetUrl(p.image_url), grey: !/HV/.test(p.polarizations ?? "HH+HV") }));
+  return passes.map((p) => ({ url: assetUrl(p.image_url), gray: !/HV/.test(p.polarizations ?? "HH+HV") }));
 }
 
 /**
@@ -73,13 +73,13 @@ export function useLandPlayer({ site, dbRange, dates: chosen, layer: chosenLayer
   const passes = site?.passes ?? NO_PASSES;
   const { dates, from, to } = comparedPair(site, chosen);
   const images = useMemo(() => passImages(passes), [passes]);
-  const hvPasses = images.filter((it) => !it.grey).length;
+  const hvPasses = images.filter((it) => !it.gray).length;
   const everyHv = hvPasses === passes.length;
-  // Where HV is missing on some passes, colour frames would alternate with
-  // grey ones and look like change: start in HH, which every pass has.
-  const layer = chosenLayer ?? (everyHv ? "colour" : "hh");
+  // Where HV is missing on some passes, color frames would alternate with
+  // gray ones and look like change: start in HH, which every pass has.
+  const layer = chosenLayer ?? (everyHv ? "color" : "hh");
   const changing = layer === "change";
-  const mapUrl = useLayerMapper(changing ? "colour" : layer, images);
+  const mapUrl = useLayerMapper(changing ? "color" : layer, images);
   const maps = useMemo(
     () => createChangeMaps({ load: loadLayer, draw: toDataUrl, urlOf: assetUrl, range: dbRange }),
     [loadLayer, toDataUrl, dbRange],

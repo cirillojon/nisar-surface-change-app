@@ -59,7 +59,7 @@ describe("shared labels", () => {
 
   it("labels every image layer and the change map", () => {
     expect(LAYER_LABEL.change).toBe("Change map");
-    expect(LAYER_LABEL.colour).toBe("Colour (HH, HV)");
+    expect(LAYER_LABEL.color).toBe("Color (HH, HV)");
   });
 });
 
@@ -109,10 +109,10 @@ describe("placeDraft", () => {
     expect(placeDraft({ place: null, kind: "view" })).toBeNull();
   });
 
-  it("falls back to the place's suggested dates and the colour layer", () => {
+  it("falls back to the place's suggested dates and the color layer", () => {
     const draft = placeDraft({ place, kind: "view", layer: null, dates: null });
     expect(draft.source).toBeNull();
-    expect(draft.view).toMatchObject({ mode: "investigate", place: "etna", layer: "colour" });
+    expect(draft.view).toMatchObject({ mode: "investigate", place: "etna", layer: "color" });
     expect(draft.evidence).toMatchObject({
       label: "New lava flow",
       display: "Clearly visible",

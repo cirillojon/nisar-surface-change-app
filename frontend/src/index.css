@@ -711,7 +711,7 @@ code {
   width: 52px;
   margin: 0;
 }
-/* The shared layer picker: a labelled select, the same in every view. */
+/* The shared layer picker: a labeled select, the same in every view. */
 .layer-select {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
@@ -1298,7 +1298,7 @@ code {
 .ramp-displacement {
   background: linear-gradient(to right, #b2182b, #f7f7f7, #2166ac);
 }
-.ramp-grey {
+.ramp-gray {
   background: linear-gradient(to right, #000, #fff);
 }
 .ramp-water {
@@ -1764,7 +1764,7 @@ code {
   animation: tour-march 1s linear infinite;
 }
 
-/* Leaflet sets marker icons to display: block; the label is centred in a span. */
+/* Leaflet sets marker icons to display: block; the label is centered in a span. */
 .leaflet-marker-icon.tour-corner {
   box-sizing: border-box;
   border-radius: 50%;

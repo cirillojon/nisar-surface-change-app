@@ -37,7 +37,7 @@ export default function AoiPanel({
       </p>
       {aoi.clipped && (
         <p className="muted small">
-          {aoi.label} is larger than one search, so this box is its centre. Use Draw area to search another part of it.
+          {aoi.label} is larger than one search, so this box is its center. Use Draw area to search another part of it.
         </p>
       )}
       {!aoi.drawn && (

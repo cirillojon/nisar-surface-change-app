@@ -5,7 +5,7 @@
  * the presenter hasn't), Backspace goes back, Escape leaves. On a step with
  * a `pair` of dates, ← and → switch between them.
  *
- * Fields: `card` ({ lines: [{ label?, text }] }: a big centred card instead
+ * Fields: `card` ({ lines: [{ label?, text }] }: a big centered card instead
  * of the app), `label` (a small caption over the map), `enter(actions)`
  * (put the app in the step's state), `skip(actions)` (Space before the step
  * is done: do it for the presenter), `done(state)` (move on by itself),
@@ -121,10 +121,10 @@ export const DEMO_STEPS = [
     id: "langtang",
     label: "Langtang, Nepal · rock slope failure, 26 Aug 2026",
     enter: (a) => {
-      a.openStory(LANGTANG, { date: LANGTANG_PAIR[0], layer: "colour", panel: false });
+      a.openStory(LANGTANG, { date: LANGTANG_PAIR[0], layer: "color", panel: false });
       a.setGuide(LANGTANG_PAIR);
     },
-    pair: { dates: LANGTANG_PAIR, layer: "colour" },
+    pair: { dates: LANGTANG_PAIR, layer: "color" },
     sr: "Left and right arrow keys show the radar image before and after.",
   },
   {

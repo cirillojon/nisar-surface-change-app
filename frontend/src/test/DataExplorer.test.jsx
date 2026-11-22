@@ -92,7 +92,7 @@ describe("<DataExplorer /> sharp imagery", () => {
     expect(screen.queryByRole("button", { name: /Mosaic/ })).toBeNull();
     const layers = screen.getByRole("combobox", { name: "Image layer" });
     expect(within(layers).getAllByRole("option").map((o) => o.textContent)).toEqual([
-      "Colour (HH, HV)", "HH brightness", "HV brightness", "Very dark pixels",
+      "Color (HH, HV)", "HH brightness", "HV brightness", "Very dark pixels",
     ]);
   });
 

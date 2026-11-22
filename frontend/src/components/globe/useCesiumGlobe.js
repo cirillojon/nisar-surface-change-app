@@ -67,7 +67,7 @@ function tuneLoading(globe) {
   // Ground whose tiles haven't arrived yet is a dark ocean blue, not Cesium's bright default.
   globe.baseColor = Color.fromCssColorString("#0a1a2f");
   // Markers, names and lines sit on top of the ground (not half sunk into it
-  // where the Earth curves away off-centre); the far side still hides them.
+  // where the Earth curves away off-center); the far side still hides them.
   globe.depthTestAgainstTerrain = false;
 }
 

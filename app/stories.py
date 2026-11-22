@@ -2,7 +2,7 @@
 
 * **Stories** (``list_stories`` / ``get_story``): curated places told in
   five chapters: the question, what NISAR saw (the site's moments from
-  ``app/chains.py`` or a gallery place's passes), labelled physical
+  ``app/chains.py`` or a gallery place's passes), labeled physical
   hypotheses, what NISAR can't see there, and what a longer record could
   make possible. Content lives in ``app/data/stories.json``.
 * **Evidence cards** (``build_finding`` / ``series_csv``): one moment of a
@@ -162,7 +162,7 @@ def _theme_label(theme: str | None) -> str | None:
 
 def _summary(story: dict, sites: dict[str, dict] | None = None) -> dict:
     """A story's list entry. ``name``, ``thumb_url`` and ``thumb_date`` are the
-    place and one of its own NISAR pass images, to recognise it by."""
+    place and one of its own NISAR pass images, to recognize it by."""
     out = {k: story.get(k) for k in ("slug", "source", "theme", "title", "question")}
     out["theme_label"] = _theme_label(story.get("theme"))
     out["hypotheses"] = len(story.get("hypotheses") or [])

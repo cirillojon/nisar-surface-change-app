@@ -56,7 +56,7 @@ class Site(db.Model):
     product = db.Column(db.String(8))
     frame = db.Column(db.String(16))
     # GUNW sites: the stable point displacement is measured against, and
-    # the +/- range (mm) of the colour scale in the site's images.
+    # the +/- range (mm) of the color scale in the site's images.
     reference_lon = db.Column(db.Float)
     reference_lat = db.Column(db.Float)
     image_range = db.Column(db.Float)

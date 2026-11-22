@@ -2,7 +2,7 @@
 
 Shared by the offline pipeline (``scripts/extract_nisar.py``) and the
 live SME2 display (``app/sme2.py``), so both draw radar backscatter with
-exactly the same colours and stretches.
+exactly the same colors and stretches.
 
 Reading needs a free NASA Earthdata Login: either a user token
 (``EARTHDATA_TOKEN``) or ``machine urs.earthdata.nasa.gov`` in ``~/.netrc``.
@@ -30,7 +30,7 @@ CHIP_PIXEL_M = 80.0
 # Calm open water reflects L-band away from the radar: HH below this is
 # counted as open water. Rough (windy) water or flooded vegetation is missed.
 WATER_HH_DB = -18.0
-# Fixed display stretches so the same colour means the same dB everywhere.
+# Fixed display stretches so the same color means the same dB everywhere.
 STRETCH_DB = {"hh": (-20.0, 0.0), "hv": (-26.0, -8.0), "ratio": (2.0, 12.0)}
 
 
@@ -153,7 +153,7 @@ def open_hdf5(source: str, token: str | None = None, timeout: float = 60):
 # ─── Resampling onto a lat/lon grid over the bbox ───────────────────
 
 def target_grid(bbox, max_px: int = CHIP_MAX_PX):
-    """Pixel-centre lon/lat arrays of a north-up grid over ``bbox``.
+    """Pixel-center lon/lat arrays of a north-up grid over ``bbox``.
 
     ~80 m pixels, coarsened so the longer side has at most ``max_px``.
     """
@@ -170,7 +170,7 @@ def target_grid(bbox, max_px: int = CHIP_MAX_PX):
 
 
 def resample(group, bbox, layers: dict[str, object], max_px: int = CHIP_MAX_PX) -> dict | None:
-    """Nearest-neighbour sample ``layers`` ({path: fill}) of a projected grid onto the bbox grid.
+    """Nearest-neighbor sample ``layers`` ({path: fill}) of a projected grid onto the bbox grid.
 
     ``group`` must hold ``projection`` (EPSG code), ``xCoordinates`` and
     ``yCoordinates``: UTM/polar for L2 products, EASE-Grid 2.0 for SME2.
@@ -197,7 +197,7 @@ def resample(group, bbox, layers: dict[str, object], max_px: int = CHIP_MAX_PX) 
 
 
 def erode(mask: np.ndarray, pixels: int) -> np.ndarray:
-    """Shrink a boolean mask by ``pixels`` (drops artefacts at swath edges)."""
+    """Shrink a boolean mask by ``pixels`` (drops artifacts at swath edges)."""
     out = mask.copy()
     for _ in range(pixels):
         shrunk = out.copy()
@@ -209,7 +209,7 @@ def erode(mask: np.ndarray, pixels: int) -> np.ndarray:
     return out
 
 
-# ─── Colours and encoding ────────────────────────────────────────────
+# ─── Colors and encoding ────────────────────────────────────────────
 
 def to_db(v):
     return 10.0 * np.log10(v)
@@ -232,11 +232,11 @@ def gcov_rgb(hh, hv):
 def ramp_rgb(values, lo, hi, stops):
     """Map ``values`` linearly from ``lo``..``hi`` onto evenly spaced RGB ``stops``."""
     t = np.clip((np.nan_to_num(values, nan=lo) - lo) / (hi - lo), 0, 1)
-    colours = np.asarray(stops, dtype=float)
-    pos = t * (len(colours) - 1)
-    i = np.minimum(np.floor(pos).astype(int), len(colours) - 2)
+    colors = np.asarray(stops, dtype=float)
+    pos = t * (len(colors) - 1)
+    i = np.minimum(np.floor(pos).astype(int), len(colors) - 2)
     frac = (pos - i)[..., None]
-    return colours[i] + (colours[i + 1] - colours[i]) * frac
+    return colors[i] + (colors[i + 1] - colors[i]) * frac
 
 
 def encode_webp(rgb: np.ndarray, valid: np.ndarray) -> bytes:

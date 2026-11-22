@@ -66,7 +66,7 @@ export const fetchSite = (siteId) => get(`/api/sites/${siteId}`);
  */
 export const fetchSiteChain = (siteId) => get(`/api/sites/${siteId}/chain`);
 
-/** Daily rain at the centre of a drawn area (`bbox` as a comma string). */
+/** Daily rain at the center of a drawn area (`bbox` as a comma string). */
 export const fetchAreaContext = (bbox, start, end) =>
   get("/api/area-context", { params: { bbox, start, end }, timeout: 30 * 1000 });
 

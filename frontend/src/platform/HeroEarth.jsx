@@ -20,7 +20,7 @@ export default function HeroEarth({ landing }) {
   useEffect(() => {
     const element = host.current;
     element.style.setProperty("--earth-focus", `${DESCENT_FOCUS * 100}%`);
-    let cancelled = false;
+    let canceled = false;
     let view = { zoom: 1, alignment: 0, visible: true, clipTop: 0 };
     const applyView = (instance, scrollFrameTime) => {
       instance.setSuspended(!view.visible);
@@ -43,7 +43,7 @@ export default function HeroEarth({ landing }) {
 
     // Keep Three and its textures out of the initial application bundle.
     import("./earth/earth-hero").then(async ({ createEarthHero }) => {
-      if (cancelled) return;
+      if (canceled) return;
       const instance = createEarthHero(element, {
         assetBase: `${import.meta.env.BASE_URL}earth`,
         loadReference: false,
@@ -52,16 +52,16 @@ export default function HeroEarth({ landing }) {
         descentFocus: DESCENT_FOCUS,
         descentTarget: target.current,
         onChange: ({ contextLost }) => {
-          if (!cancelled) setUnavailable(contextLost === true);
+          if (!canceled) setUnavailable(contextLost === true);
         },
       });
       renderer.current = instance;
       if (view.zoom > 1 || view.alignment > 0 || !view.visible) applyView(instance);
       await instance.ready;
-    }).catch(() => { if (!cancelled) setUnavailable(true); });
+    }).catch(() => { if (!canceled) setUnavailable(true); });
 
     return () => {
-      cancelled = true;
+      canceled = true;
       stopDescent?.();
       observer?.disconnect();
       renderer.current?.dispose();

@@ -3,7 +3,7 @@
 Each curated site has one story with two parts, on one time axis:
 
   1. the site's headline NISAR series, split into a few **moments**:
-     a date range on the record and how to summarise it (``change``,
+     a date range on the record and how to summarize it (``change``,
      ``rate``, ``peak``, ``low`` or ``value``). The config holds only dates,
      short labels and the stat; every number is computed here from the
      NISAR values, so the text can't drift from the data;
@@ -256,7 +256,7 @@ SITE_CHAINS: dict[str, dict] = {
                 "id": "rain",
                 "kind": "rain",
                 "label": "Rain",
-                "place": "centre of the box",
+                "place": "center of the box",
                 "lat": 47.1,
                 "lon": -119.55,
             },
@@ -638,7 +638,7 @@ def get_site_chain(site_dict: dict, *, snapshot: Optional[dict] = None) -> dict:
 
 
 def get_area_context(bbox, start: date, end: date, *, session=None) -> dict:
-    """Rain at the centre of a drawn area over the searched dates."""
+    """Rain at the center of a drawn area over the searched dates."""
     series = drivers.area_rain(bbox, start, end, session=session)
     kind = drivers.KINDS["rain"]
     daily = drivers.points(series)
@@ -649,7 +649,7 @@ def get_area_context(bbox, start: date, end: date, *, session=None) -> dict:
             "id": "rain",
             "kind": "rain",
             "label": kind["label"],
-            "place": "at the centre of the area",
+            "place": "at the center of the area",
             "unit": kind["unit"],
             "chart": kind["chart"],
             "aggregate": kind["aggregate"],

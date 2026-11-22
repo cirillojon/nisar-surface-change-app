@@ -35,7 +35,7 @@ export const METRIC_INFO = {
     title: "Crop canopy (HV)",
     product: "L2 backscatter (GCOV)",
     facts: [
-      ["Measures", "Median cross-polarised (HV) radar return over the box."],
+      ["Measures", "Median cross-polarized (HV) radar return over the box."],
       ["Reads higher", "With more leaves, stems and moisture in the canopy."],
       ["Pixels", "80 m, L-band"],
     ],

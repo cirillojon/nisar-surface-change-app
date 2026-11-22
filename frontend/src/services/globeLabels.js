@@ -12,12 +12,12 @@
 const EARTH_CIRCUMFERENCE_M = 40075016.7;
 
 /**
- * The web-map zoom at which a spot `distance` metres from the camera is
+ * The web-map zoom at which a spot `distance` meters from the camera is
  * seen, on a view `widthPx` wide with horizontal field of view `fov` (radians).
  */
 export function zoomAtDistance(distance, widthPx, fov) {
-  const metresAcross = 2 * Math.max(distance, 1) * Math.tan(fov / 2);
-  return Math.log2((widthPx * EARTH_CIRCUMFERENCE_M) / (256 * metresAcross));
+  const metersAcross = 2 * Math.max(distance, 1) * Math.tan(fov / 2);
+  return Math.log2((widthPx * EARTH_CIRCUMFERENCE_M) / (256 * metersAcross));
 }
 
 // The order in which names claim space: oceans and countries first, then capitals, states and towns.

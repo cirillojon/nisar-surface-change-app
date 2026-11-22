@@ -16,7 +16,7 @@ describe("the globe's data", () => {
     expect(GLOBE_IMAGERY_URL).toMatch(/^https:\/\/\{s\}\.arcgisonline\.com\/.*World_Imagery/);
   });
 
-  it("makes a marker per place, coloured like the 2D map's", () => {
+  it("makes a marker per place, colored like the 2D map's", () => {
     const markers = markersOf({
       sites: [{ id: 2, name: "Okavango", latitude: -19.5, longitude: 22.5, change_type: "flood" }],
       places: [{ slug: "etna", name: "Etna", lat: 37.7, lon: 15 }],

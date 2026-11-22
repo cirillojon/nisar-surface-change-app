@@ -26,14 +26,14 @@ A _pass_ is one date on which NISAR imaged a site.
   still describes the data.
 - **It does not say why something changed.** The app gives no causes,
   no correlations and no verdicts. Rain and river flow are drawn
-  on the same time axis, labelled "Shown for comparison. Lining up in
+  on the same time axis, labeled "Shown for comparison. Lining up in
   time doesn't show that one affects the other."
-- **It offers hypotheses, labelled as such.** Each story
+- **It offers hypotheses, labeled as such.** Each story
   (`app/data/stories.json`) gives physical explanations the data
   raises, every one in the same shape: a driver, the mechanism, the
   radar channel that responds, what in the record fits it, what else
   would fit the same data, and a **test** that would tell them apart.
-  They are labelled as hypotheses wherever they appear (workspace, REST,
+  They are labeled as hypotheses wherever they appear (workspace, REST,
   MCP, printed briefs). A hypothesis is offered only for the moments it
   was written for, and a moment that may be an artifact (Sylhet's
   mode check, Mexico City's mid-April step) is explained as one.
@@ -48,7 +48,7 @@ A _pass_ is one date on which NISAR imaged a site.
 - **It does not give advice.** We are not qualified to recommend action
   on groundwater, farming or markets, and the data could not support it.
 - **Drawn rectangles are data only.** For an area you draw, the app
-  shows the NISAR passes and rain at the centre of the box side by
+  shows the NISAR passes and rain at the center of the box side by
   side, and says that nothing is tested.
 - **The record is short.** Each site has 10 to 29 passes from one year,
   most of them provisional.
@@ -61,7 +61,7 @@ NISAR carries NASA/ISRO L-band and S-band radars (the Handbook, 2nd edition,
 mission overview and product chapters: [JPL Dataverse DOI
 10.48577/jpl.UD4HV3](https://doi.org/10.48577/jpl.UD4HV3)). This app currently
 processes LSAR products only. We use these products,
-distributed by NASA's Alaska Satellite Facility (ASF) data centre and
+distributed by NASA's Alaska Satellite Facility (ASF) data center and
 found through NASA's Common Metadata Repository (CMR):
 
 | Product | What it holds | Collections used (DOI) |
@@ -192,7 +192,7 @@ are public and need no key.
 | --- | --- | --- | --- |
 | Daily rain | Open-Meteo archive API, `daily=precipitation_sum`, `models=ecmwf_ifs`, `timezone=UTC` | ECMWF's operational weather model (IFS) at 9 km, as archived by Open-Meteo from 2017, with no delay. | Not a rain gauge, and not a reanalysis. One grid cell stands in for the site. |
 | Seasonal normal (Punjab) | Same API, `models=era5` for the season and for every baseline year | ERA5 reanalysis, 0.25°. The normal is the mean of the season's total over 2001–2025. | Not comparable with the daily bars, which come from a different model. |
-| River flow | Open-Meteo flood API, `daily=river_discharge` | GloFAS version 4 modelled discharge at 0.05° (about 5 km). Open-Meteo lists its consolidated record as ending in July 2022 and joins forecast runs after that, so our 2025–26 values come from the forecast side. | Not a gauge reading. The level can be well off; only the shape should be read. |
+| River flow | Open-Meteo flood API, `daily=river_discharge` | GloFAS version 4 modeled discharge at 0.05° (about 5 km). Open-Meteo lists its consolidated record as ending in July 2022 and joins forecast runs after that, so our 2025–26 values come from the forecast side. | Not a gauge reading. The level can be well off; only the shape should be read. |
 
 **Why two rain datasets.** ERA5 is the standard record for comparing a
 season with past decades, but it runs about five days behind, so the
@@ -221,7 +221,7 @@ every series and writes
 [`app/data/drivers.json`](../app/data/drivers.json), including the grid
 cell each source returned. The app reads that file, so what you see does
 not change unless someone reruns the script. Drawn areas fetch daily rain
-live for the centre of the box.
+live for the center of the box.
 
 ## 5. The numbers
 
@@ -308,7 +308,7 @@ Least-squares slope = −0.6585 mm/day × 30.44 days = −20.0 mm/month, shown a
 | Sylhet haor basin, Bangladesh | Surma flow (at Sunamganj) | GloFAS v4 via Open-Meteo | 25.070°N, 91.400°E | 25.075°N, 91.375°E | 175 days, 2026-05-21 to 2026-11-11 |
 | Okavango Delta, Botswana | Okavango inflow (at Mohembo) | GloFAS v4 via Open-Meteo | 18.280°S, 21.790°E | 18.275°S, 21.775°E | 301 days, 2025-12-28 to 2026-10-24 |
 | Okavango Delta, Botswana | Rain (over the delta) | ECMWF IFS (9 km) via Open-Meteo | 19.300°S, 22.900°E | 19.297°S, 22.901°E | 151 days, 2026-05-27 to 2026-10-24 |
-| Columbia Basin (Quincy–Moses Lake), Washington | Rain (centre of the box) | ECMWF IFS (9 km) via Open-Meteo | 47.100°N, 119.550°W | 47.065°N, 119.561°W | 163 days, 2026-05-20 to 2026-10-29 |
+| Columbia Basin (Quincy–Moses Lake), Washington | Rain (center of the box) | ECMWF IFS (9 km) via Open-Meteo | 47.100°N, 119.550°W | 47.065°N, 119.561°W | 163 days, 2026-05-20 to 2026-10-29 |
 | Mexico City | Rain (eastern Mexico City) | ECMWF IFS (9 km) via Open-Meteo | 19.420°N, 99.030°W | 19.438°N, 99.018°W | 379 days, 2025-09-30 to 2026-10-13 |
 
 **Seasonal normals**
@@ -373,7 +373,7 @@ leaves unsaid. The numbers are in [Section 5](#5-the-numbers).
 - **NISAR shows** open water under 0.5% from 19 June to 25 July, 9.6% by
   11 September and 8.1% on 29 October.
 - **Alongside:** Mekong flow near Tan Chau and local rain.
-- **Not claimed:** where the water came from. The modelled river peak
+- **Not claimed:** where the water came from. The modeled river peak
   (57,147 m³/s) looks high for this reach, so only its shape should be
   read.
 
@@ -392,7 +392,7 @@ leaves unsaid. The numbers are in [Section 5](#5-the-numbers).
 
 - **NISAR shows** open water at its highest on 8 July (11.0%), then
   falling or holding at every pass to 1.7% by 24 October.
-- **Alongside:** modelled inflow at Mohembo, and local rain (10 mm from
+- **Alongside:** modeled inflow at Mohembo, and local rain (10 mm from
   8 July to 24 October in the 9 km model).
 - **Not claimed:** where the flood came from. Open water is a low-HH
   threshold, and water under papyrus or grass brightens the radar
@@ -411,7 +411,7 @@ leaves unsaid. The numbers are in [Section 5](#5-the-numbers).
   pixels in field-shaped patches across the farmland, while the only
   pixels dark on both dates are the river channel. We don't know why
   those fields went dark, and the app doesn't say.
-- **Alongside:** rain at the centre of the box (36 mm from 19 June to
+- **Alongside:** rain at the center of the box (36 mm from 19 June to
   29 October).
 - **Not claimed:** what the fields grow or why their signal fell. The
   record starts in June 2026, so it has no spring.
@@ -490,7 +490,7 @@ From the repository root, with the Python environment active:
   software]. Zenodo. <https://doi.org/10.5281/ZENODO.7970649>. API data
   are offered under CC BY 4.0.
 - ECMWF. Integrated Forecasting System (IFS) forecasts, open data under
-  a CC BY licence, as archived by Open-Meteo.
+  a CC BY license, as archived by Open-Meteo.
   <https://www.ecmwf.int/en/forecasts/datasets/open-data>
 - Hersbach, H., et al. (2023). _ERA5 hourly data on single levels from
   1940 to present_ [Data set]. ECMWF.
@@ -529,7 +529,7 @@ or DataCite) on 14 November 2026.
   - *Petermann Glacier.* The list of places checked said an ice island
     calved there in August 2026. No source for that could be found, so
     the entry now says only why there is nothing to show: NISAR's images
-    end just short of 77.7° N (NASA's catalogue held GCOV granules
+    end just short of 77.7° N (NASA's catalog held GCOV granules
     reaching 77.6° N and none reaching 77.7° N on 15 November 2026), and
     Petermann is at 81° N.
   - *Etna.* The 26 June 2026 lava flow is known here only from a
@@ -540,7 +540,7 @@ or DataCite) on 14 November 2026.
     valley as a debris flow. The NISAR patch is still graded "likely".
   - *Rio Branco.* A statement that HV fell "about half as much" as HH
     was removed. HH is read from the 8-bit dB layer; HV exists only in
-    the lossy colour images, so the app now says only that HV fell less
+    the lossy color images, so the app now says only that HV fell less
     than HH on the passes that have both.
   - *Headlines.* Gallery headlines that named a process ("glacier
     calving", "Floodwater spreads", "Sandbars surface") now describe
@@ -550,7 +550,7 @@ or DataCite) on 14 November 2026.
     at least one 24-day gap (Punjab also has a 36-day one), so the page
     now says the passes are 12 or more days apart.
   - *Height profiles.* The summary of a line now flags a largest drop
-    or rise that has no measured neighbour (a lone sample inside a
+    or rise that has no measured neighbor (a lone sample inside a
     gap), which the tour's line at Kīlauea has.
 - **14 November 2026, story hypotheses checked against the data.** The
   first version of the stories was reviewed against the committed data
@@ -602,7 +602,7 @@ or DataCite) on 14 November 2026.
 - **14 November 2026, Campi Flegrei removed.** Its nine passes had a
   step-to-step noise (14.1 mm) larger than the mean step (3.0 mm), so
   the record could not show a clear change.
-- **14 November 2026, rain source.** The app labelled daily rain "ERA5".
+- **14 November 2026, rain source.** The app labeled daily rain "ERA5".
   It is ECMWF's 9 km model, which Open-Meteo serves by default for dates
   from 2017. The label is corrected and every request now names its
   model. The values, and so every correlation, are unchanged.

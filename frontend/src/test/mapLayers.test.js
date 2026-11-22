@@ -59,7 +59,7 @@ describe("footprintOverlay", () => {
   const toUrl = (path) => `https://cdn${path}`;
 
   it("hatches the unimaged part of an open-water site", () => {
-    expect(footprintOverlay({ site, siteLayer: "colour", hidden: false, toUrl })).toEqual({
+    expect(footprintOverlay({ site, siteLayer: "color", hidden: false, toUrl })).toEqual({
       url: "https://cdn/fp.webp",
       bbox: [1, 2, 3, 4],
       label: "Left out of open-water values: not imaged by every pass. Values are compared over the other 88% of the box.",
@@ -73,9 +73,9 @@ describe("footprintOverlay", () => {
   });
 
   it("is absent when hidden, without a site, or without a footprint image", () => {
-    expect(footprintOverlay({ site, siteLayer: "colour", hidden: true, toUrl })).toBeNull();
-    expect(footprintOverlay({ site: null, siteLayer: "colour", hidden: false, toUrl })).toBeNull();
-    expect(footprintOverlay({ site: { ...site, footprint: {} }, siteLayer: "colour", hidden: false, toUrl })).toBeNull();
+    expect(footprintOverlay({ site, siteLayer: "color", hidden: true, toUrl })).toBeNull();
+    expect(footprintOverlay({ site: null, siteLayer: "color", hidden: false, toUrl })).toBeNull();
+    expect(footprintOverlay({ site: { ...site, footprint: {} }, siteLayer: "color", hidden: false, toUrl })).toBeNull();
   });
 });
 
@@ -92,7 +92,7 @@ describe("areaForPlace", () => {
     expect(area.clipped).toBe(false);
   });
 
-  it("opens the middle of a country, centred on its point", () => {
+  it("opens the middle of a country, centered on its point", () => {
     const area = areaForPlace({ name: "Bangladesh", latitude: 24, longitude: 90.3, bbox: [88, 20.6, 92.7, 26.6] });
     expect(area.clipped).toBe(true);
     expect(area.bbox).toEqual([90.3 - PLACE_MAX_SPAN_DEG / 2, 24 - PLACE_MAX_SPAN_DEG / 2, 90.3 + PLACE_MAX_SPAN_DEG / 2, 24 + PLACE_MAX_SPAN_DEG / 2]);

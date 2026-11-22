@@ -378,7 +378,7 @@ describe("<WorkspaceApp />", () => {
     await urlIs("/workspace?mode=investigate&site=okavango-flood-pulse&date=2026-03-21");
   });
 
-  it("opens a place found by name as an area to search, centred on a big one", async () => {
+  it("opens a place found by name as an area to search, centered on a big one", async () => {
     searchPlaces.mockResolvedValue({
       query: "Lake Chad",
       results: [{ name: "Lake Chad", label: "Lake Chad, Chad", kind: "water", latitude: 13.2, longitude: 14.1, bbox: [13, 12.3, 15.2, 14.4] }],
@@ -651,7 +651,7 @@ describe("<WorkspaceApp />", () => {
     expect(stored.findings[0]).toMatchObject({
       kind: "view",
       notes: "Dark patches by the channels: worth checking against a gauge.",
-      view: { site: "okavango-flood-pulse", date: "2026-03-09", layer: "colour" },
+      view: { site: "okavango-flood-pulse", date: "2026-03-09", layer: "color" },
       evidence: { date: "2026-03-09", quality: "provisional" },
     });
     expect(stored.stories[0]).toMatchObject({ title: "Delta watch", findingIds: [stored.findings[0].id] });

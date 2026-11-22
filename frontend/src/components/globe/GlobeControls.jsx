@@ -6,7 +6,7 @@ const TILTED = CesiumMath.toRadians(-30);
 const TOP_DOWN = CesiumMath.toRadians(-90);
 
 /** The point on the Earth at the middle of the view (null when it shows space there). */
-function viewCentre(scene) {
+function viewCenter(scene) {
   const { clientWidth, clientHeight } = scene.canvas;
   return scene.camera.pickEllipsoid(new Cartesian2(clientWidth / 2, clientHeight / 2), scene.globe.ellipsoid) ?? null;
 }
@@ -14,10 +14,10 @@ function viewCentre(scene) {
 /** Turns the camera about the middle of the view to `heading` and `pitch`, keeping its distance. */
 function orbit(scene, { heading, pitch }) {
   const camera = scene.camera;
-  const centre = viewCentre(scene);
-  if (!centre) return;
-  const range = Cartesian3.distance(camera.positionWC, centre);
-  camera.lookAt(centre, new HeadingPitchRange(heading ?? camera.heading, pitch ?? camera.pitch, range));
+  const center = viewCenter(scene);
+  if (!center) return;
+  const range = Cartesian3.distance(camera.positionWC, center);
+  camera.lookAt(center, new HeadingPitchRange(heading ?? camera.heading, pitch ?? camera.pitch, range));
   camera.lookAtTransform(Matrix4.IDENTITY);
   scene.requestRender();
 }

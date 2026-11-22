@@ -49,8 +49,8 @@ What you help with:
 How to work:
 - Ground answers in your tools. Use search_docs for concepts and how-to questions and cite the page as a Markdown link to its path (for example [Polarization](/docs/science/polarization)). Use the data tools for any number you quote, and say which granules or passes it came from when relevant.
 - Match the reader. If the question is plain-language, answer plainly first (an analogy helps), then offer the technical detail. If it is technical, be precise and include units.
-- Be honest about limits: most NISAR granules here are PROVISIONAL; site records are about a year long or shorter; values are medians over a whole box; open water is a single threshold (HH below -18 dB), compared over the area every pass imaged, that misses wind-roughened water and flooded vegetation; displacement is line-of-sight and relative to a reference point. The platform deliberately tests no causes and gives no advice: rain and river flow are shown for comparison only. Radar from a small area says nothing about commodity prices or markets. You may describe how series line up in time, and offer physical hypotheses clearly labelled as hypotheses, but never state that one caused another, and never give investment, farming or groundwater advice.
-- For "why did this change?" questions, start from get_story: its hypotheses already give a driver, mechanism, radar channel, what the record shows, an alternative and a test. Present them in that shape, labelled as hypotheses. Use build_finding when someone wants something to cite or share, and coverage_check when they ask whether NISAR can see their area (find_place first when they name a place rather than give coordinates).
+- Be honest about limits: most NISAR granules here are PROVISIONAL; site records are about a year long or shorter; values are medians over a whole box; open water is a single threshold (HH below -18 dB), compared over the area every pass imaged, that misses wind-roughened water and flooded vegetation; displacement is line-of-sight and relative to a reference point. The platform deliberately tests no causes and gives no advice: rain and river flow are shown for comparison only. Radar from a small area says nothing about commodity prices or markets. You may describe how series line up in time, and offer physical hypotheses clearly labeled as hypotheses, but never state that one caused another, and never give investment, farming or groundwater advice.
+- For "why did this change?" questions, start from get_story: its hypotheses already give a driver, mechanism, radar channel, what the record shows, an alternative and a test. Present them in that shape, labeled as hypotheses. Use build_finding when someone wants something to cite or share, and coverage_check when they ask whether NISAR can see their area (find_place first when they name a place rather than give coordinates).
 - When a study site or pass would help the user see what you describe, call open_in_workspace so the page can offer a button that opens the map there.
 - API base paths: REST endpoints are under /api, described by the OpenAPI spec at /api/openapi.json. Code examples should use the endpoint paths exactly as documented.
 - Keep answers focused: short paragraphs, lists or tables where they help. Use Markdown. Do not invent endpoints, datasets, site names or numbers.
@@ -161,7 +161,7 @@ def _context_block(context: Any) -> str:
     return f"<context>{safe}</context>"
 
 
-def _summarise(name: str, result: Any) -> str:
+def _summarize(name: str, result: Any) -> str:
     if isinstance(result, dict):
         for key in ("sites", "granules", "results", "instruments", "change_types", "products", "drivers"):
             if isinstance(result.get(key), list):
@@ -281,7 +281,7 @@ def chat(messages: Any, context: Any = None) -> Iterator[dict]:
             results.append({"type": "tool_result", "tool_use_id": block.id, "content": content,
                             **({"is_error": True} if is_error else {})})
             yield {"type": "tool", "phase": "end", "id": block.id, "name": block.name, "ok": not is_error,
-                   "summary": content[:160] if is_error else _summarise(block.name, raw)}
+                   "summary": content[:160] if is_error else _summarize(block.name, raw)}
             if block.name == "open_in_workspace" and not is_error and isinstance(raw, dict):
                 label = block.input.get("site") or "the map"
                 yield {"type": "action", "action": "open_workspace", "url": raw["url"],

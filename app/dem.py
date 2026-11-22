@@ -2,7 +2,7 @@
 
 Tiles (1 x 1 degree GeoTIFF, ~5 MB) are downloaded on first use from the
 AWS open-data bucket and cached under ``<DATA_DIR>/dem/``. Heights are
-metres above the EGM2008 geoid (within ~50 m of the ellipsoid heights
+meters above the EGM2008 geoid (within ~50 m of the ellipsoid heights
 NISAR's correction cubes use, which is negligible for troposphere).
 
 Copernicus DEM (c) DLR e.V. 2010-2014 and (c) Airbus Defence and Space GmbH

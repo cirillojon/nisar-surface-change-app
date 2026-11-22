@@ -42,7 +42,7 @@ describe("the tour's script", () => {
     const opened = new Set(a.openStory.mock.calls.map(([slug]) => slug));
     expect(opened).toEqual(new Set([SYLHET, LANGTANG]));
     // Langtang opens on the radar image before the event, then its change map; Sylhet on the open-water layer.
-    expect(a.openStory).toHaveBeenCalledWith(LANGTANG, expect.objectContaining({ layer: "colour", date: "2026-08-19" }));
+    expect(a.openStory).toHaveBeenCalledWith(LANGTANG, expect.objectContaining({ layer: "color", date: "2026-08-19" }));
     expect(a.openStory).toHaveBeenCalledWith(LANGTANG, expect.objectContaining({ layer: "change" }));
     expect(a.openStory).toHaveBeenCalledWith(SYLHET, expect.objectContaining({ layer: "water" }));
   });
@@ -152,7 +152,7 @@ describe("<Tour />", () => {
 
     show({ drawing: "area" });
     expect(screen.getByRole("heading", { name: "Drag a box around the summit" })).toBeInTheDocument();
-    // Cancelling the drawing (Escape) goes back a step; Escape doesn't end the tour.
+    // Canceling the drawing (Escape) goes back a step; Escape doesn't end the tour.
     fireEvent.keyDown(window, { key: "Escape" });
     expect(onEnd).not.toHaveBeenCalled();
     show({ drawing: null });
@@ -250,7 +250,7 @@ describe("<Tour />", () => {
     act(() => vi.advanceTimersByTime(300));
     expect(screen.getByRole("heading", { name: "All together: Langtang, Nepal" })).toBeInTheDocument();
     expect(within(screen.getByRole("dialog")).getByText(/Click the two yellow lines to see NISAR's radar image before and after/)).toBeInTheDocument();
-    expect(a.openStory).toHaveBeenLastCalledWith(LANGTANG, { date: "2026-08-19", layer: "colour", panel: true });
+    expect(a.openStory).toHaveBeenLastCalledWith(LANGTANG, { date: "2026-08-19", layer: "color", panel: true });
     expect(a.setGuide).toHaveBeenLastCalledWith(["2026-08-19", "2026-08-31"]);
     // Yellow lines on the bar: the frame before, then the frame after (a date left over from earlier doesn't count).
     expect(screen.queryByRole("button", { name: /Next/ })).toBeNull();

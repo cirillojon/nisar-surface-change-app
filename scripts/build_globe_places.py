@@ -51,8 +51,8 @@ def r(v: float) -> float:
     return round(float(v), 2)
 
 
-def ring_centre(coords: list) -> tuple[float, float]:
-    """The area-weighted centre of a polygon's outer ring (good enough for a sea's name)."""
+def ring_center(coords: list) -> tuple[float, float]:
+    """The area-weighted center of a polygon's outer ring (good enough for a sea's name)."""
     a = cx = cy = 0.0
     for (x0, y0), (x1, y1) in zip(coords, coords[1:]):
         f = x0 * y1 - x1 * y0
@@ -80,7 +80,7 @@ def seas(data: dict) -> list:
         name = (p.get("name_en") or p.get("name") or "").strip()
         if not name:
             continue
-        lon, lat = ring_centre(largest_ring(f["geometry"]))
+        lon, lat = ring_center(largest_ring(f["geometry"]))
         out.append([name.title() if name.isupper() else name, r(lon), r(lat), float(p.get("min_label") or 1), "ocean"])
     return out
 

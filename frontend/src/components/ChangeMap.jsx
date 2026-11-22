@@ -33,7 +33,7 @@ const DEFAULT_ZOOM = 2;
 const worldZoom = (width) => (width < 700 ? DEFAULT_ZOOM - 1 : DEFAULT_ZOOM);
 // Drags shorter than this (screen pixels) don't make a rectangle.
 const MIN_DRAW_PX = 8;
-// Colour of the before & after places' markers (see .dot-gallery).
+// Color of the before & after places' markers (see .dot-gallery).
 const GALLERY_COLOR = "#f59e0b";
 const prefersReducedMotion = () =>
   window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -199,13 +199,13 @@ function useWhenLoaded(value, urls, key) {
     latest.current = { value, urls };
   });
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     const { value: wanted, urls: needed } = latest.current;
     Promise.all(needed.map(loadImage)).then(() => {
-      if (!cancelled) setShown(wanted);
+      if (!canceled) setShown(wanted);
     });
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [key]);
   return shown;
@@ -607,7 +607,7 @@ const TINY_PX = 40;
 
 /**
  * Markers for every place with data: study sites in their change type's
- * colour, before & after places in the gallery's. The selected place is
+ * color, before & after places in the gallery's. The selected place is
  * shown by its image and outline rather than a dot over it, except when
  * the map is zoomed so far out that the image can't be seen.
  */

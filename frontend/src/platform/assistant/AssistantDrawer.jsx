@@ -29,7 +29,7 @@ function suggestions(pathname, ws) {
       return [
         `What am I looking at in ${ws.site.name}${ws.date ? ` on ${ws.date}` : ""}?`,
         `What could explain the change at ${ws.site.name}? How strong is the evidence?`,
-        "How do I read the colours in this image?",
+        "How do I read the colors in this image?",
       ];
     }
     return [

@@ -12,7 +12,7 @@ Usage (repo root, venv active)::
 
 Sources: rain from ECMWF's IFS model (and ERA5 for seasonal normals) and
 GloFAS river discharge through Open-Meteo (CC BY 4.0); the INGV earthquake
-catalogue is supported but no site uses it. See docs/DATA_AND_METHODS.md.
+catalog is supported but no site uses it. See docs/DATA_AND_METHODS.md.
 """
 from __future__ import annotations
 

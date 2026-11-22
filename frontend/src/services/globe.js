@@ -22,7 +22,7 @@ const SITE_COLOR = "#38bdf8";
 const FOCUS_COLOR = "#facc15";
 
 /**
- * Every place's marker: study sites coloured by change type, before & after
+ * Every place's marker: study sites colored by change type, before & after
  * places in amber. `kind` and `ref` say what a click opens.
  */
 export function markersOf({ sites = [], places = [], colorOf = {} }) {

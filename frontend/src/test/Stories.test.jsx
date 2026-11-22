@@ -428,7 +428,7 @@ describe("My findings (the notebook)", () => {
 });
 
 describe("CoverageCheck", () => {
-  it("summarises passes per product on the best frame", async () => {
+  it("summarizes passes per product on the best frame", async () => {
     fetchCoverageCheck.mockResolvedValue({
       summary: "NISAR has GCOV passes here.",
       start: "2025-11-15",

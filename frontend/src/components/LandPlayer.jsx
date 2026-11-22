@@ -26,17 +26,17 @@ function guideMarks(guideDates, dates) {
   return guideDates.filter((d) => indexOf.has(d)).map((d) => ({ index: indexOf.get(d), label: d }));
 }
 
-/** Layers the place can show: colour (if any pass has HV), HH, HV (if every pass does), and the change map. */
+/** Layers the place can show: color (if any pass has HV), HH, HV (if every pass does), and the change map. */
 function layersOf(player) {
   const { everyHv, hvPasses, passes, from } = player;
   return [
     ...imageLayerOptions({ hh: true, hv: everyHv }).map((l) =>
-      l.id === "colour" && hvPasses === 0 ? { ...l, disabled: true, reason: "no HV data" } : l),
+      l.id === "color" && hvPasses === 0 ? { ...l, disabled: true, reason: "no HV data" } : l),
     { id: "change", label: "Change map", disabled: !passes[from]?.hh_url, reason: "no HH layer" },
   ];
 }
 
-/** Under the bar while comparing: the "since" date, how much changed, and the colour key. */
+/** Under the bar while comparing: the "since" date, how much changed, and the color key. */
 function ChangeNote({ player, scenes, dateLabel }) {
   const { from, change, removeShift, setFrom } = player;
   return (
@@ -65,14 +65,14 @@ function ChangeNote({ player, scenes, dateLabel }) {
  * the map; it lives in the dock, not in the side panel, so the dates, layer
  * and playback carry over when the panel changes.
  */
-export default function LandPlayer({ player, opacity, onOpacityChange, onLayerChange, onRemoveShiftChange, colourLegend, guideDates = null, comparison = null }) {
+export default function LandPlayer({ player, opacity, onOpacityChange, onLayerChange, onRemoveShiftChange, colorLegend, guideDates = null, comparison = null }) {
   const { site, passes, dates, from, to, layer, changing, everyHv, mapUrl, maps, removeShift } = player;
   const scenes = passes.map((p) => ({ date: p.date, quality: p.quality, image_url: p.image_url }));
   const event = site.event;
   const dateLabel = event ? (s) => (s.date >= event.date ? " (after)" : " (before)") : null;
   let note = null;
   if (changing) note = <ChangeNote player={player} scenes={scenes} dateLabel={dateLabel} />;
-  else if (layer === "colour" && !everyHv) note = "Grey frames are passes where only HH was collected.";
+  else if (layer === "color" && !everyHv) note = "Gray frames are passes where only HH was collected.";
 
   return (
     <ScenePlayer
@@ -86,7 +86,7 @@ export default function LandPlayer({ player, opacity, onOpacityChange, onLayerCh
       onOpacityChange={onOpacityChange}
       product="GCOV"
       title={`${site.name}: NISAR images over time`}
-      legend={changing ? CHANGE_LEGEND : layerLegend(layer, colourLegend).text}
+      legend={changing ? CHANGE_LEGEND : layerLegend(layer, colorLegend).text}
       ramp={changing ? CHANGE_RAMP : layerLegend(layer).ramp}
       legendExtra={changing && (
         <label className="small change-shift">

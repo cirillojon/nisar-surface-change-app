@@ -40,14 +40,14 @@ export default function CommandPalette({ open, onClose }) {
   // its arrival doesn't clear what has been typed meanwhile.
   useEffect(() => {
     if (!open || corpus) return undefined;
-    let cancelled = false;
+    let canceled = false;
     loadAllRaw()
       .then((rows) => {
-        if (!cancelled) setCorpus(Object.fromEntries(rows.map((r) => [r.key, plain(r.text)])));
+        if (!canceled) setCorpus(Object.fromEntries(rows.map((r) => [r.key, plain(r.text)])));
       })
       .catch(() => {});
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [open, corpus]);
 

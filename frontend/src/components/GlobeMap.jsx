@@ -26,7 +26,7 @@ const prefersReducedMotion = () => Boolean(window.matchMedia?.("(prefers-reduced
 
 /**
  * Clicks and hovering: a marker opens its place, anywhere else on the Earth
- * is a map click (not while drawing); hovering a marker or a labelled line
+ * is a map click (not while drawing); hovering a marker or a labeled line
  * names it.
  */
 function useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapClick }) {

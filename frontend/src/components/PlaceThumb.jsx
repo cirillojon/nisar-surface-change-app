@@ -1,7 +1,7 @@
 import { assetUrl } from "../services/api.js";
 
 /**
- * A place's own NISAR pass, small, so a list row can be recognised at a
+ * A place's own NISAR pass, small, so a list row can be recognized at a
  * glance. The row's text already names the place, so the image is left out
  * of the accessible name; its date is in the tooltip.
  */

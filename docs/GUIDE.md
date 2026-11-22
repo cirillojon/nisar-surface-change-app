@@ -361,7 +361,7 @@ flowchart LR
 | Add a change type                          | `app/change_types.py` (the UI picks it up automatically)                               |
 | Add or change a site's story (moments)     | `SITE_CHAINS` in `app/chains.py`, then `scripts/build_driver_data.py` (§5)             |
 | Add a kind of driver (snowpack, reservoir) | A fetcher and a `KINDS` entry in `app/drivers.py`, a branch in `scripts/build_driver_data.py` |
-| Change image colours                       | `STRETCH_DB` / `displacement_rgb()` in `scripts/extract_nisar.py`, then `--refresh`    |
+| Change image colors                       | `STRETCH_DB` / `displacement_rgb()` in `scripts/extract_nisar.py`, then `--refresh`    |
 | Search another NISAR product               | `PRODUCTS` in `app/nisar.py`                                                           |
 | Add a backend endpoint                     | `app/routes/api.py` + a test in `tests/`                                               |
 | Change a DB table                          | `app/models.py`, then `flask db migrate -m "..."` and `flask db upgrade`               |
@@ -475,7 +475,7 @@ or key is needed. The rule: **NISAR first, no causes, no verdicts.**
    ("the harvest").
 3. `python scripts/build_driver_data.py --site <slug>` fetches the
    related series into `app/data/drivers.json`. For a river, check the
-   peak it prints is river-sized: a point a few kilometres off lands on
+   peak it prints is river-sized: a point a few kilometers off lands on
    a side stream. Restart the backend afterwards; it reads the snapshot
    once.
 4. Add a check to `test_committed_captions_describe_the_data` in
