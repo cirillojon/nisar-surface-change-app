@@ -10,7 +10,7 @@ const PROFILE_END = "#f472b6";
 
 const round3 = (v) => Math.round(v * 1000) / 1000;
 
-/** The search area around a map click: its centre and a box of ±AOI_HALF_DEG. */
+/** The search area around a map click: its center and a box of ±AOI_HALF_DEG. */
 export function aoiAround(latitude, longitude) {
   // Leaflet's worldCopyJump can report longitudes outside ±180.
   const lon = ((((longitude + 180) % 360) + 360) % 360) - 180;
@@ -36,7 +36,7 @@ const wrapLon = (longitude) => (Math.abs(longitude) <= 180 ? longitude : ((((lon
 
 /**
  * The search area for a place found by name: its own box, at least as big as
- * the box around a map click, and at most PLACE_MAX_SPAN_DEG a side (centred
+ * the box around a map click, and at most PLACE_MAX_SPAN_DEG a side (centered
  * on the place, `clipped` then). `label` names it.
  */
 export function areaForPlace({ name, latitude, longitude, bbox }) {
@@ -48,7 +48,7 @@ export function areaForPlace({ name, latitude, longitude, bbox }) {
   const latSpan = north - south;
   const clipped = lonSpan > PLACE_MAX_SPAN_DEG || latSpan > PLACE_MAX_SPAN_DEG;
   const half = (span) => Math.min(PLACE_MAX_SPAN_DEG, Math.max(2 * AOI_HALF_DEG, span)) / 2;
-  // A box that fits is kept around its own middle; one that doesn't is centred on the place.
+  // A box that fits is kept around its own middle; one that doesn't is centered on the place.
   const cLon = clipped || west > east ? lon : (west + east) / 2;
   const cLat = clipped ? lat : (south + north) / 2;
   const hLon = half(lonSpan);

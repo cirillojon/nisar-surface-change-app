@@ -23,7 +23,7 @@ export const FRESH_VIEW = Object.freeze({
   sceneIndex: null,
   pendingDate: null,
   keepDate: false,
-  siteLayer: "colour",
+  siteLayer: "color",
   // The linked pair that opened the timeline comparison, if any.
   comparison: null,
   // A gallery place (or the tour's imagery) in its player: its layer (null:

@@ -5,8 +5,8 @@ For each site in ``SITES`` this script takes every GCOV (backscatter) pass on
 one track/frame, reads only a window around the site at frequency A (~20 m),
 and writes per pass:
 
-* ``<date>.webp``: what the map shows: false colour (R = HH, G = HV,
-  B = HH/HV, the crop sites' stretches) or HH grey when HV is missing;
+* ``<date>.webp``: what the map shows: false color (R = HH, G = HV,
+  B = HH/HV, the crop sites' stretches) or HH gray when HV is missing;
 * ``<date>.hh.png``: HH brightness in dB at half resolution, 8-bit
   (dB -30..+5 → 0..254, 255 = no data). The browser computes a change map
   between any two dates from these.
@@ -88,7 +88,7 @@ SITES = {
         "name": "Jakobshavn Isbræ", "region": "Greenland", "kind": "Glacier",
         "status": "visible", "lon": -49.85, "lat": 69.17, "half_km": 14.0,
         "headline": "The ice in the fjord changes from June to October",
-        "story": "Greenland's fastest glacier, flowing tens of metres a day into an ice-packed fjord.",
+        "story": "Greenland's fastest glacier, flowing tens of meters a day into an ice-packed fjord.",
         "look_for": "The glacier front and the fjord's ice, pass by pass.",
         "sources": [],
     },
@@ -106,7 +106,7 @@ SITES = {
         "event": {"date": "2026-08-26", "label": "Rock slope failure and debris flow"},
         "headline": "A streak of change between the passes either side of 26 August",
         "story": "On 26 August 2026 a very large rock slope on Langtang Lirung failed and started a debris flow and flood that swept through Nepal and Tibet.",
-        "look_for": "A streak of strong change between 19 and 31 August, absent from the pairs before and after, starting about half a kilometre from the reported source (28.29°N, 85.53°E) and running northwest down the valley. Consistent with the debris flow; not a mapped outline of it.",
+        "look_for": "A streak of strong change between 19 and 31 August, absent from the pairs before and after, starting about half a kilometer from the reported source (28.29°N, 85.53°E) and running northwest down the valley. Consistent with the debris flow; not a mapped outline of it.",
         "suggested": ["2026-08-19", "2026-08-31"],
         "sources": [["Eos Landslide Blog: the landslide behind the 26 August debris flow",
                       "https://eos.org/thelandslideblog/nepal-tibet-2"],

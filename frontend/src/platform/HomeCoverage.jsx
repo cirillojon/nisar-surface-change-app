@@ -108,7 +108,7 @@ const TOPICS = [
     signal: "HH and HV backscatter",
     caveat: "28 passes over Halemaʻumaʻu. Fresh lava can look brighter or darker depending on its roughness.",
     place: "kilauea",
-    comparison: { from: "2025-11-03", to: "2026-11-10", layer: "colour" },
+    comparison: { from: "2025-11-03", to: "2026-11-10", layer: "color" },
     landing: { latitude: 19.405, longitude: -155.28, region: "hawaii" },
   },
   {
@@ -265,15 +265,15 @@ function CoverageTopic({ topic, animate, onLandingChange }) {
   useEffect(() => {
     // Finish the current fade before revealing the latest selection.
     if (!incomingSrc || topic === shown || incoming) return undefined;
-    let cancelled = false;
+    let canceled = false;
     Promise.all([loadImage(incomingSrc), loadImage(topic.wireframe)]).then(() => {
-      if (cancelled) return;
+      if (canceled) return;
       const reduceMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
       setScene(animate && !reduceMotion
         ? { shown, incoming: topic, flightFrame: frame }
         : { shown: topic, incoming: null });
     });
-    return () => { cancelled = true; };
+    return () => { canceled = true; };
   }, [topic, animate, shown, incoming, incomingSrc, frame]);
 
   useLayoutEffect(() => {

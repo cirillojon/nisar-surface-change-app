@@ -245,8 +245,8 @@ def validate(landchange_path: Path = LANDCHANGE_PATH, scenes_dir: Path = SCENES_
     """Error of ``calibrated_share`` against exact truth.
 
     Truth is the gallery's lossless 8-bit HH layer (real NISAR texture,
-    -30..+5 dB). It is drawn with the sites' colour stretch (HV from the
-    pass's colour image), encoded with the sites' WebP settings, decoded,
+    -30..+5 dB). It is drawn with the sites' color stretch (HV from the
+    pass's color image), encoded with the sites' WebP settings, decoded,
     and the calibrated estimate over sub-areas is compared with the exact
     share of the truth over the same sub-areas.
     """
@@ -263,9 +263,9 @@ def validate(landchange_path: Path = LANDCHANGE_PATH, scenes_dir: Path = SCENES_
             if valid.mean() < 0.6:
                 continue
             hh_db = q.astype(float) / 254 * 35 - 30
-            colour = np.asarray(Image.open(scenes_dir / p["image"]).convert("RGB").resize(q.shape[::-1], Image.NEAREST))
+            color = np.asarray(Image.open(scenes_dir / p["image"]).convert("RGB").resize(q.shape[::-1], Image.NEAREST))
             lo, hi = STRETCH_DB["hv"]
-            hv_db = (colour[..., 1] / 255) ** (1 / 0.8) * (hi - lo) + lo
+            hv_db = (color[..., 1] / 255) ** (1 / 0.8) * (hi - lo) + lo
             rgb = gcov_rgb(10 ** (hh_db / 10), 10 ** (hv_db / 10))
             red = _decode_bytes(encode_webp(rgb, valid))[..., 0]
             truth = (hh_db < WATER_HH_DB) & valid

@@ -16,7 +16,7 @@ For a line (up to ``MAX_LENGTH_KM``) the backend:
    ionosphere-screen correction. Scatter for four correction alternatives is
    reported as a sensitivity diagnostic; it does not select the result;
 5. rebuilds each point's displacement at every date. Separate chains are
-   aligned by a straight-line fit per point (labelled as an assumption).
+   aligned by a straight-line fit per point (labeled as an assumption).
 
 This takes minutes for a new line, so it runs as a background job; status
 and results are files under ``<DATA_DIR>/profiles/<id>/`` (shared by all
@@ -259,7 +259,7 @@ def read_pair(granule, lon, lat, heights, with_geometry=False):
         out = {
             "raw": _read_points(grp["unwrappedPhase"], rows, cols),
             "iono": _read_points(grp["ionospherePhaseScreen"], rows, cols),
-            # Region label of the centre pixel (no median for labels).
+            # Region label of the center pixel (no median for labels).
             "cc": _read_points(grp["connectedComponents"], rows, cols, pad=0),
             "coh": _read_points(grp["coherenceMagnitude"], rows, cols),
             "wavelength": 299_792_458.0 / float(h5[GUNW_GRID + "/centerFrequency"][()]),

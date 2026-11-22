@@ -131,7 +131,7 @@ describe("docs navigation", () => {
     }
   });
 
-  it("finds neighbours for the pager", () => {
+  it("finds neighbors for the pager", () => {
     const found = findPage("science", "polarization");
     expect(found.prev.slug).toBe("how-sar-works");
     expect(found.next.slug).toBe("interferometry");

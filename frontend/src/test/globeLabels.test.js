@@ -37,7 +37,7 @@ describe("the globe's place names", () => {
     expect(declutter([{ place: country, x: 0, y: 0 }, { place: far, x: 500, y: 500 }], 1).size).toBe(1);
   });
 
-  it("puts a town's name right of its dot, and centres a country's", () => {
+  it("puts a town's name right of its dot, and centers a country's", () => {
     const town = { name: "Maun", kind: "city" };
     const country = { name: "Botswana", kind: "country" };
     expect(labelBox(town, 100, 50).left).toBeLessThan(100);

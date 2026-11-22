@@ -276,7 +276,7 @@ function FindingActions({ finding, saved, onSave, onShowOnMap }) {
 /**
  * An evidence card: one moment of a curated story, as the app measured it,
  * to keep and share. The measured claim, the passes behind it, what the
- * record can and can't carry, labelled hypotheses, and every way to
+ * record can and can't carry, labeled hypotheses, and every way to
  * reproduce it (link, CSV, REST, MCP, printable brief). Built by the API
  * (`/api/findings/<slug>`), so the card, the REST call and the MCP tool all
  * return the same thing. A story's "Save / share" opens it.

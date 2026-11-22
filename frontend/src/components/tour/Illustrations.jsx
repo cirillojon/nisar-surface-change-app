@@ -16,7 +16,7 @@ export function NisarIllustration() {
     >
       <title id={`${p}nisar-art-title`}>
         Illustration of the NISAR satellite: a gold spacecraft body with a long solar panel, a
-        boom holding a 12-metre mesh radar antenna, and a radar beam sweeping a strip of Earth.
+        boom holding a 12-meter mesh radar antenna, and a radar beam sweeping a strip of Earth.
       </title>
       <defs>
         <linearGradient id={`${p}tour-space`} x1="0" y1="0" x2="0" y2="1">

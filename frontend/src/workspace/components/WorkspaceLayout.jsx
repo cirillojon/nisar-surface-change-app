@@ -232,7 +232,7 @@ function WorkspaceDock({ ws }) {
       inert={Boolean(ui.drawing)}
       opacity={ui.overlayOpacity}
       onOpacityChange={ui.setOverlayOpacity}
-      colourLegend={data.backscatterLegend}
+      colorLegend={data.backscatterLegend}
       land={land}
       comparison={v.landSite ? sel.comparison : images.comparison}
       landKey={v.tourPlace ? `tour-${v.aoi.imagery}` : v.landSite?.slug}

@@ -15,7 +15,7 @@ the NASA Space Apps 2026 challenge
 
 Think of it as "Google Maps for NISAR". NISAR's data is valuable, but it
 ships as large HDF5 granules that are slow to find and hard to open.
-We started this as an internal tool for our own analysis and realised it
+We started this as an internal tool for our own analysis and realized it
 could lower that barrier for researchers, hobbyists and enthusiasts too:
 
 - **Point, draw or select** on the map to find the passes you want; no
@@ -35,7 +35,7 @@ could lower that barrier for researchers, hobbyists and enthusiasts too:
 
 NISAR values and images come from real granules. Rain and river flow
 are public model records shown on the same dates; the app draws no
-conclusions from them. Physical explanations are offered as labelled
+conclusions from them. Physical explanations are offered as labeled
 hypotheses, each with an alternative and a test. See
 [Data, methods and sources](docs/DATA_AND_METHODS.md).
 
@@ -47,7 +47,7 @@ might explain it. Three modes:
 
 | Mode            | For                                                        | You leave with                                         |
 | --------------- | ---------------------------------------------------------- | ------------------------------------------------------ |
-| **Stories**     | A guided look at what NISAR shows at 12 places             | A question, labelled hypotheses, what the record can't show |
+| **Stories**     | A guided look at what NISAR shows at 12 places             | A question, labeled hypotheses, what the record can't show |
 | **Investigate** | Your own area or line, and every place with data           | Passes over your area, a series, a height profile      |
 | **My findings** | Keeping and sharing a result                               | A card with evidence and limits, a printable brief, CSV, REST and MCP calls |
 
@@ -68,7 +68,7 @@ are on **Investigate**.
   | Mexico City              | Land subsidence   | GUNW    | −204 mm relative LOS displacement (negative = away) in a year |
 
 - **Twelve stories** (water, food, ground, ice, and the Amazon's forest
-  and rivers), each with labelled physical hypotheses: driver,
+  and rivers), each with labeled physical hypotheses: driver,
   mechanism, radar channel, what the record shows, an alternative and a
   test (`app/data/stories.json`).
 - **Findings**: any moment as a card with its passes, quality, coverage,
@@ -164,7 +164,7 @@ All endpoints are public and read-only. Errors come back as `{"error": "..."}`.
 | GET    | `/api/sites`               | `?change_type=` `&limit=` (≤500) `&offset=`; includes date coverage |
 | GET    | `/api/sites/<id>`          | Site + `observations` (one per metric per date) + `scenes`          |
 | GET    | `/api/sites/<id>/chain`    | Site story: NISAR series, moments, related series                  |
-| GET    | `/api/area-context`        | `?bbox=&start=&end=`; daily rain at the area's centre (live)       |
+| GET    | `/api/area-context`        | `?bbox=&start=&end=`; daily rain at the area's center (live)       |
 | GET    | `/api/geocode`             | `?q=`; places matching a name (OpenStreetMap Nominatim, cached a day) |
 | GET    | `/api/scenes/<site>/<f>`   | A scene image (WebP)                                                |
 | GET    | `/api/nisar/products`      | Searchable NISAR products                                           |

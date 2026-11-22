@@ -28,9 +28,9 @@ export function addTurnAndZoom(scene) {
     // Taking hold of the view stops a fly-to, as dragging does.
     camera.cancelFlight();
     const middle = new Cartesian2(scene.canvas.clientWidth / 2, scene.canvas.clientHeight / 2);
-    const centre = camera.pickEllipsoid(middle, scene.globe.ellipsoid);
-    // On the Earth, turn about the ground's "up" there; in space, about the Earth's centre.
-    drag = { last: Cartesian2.clone(e.position), frame: centre ? Transforms.eastNorthUpToFixedFrame(centre) : Matrix4.IDENTITY };
+    const center = camera.pickEllipsoid(middle, scene.globe.ellipsoid);
+    // On the Earth, turn about the ground's "up" there; in space, about the Earth's center.
+    drag = { last: Cartesian2.clone(e.position), frame: center ? Transforms.eastNorthUpToFixedFrame(center) : Matrix4.IDENTITY };
   }, ScreenSpaceEventType.RIGHT_DOWN);
 
   handler.setInputAction((e) => {

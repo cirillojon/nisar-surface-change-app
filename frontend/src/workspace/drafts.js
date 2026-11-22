@@ -61,7 +61,7 @@ export function momentDraft({ site, changeType, siteLayer, storyTitle, moment, i
  */
 export function placeDraft({ place, kind, layer: shownLayer, dates, story }) {
   if (!place) return null;
-  const layer = shownLayer ?? "colour";
+  const layer = shownLayer ?? "color";
   const from = dates?.from ?? place.suggested?.[0];
   const to = dates?.to ?? place.suggested?.[1];
   return {

@@ -72,7 +72,7 @@ const chain = {
       chart: "area",
       aggregate: "mean",
       source,
-      note: "Modelled discharge.",
+      note: "Modeled discharge.",
       series: daily("2026-08-01", [18000, 30000, 45003]),
       per_pass: [{ date: "2026-08-30", value: 45003 }],
       summary: "Peak 57,147 m³/s on 16 Sep 2026",
@@ -262,7 +262,7 @@ describe("<ImpactChain />", () => {
     expect(within(section).getByRole("img", { name: "HH backscatter on 2 NISAR passes" })).toBeInTheDocument();
   });
 
-  it("charts one related series at a time, labelled as context only, and no prices", async () => {
+  it("charts one related series at a time, labeled as context only, and no prices", async () => {
     fetchSiteChain.mockResolvedValueOnce(chain);
     render(<ImpactChain siteId={2} selectedDate="2026-08-30" />);
 
@@ -458,7 +458,7 @@ describe("<ImpactChain />", () => {
           id: "rain",
           kind: "rain",
           label: "Rainfall",
-          place: "at the centre of the area",
+          place: "at the center of the area",
           unit: "mm",
           chart: "bars",
           aggregate: "sum",
@@ -499,7 +499,7 @@ describe("<ImpactChain />", () => {
         id: "rain",
         kind: "rain",
         label: "Rainfall",
-        place: "at the centre of the area",
+        place: "at the center of the area",
         unit: "mm",
         chart: "bars",
         aggregate: "sum",

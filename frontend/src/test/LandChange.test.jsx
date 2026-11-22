@@ -46,7 +46,7 @@ describe("change maps", () => {
     expect(Array.from(out)).toEqual([1, 2, 3]);
   });
 
-  it("colours brighter red, darker blue, and leaves no-data clear", () => {
+  it("colors brighter red, darker blue, and leaves no-data clear", () => {
     // 3 x 1: brighter by ~8 dB, unchanged, then no data on one date.
     const before = Uint8Array.from([100, 100, 100]);
     const after = Uint8Array.from([158, 100, 255]);
@@ -342,10 +342,10 @@ describe("<LandPlayer />", () => {
     const onLayerChange = vi.fn();
     const { rerender } = render(<LandHarness site={partial} onLayerChange={onLayerChange} />);
     expect(screen.getByRole("combobox", { name: "Image layer" })).toHaveValue("hh");
-    pickLayer("colour");
-    expect(onLayerChange).toHaveBeenCalledWith("colour");
-    rerender(<LandHarness site={partial} layer="colour" onLayerChange={onLayerChange} />);
-    expect(screen.getByText("Grey frames are passes where only HH was collected.")).toBeInTheDocument();
+    pickLayer("color");
+    expect(onLayerChange).toHaveBeenCalledWith("color");
+    rerender(<LandHarness site={partial} layer="color" onLayerChange={onLayerChange} />);
+    expect(screen.getByText("Gray frames are passes where only HH was collected.")).toBeInTheDocument();
   });
 
   it("takes its image off the map when the place closes", () => {

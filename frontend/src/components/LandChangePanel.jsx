@@ -74,7 +74,7 @@ export default function LandChangePanel({ site, onBack, changeShown = false, onT
         <summary>About these images</summary>
         <p className="muted">
           NISAR backscatter (GCOV), every pass on track/frame <code>{site.frame}</code> so the images
-          line up; ~{site.pixel_m} m pixels. Colours: red = HH, green = HV, blue = HH/HV (grey where
+          line up; ~{site.pixel_m} m pixels. Colors: red = HH, green = HV, blue = HH/HV (gray where
           HV wasn&apos;t collected). Provisional data.
         </p>
         {site.sources?.length > 0 && (

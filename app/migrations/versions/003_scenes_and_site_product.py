@@ -5,7 +5,7 @@ Revises: 002_remove_users
 Create Date: 2026-11-14
 
 Sites now carry the NISAR product/frame their values come from (and, for
-interferometry sites, the stable reference point and image colour range).
+interferometry sites, the stable reference point and image color range).
 Each NISAR pass over a site is a ``scenes`` row with a small image.
 """
 from alembic import op

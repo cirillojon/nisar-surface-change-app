@@ -33,7 +33,7 @@ describe("selectionReducer", () => {
       target: SITE,
       view: { pendingDate: "2026-07-14", keepDate: true },
     });
-    expect(state).toMatchObject({ target: SITE, pendingDate: "2026-07-14", keepDate: true, siteLayer: "colour" });
+    expect(state).toMatchObject({ target: SITE, pendingDate: "2026-07-14", keepDate: true, siteLayer: "color" });
   });
 
   it("clears to nothing selected", () => {
@@ -46,7 +46,7 @@ describe("selectionReducer", () => {
     const moved = selectionReducer(state, { type: "set", field: "landDates", value: (d) => ({ ...d, to: "b" }) });
     expect(moved.landDates).toEqual({ to: "b" });
     expect(selectionReducer(moved, { type: "set", field: "landDates", value: (d) => ({ ...d, from: "a" }) }).landDates).toEqual({ from: "a", to: "b" });
-    expect(selectionReducer(state, { type: "set", field: "siteLayer", value: "colour" })).toBe(state);
+    expect(selectionReducer(state, { type: "set", field: "siteLayer", value: "color" })).toBe(state);
   });
 
   it("refuses unknown fields and actions", () => {

@@ -20,7 +20,7 @@ export default function StoryList({ data, selected, onSelect }) {
         <p>
           <strong>Study sites</strong> (a year of passes, charted): kept because their NISAR series showed a clear
           change; other candidates were dropped for noise, wind, flat medians or no stable reference point. That
-          favours places where something changed.
+          favors places where something changed.
         </p>
         <p>
           <strong>Before &amp; after places</strong> (change maps): checked after a reported event or where the
@@ -28,7 +28,7 @@ export default function StoryList({ data, selected, onSelect }) {
           nothing are listed in Investigate.
         </p>
         <p>
-          Data: NISAR GCOV and GUNW (NASA/ISRO, via ASF DAAC); rain and river flow are modelled (ECMWF IFS, ERA5,
+          Data: NISAR GCOV and GUNW (NASA/ISRO, via ASF DAAC); rain and river flow are modeled (ECMWF IFS, ERA5,
           GloFAS, via Open-Meteo). <a href="/docs/data/methods">Data &amp; methods</a>
         </p>
       </details>

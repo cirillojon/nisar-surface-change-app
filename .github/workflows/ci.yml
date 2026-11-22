@@ -29,7 +29,7 @@ jobs:
         # NOTE: must use a file-backed sqlite, not :memory: — flask spins
         # up a fresh connection per CLI invocation, and each :memory: URL
         # gets its own private DB, so check-schema would see an empty DB
-        # and report every modelled table as "drift".
+        # and report every modeled table as "drift".
         env:
           FLASK_APP: app.py
           FLASK_ENV: development

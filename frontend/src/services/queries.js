@@ -44,7 +44,7 @@ export const siteChainQuery = (id) =>
 
 /**
  * A drawn area's record: its dates and the related series (daily rain at
- * its centre) for the chart. Waits for the area's dates (its first search).
+ * its center) for the chart. Waits for the area's dates (its first search).
  */
 export const areaChainQuery = (bbox, start, end) =>
   queryOptions({

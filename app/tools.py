@@ -9,7 +9,7 @@
 Each tool has a name, a title, a description written for a model to read,
 a JSON Schema for its arguments, and a handler. Handlers run inside a
 Flask app context and return plain JSON-able data, trimmed so a model can
-read it: daily series are summarised, long lists capped.
+read it: daily series are summarized, long lists capped.
 """
 from __future__ import annotations
 
@@ -442,7 +442,7 @@ def coverage_check_tool(bbox, start: str | None = None, end: str | None = None) 
 
 
 # A searched place larger than this (degrees a side) is searched as a box
-# this size around its centre, as the workspace's place search does
+# this size around its center, as the workspace's place search does
 # (PLACE_MAX_SPAN_DEG and AOI_HALF_DEG in frontend/src/workspace/mapLayers.js).
 PLACE_MAX_SPAN_DEG = 3.0
 PLACE_MIN_SPAN_DEG = 0.5
@@ -485,7 +485,7 @@ def find_place(query: str) -> dict:
         "query": q,
         "results": results,
         "note": ("search_bbox is the box to pass to coverage_check, search_granules or area_rain: the place's "
-                 f"own box, or a {PLACE_MAX_SPAN_DEG:g}° box around its centre when the place is larger "
+                 f"own box, or a {PLACE_MAX_SPAN_DEG:g}° box around its center when the place is larger "
                  "(search_bbox_clipped)."),
         "attribution": geocode.ATTRIBUTION,
     }
@@ -542,7 +542,7 @@ TOOLS: list[Tool] = [
              "limit": {"type": "integer", "minimum": 1, "maximum": 50, "default": 10}}},
          search_granules),
     Tool("area_rain", "Rain over an area",
-         "Rain at the centre of a bounding box between two dates (a weather model's estimate, not a gauge): "
+         "Rain at the center of a bounding box between two dates (a weather model's estimate, not a gauge): "
          "total, wettest day and monthly totals. Use it to compare rain with change NISAR saw; lining up "
          "in time does not show cause.",
          {"type": "object", "required": ["bbox", "start", "end"], "properties": {
@@ -578,7 +578,7 @@ TOOLS: list[Tool] = [
     Tool("list_stories", "List stories",
          "The workspace's curated stories (floods, crops, subsidence, the Amazon, Greenland ice, volcanoes, "
          "landslides), grouped by theme. Each story asks a question "
-         "and offers labelled physical hypotheses.",
+         "and offers labeled physical hypotheses.",
          {"type": "object", "properties": {"theme": {
              "type": "string", "enum": ["water", "food", "ground", "ice", "forest"],
              "description": "Only stories of this theme."}}},

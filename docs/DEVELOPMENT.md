@@ -76,7 +76,7 @@ don't matter for single-user local dev.
 The local SME2 import renders into the configured `DATA_DIR` cache, so the
 normal `/api/nisar/sme2/scene` endpoint can serve it without Earthdata access.
 Because a local file does not establish CMR processing status or collection,
-it is labelled `quality=unknown`. This command currently supports SME2 only.
+it is labeled `quality=unknown`. This command currently supports SME2 only.
 
 ## Adding a new endpoint
 
@@ -96,7 +96,7 @@ it is labelled `quality=unknown`. This command currently supports SME2 only.
 
 - **Change types** live in `app/change_types.py`. Each one sets its
   NISAR product (GCOV or GUNW), the metrics its charts show, the image
-  legend, and the map colour. `METRICS` defines each metric's label and
+  legend, and the map color. `METRICS` defines each metric's label and
   unit.
 - **Sites** (`Site`) are defined in `app/data/sites.json`: a point, a
   bbox, a story, and for GUNW a stable `reference` point.

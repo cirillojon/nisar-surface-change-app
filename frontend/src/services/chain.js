@@ -66,7 +66,7 @@ export function monthTicks(t0, t1, max = 7) {
 }
 
 /**
- * Related data for a custom area: rain at its centre. NISAR values come
+ * Related data for a custom area: rain at its center. NISAR values come
  * from the explorer.
  */
 export async function loadAreaChain(bbox, start, end) {

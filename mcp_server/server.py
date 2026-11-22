@@ -1,7 +1,7 @@
 """NISAR Surface Change Explorer: MCP server.
 
 Gives any MCP client (Claude Code, Claude Desktop, Cursor, ...) the platform's
-tools: stories with labelled hypotheses, shareable findings, CSV export, a
+tools: stories with labeled hypotheses, shareable findings, CSV export, a
 coverage check for any area, study-site time series, NASA catalog search,
 rain for any area, soil moisture, height profiles, the land-change gallery
 and docs search.
@@ -117,7 +117,7 @@ PROMPTS = {
     "check_my_area": types.Prompt(
         name="check_my_area",
         title="Check an area for change",
-        description="Find NISAR passes over a bounding box, add rain context, and summarise what changed.",
+        description="Find NISAR passes over a bounding box, add rain context, and summarize what changed.",
         arguments=[
             types.PromptArgument(name="bbox", description="min_lon,min_lat,max_lon,max_lat", required=True),
             types.PromptArgument(name="start", description="YYYY-MM-DD", required=False),
@@ -225,7 +225,7 @@ async def on_get_prompt(ctx, params: types.GetPromptRequestParams) -> types.GetP
         text = (
             f"Tell the NISAR story '{args.get('story', '')}'. Call get_story, then walk through its chapters: "
             "the question; what NISAR measured (quote moments with units and dates); each hypothesis with its "
-            "mechanism, polarization channel, what is consistent with it, its alternative and its test, labelled "
+            "mechanism, polarization channel, what is consistent with it, its alternative and its test, labeled "
             "as a hypothesis; what NISAR can't see there; and what a longer record could make possible. "
             "Read nisar://hypotheses first. End with the workspace link."
         )
@@ -234,7 +234,7 @@ async def on_get_prompt(ctx, params: types.GetPromptRequestParams) -> types.GetP
         text = (
             f"Call build_finding for the story '{args.get('story', '')}'{moment} and write a one-page brief for a "
             "decision maker: one-sentence finding (measured), the evidence (passes, dates, coverage), how "
-            "confident the record is, the hypotheses (labelled, with alternatives), what NISAR can't see, what "
+            "confident the record is, the hypotheses (labeled, with alternatives), what NISAR can't see, what "
             "an operational service would need, and the citation. No advice and no causal claims."
         )
     elif params.name == "scout_area":
@@ -257,7 +257,7 @@ async def on_get_prompt(ctx, params: types.GetPromptRequestParams) -> types.GetP
         when = f" between {args['start']} and {args['end']}" if args.get("start") and args.get("end") else ""
         text = (
             f"Check the area {args.get('bbox', '')}{when} for surface change. Call search_granules for GCOV "
-            "and GUNW, then area_rain for the same dates. Summarise which NISAR passes exist, what kinds of "
+            "and GUNW, then area_rain for the same dates. Summarize which NISAR passes exist, what kinds of "
             "change they could show, and whether rain could explain a change. Be explicit about uncertainty."
         )
     else:

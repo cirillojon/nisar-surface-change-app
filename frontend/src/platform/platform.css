@@ -1,6 +1,6 @@
 /* Platform shell: top bar, docs, home, assistant, search.
  * Every class is prefixed pf- so nothing collides with the workspace's
- * styles (index.css). Colours come from the shared tokens on :root. */
+ * styles (index.css). Colors come from the shared tokens on :root. */
 
 :root {
   --topbar-h: 59px;

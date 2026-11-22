@@ -88,8 +88,8 @@ def test_openapi_covers_every_api_route(app):
         path = str(rule)
         if not path.startswith("/api/") or path.startswith("/api/nisar/sme2/images") or path == "/api/openapi.json":
             continue
-        normalised = path.replace("<int:", "<").replace("<path:", "<")
-        assert normalised in documented, f"{path} missing from app/openapi.json"
+        normalized = path.replace("<int:", "<").replace("<path:", "<")
+        assert normalized in documented, f"{path} missing from app/openapi.json"
 
 
 def test_assistant_disabled_without_key(client, monkeypatch):

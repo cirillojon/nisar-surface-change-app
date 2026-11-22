@@ -103,7 +103,7 @@ function useSequence(index, step, landDate) {
  * viewer has done the step's action (a `watch` step waits for Next, so they
  * can watch what the action started), and a step that only makes sense
  * mid-drawing goes back to the step that starts it once the drawing is gone
- * (cancelled with Escape). Both react to what happens in the workspace and on
+ * (canceled with Escape). Both react to what happens in the workspace and on
  * the page (the timelapse playing), outside the tour, so they are effects.
  */
 function useFollowTheApp({ isDone, lost, step, index, go }) {
@@ -353,7 +353,7 @@ function TourShade({ look, bubble, interactive, onBlocked }) {
 /** The bubble's text: where the step is, what it shows, and what to do (or what is awaited). */
 function BubbleText({ step, index, waiting, snappedLine, isDone }) {
   const part = PARTS.find((p) => p.id === step.part);
-  const label = part && !step.art && !step.unlabelled ? `${part.label} · ` : "";
+  const label = part && !step.art && !step.unlabeled ? `${part.label} · ` : "";
   return (
     <>
       <p className="tour-step-count">
@@ -494,7 +494,7 @@ function TourBubble({ bubbleRef, bubble, step, index, width, nudged, fold, child
  *
  * A step often changes the layout (a panel opens, a story loads). The
  * bubble waits for the next target to settle before revealing the new
- * step in its measured place (if the target is slow, it shows centred so
+ * step in its measured place (if the target is slow, it shows centered so
  * the viewer can still continue).
  */
 export default function Tour({ state, actions, onEnd, startAt = 0 }) {

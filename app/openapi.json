@@ -3,7 +3,7 @@
   "info": {
     "title": "NISAR Surface Change Explorer API",
     "version": "1.1.0",
-    "summary": "Read-only access to NISAR radar measurements, study sites, stories with labelled hypotheses, shareable findings, the NASA catalog, soil moisture and height profiles.",
+    "summary": "Read-only access to NISAR radar measurements, study sites, stories with labeled hypotheses, shareable findings, the NASA catalog, soil moisture and height profiles.",
     "description": "All endpoints are public, need no key and return JSON. They are rate-limited per IP (limits are listed on each operation). Dates are ISO `YYYY-MM-DD`; bounding boxes are `min_lon,min_lat,max_lon,max_lat` in WGS84 degrees. NISAR products are PROVISIONAL until NASA finishes reprocessing.",
     "license": {
       "name": "MIT",
@@ -23,7 +23,7 @@
     },
     {
       "name": "Stories & findings",
-      "description": "Curated stories with labelled physical hypotheses, the evidence card behind each story (with its limits, a printable brief and CSV export), and a coverage check that says whether NISAR can answer a question over any area."
+      "description": "Curated stories with labeled physical hypotheses, the evidence card behind each story (with its limits, a printable brief and CSV export), and a coverage check that says whether NISAR can answer a question over any area."
     },
     {
       "name": "Change types",
@@ -181,7 +181,7 @@
         ],
         "operationId": "listChangeTypes",
         "summary": "List change types",
-        "description": "Each change type with its colour, NISAR product, image legend and the metrics it is measured by (id, label, unit, description).",
+        "description": "Each change type with its color, NISAR product, image legend and the metrics it is measured by (id, label, unit, description).",
         "x-rate-limit": "120 per minute",
         "responses": {
           "200": {
@@ -212,7 +212,7 @@
         ],
         "operationId": "getSiteChain",
         "summary": "Impact chain for a site",
-        "description": "The NISAR series for a site, the moments that sum it up, and related physical series (rain, river flow, earthquakes) summarised over the window before each pass. Open water is compared over the area every pass imaged (`footprint`). Shown for comparison only: lining up in time doesn't show that one affects the other.",
+        "description": "The NISAR series for a site, the moments that sum it up, and related physical series (rain, river flow, earthquakes) summarized over the window before each pass. Open water is compared over the area every pass imaged (`footprint`). Shown for comparison only: lining up in time doesn't show that one affects the other.",
         "x-rate-limit": "120 per minute",
         "parameters": [
           {
@@ -245,7 +245,7 @@
                       "type": "array",
                       "items": {
                         "type": "object",
-                        "description": "One driver: id, label, note, series (daily), per_pass values (summarised over the window before each pass)."
+                        "description": "One driver: id, label, note, series (daily), per_pass values (summarized over the window before each pass)."
                       }
                     },
                     "moments": {
@@ -280,7 +280,7 @@
         ],
         "operationId": "getAreaContext",
         "summary": "Rain over a drawn area",
-        "description": "Daily rain (a weather model's estimate at the area's centre) between two dates, for comparing with NISAR passes over the area.",
+        "description": "Daily rain (a weather model's estimate at the area's center) between two dates, for comparing with NISAR passes over the area.",
         "x-rate-limit": "30 per minute",
         "parameters": [
           {
@@ -811,7 +811,7 @@
         ],
         "operationId": "getLandChange",
         "summary": "Land-change gallery",
-        "description": "Places where NISAR saw change (volcanoes, glaciers, floods, landslides, fires, construction), each with every GCOV pass on one track and frame so images line up. Each pass has a false-colour `image_url` and an 8-bit HH layer (`hh_url`) for computing change maps in the browser.",
+        "description": "Places where NISAR saw change (volcanoes, glaciers, floods, landslides, fires, construction), each with every GCOV pass on one track and frame so images line up. Each pass has a false-color `image_url` and an 8-bit HH layer (`hh_url`) for computing change maps in the browser.",
         "x-rate-limit": "120 per minute",
         "responses": {
           "200": {
@@ -1224,7 +1224,7 @@
         ],
         "operationId": "getStory",
         "summary": "Get a story",
-        "description": "One story in five chapters: the question and place; what NISAR saw (a study site's moments, or a gallery place's passes); labelled hypotheses; what NISAR can't see there; and what a longer record could make possible.",
+        "description": "One story in five chapters: the question and place; what NISAR saw (a study site's moments, or a gallery place's passes); labeled hypotheses; what NISAR can't see there; and what a longer record could make possible.",
         "x-rate-limit": "120 per minute",
         "parameters": [
           {

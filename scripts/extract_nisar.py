@@ -52,7 +52,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 from app.change_types import CHANGE_TYPES  # noqa: E402
 from app.nisar import CMR_CLIENT_ID, CMR_GRANULES_URL, PRODUCTS, parse_granule  # noqa: E402
-# Reading and colouring are shared with the live SME2 display (app/sme2.py).
+# Reading and coloring are shared with the live SME2 display (app/sme2.py).
 from app.nisar_render import (  # noqa: E402
     WATER_HH_DB,
     encode_webp,
@@ -83,7 +83,7 @@ GUNW_GRID = "science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram"
 # Half-size (degrees) of the boxes around the site point and the reference
 # point whose median phase is compared.
 POINT_WINDOW_DEG = 0.01
-# Diverging colours for displacement maps: away from the satellite (e.g.
+# Diverging colors for displacement maps: away from the satellite (e.g.
 # subsidence) is red, toward it (uplift) is blue.
 AWAY_RGB, ZERO_RGB, TOWARD_RGB = (178, 24, 43), (247, 247, 247), (33, 102, 172)
 

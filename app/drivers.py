@@ -6,7 +6,7 @@ A driver is a daily series from a public source that needs no key:
 
   • ``rain``   — daily precipitation from ECMWF's IFS model, and seasonal
                  normals from the ERA5 reanalysis (Open-Meteo archive API)
-  • ``river``  — GloFAS modelled river discharge (Open-Meteo flood API)
+  • ``river``  — GloFAS modeled river discharge (Open-Meteo flood API)
   • ``quakes`` — earthquakes per day inside a box (INGV FDSN event service)
 
 Curated sites read a committed snapshot (``app/data/drivers.json``, written
@@ -73,7 +73,7 @@ KINDS = {
             "url": "https://open-meteo.com/en/docs/flood-api",
             "license": "CC BY 4.0",
         },
-        "note": "Modelled discharge for one river cell, not a gauge reading.",
+        "note": "Modeled discharge for one river cell, not a gauge reading.",
     },
     "quakes": {
         "label": "Earthquakes",
@@ -81,7 +81,7 @@ KINDS = {
         "aggregate": "sum",
         "chart": "bars",
         "source": {
-            "name": "INGV earthquake catalogue",
+            "name": "INGV earthquake catalog",
             "url": "https://terremoti.ingv.it/en",
             "license": "CC BY 4.0",
         },
@@ -278,7 +278,7 @@ def snapshot() -> dict:
 
 
 def area_rain(bbox, start: date, end: date, *, session=None) -> dict:
-    """Live daily rain at the centre of a drawn area, cached briefly."""
+    """Live daily rain at the center of a drawn area, cached briefly."""
     end = min(end, date.today())
     if start > end:
         raise ValueError("The selected dates are in the future.")

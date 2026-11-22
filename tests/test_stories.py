@@ -370,7 +370,7 @@ def test_langtang_change_appears_only_between_the_passes_either_side_of_the_even
     km_x = (e - w) * 111.32 * np.cos(np.radians((s + n) / 2)) / cols
     km_y = (n - s) * 110.57 / rows
     sx, sy = (85.5271 - w) / (e - w) * cols, (n - 28.2921) / (n - s) * rows
-    assert np.min(np.hypot((xs - sx) * km_x, (ys - sy) * km_y)) < 1.0   # "about half a kilometre"
+    assert np.min(np.hypot((xs - sx) * km_x, (ys - sy) * km_y)) < 1.0   # "about half a kilometer"
     assert xs.mean() < sx and ys.mean() < sy                             # "runs northwest"
 
 
@@ -417,7 +417,7 @@ def test_stories_name_only_the_polarizations_a_place_has(client):
         ch = client.get(f"/api/stories/{slug}").get_json()["site"]["channels"]
         assert 0 < ch["hv_passes"] < ch["passes"], slug
     assert "only some passes" in _story("rio-branco")["channel"]
-    # HV there exists only in the lossy colour images: no ratio to HH is claimed.
+    # HV there exists only in the lossy color images: no ratio to HH is claimed.
     forest = _story("rio-branco")["hypotheses"][0]["consistent_with"]
     assert "fell less than HH" in forest and "half" not in forest
     assert LAND["etna"]["passes"][0]["polarizations"] == "HH"            # "the first pass ... is HH only"

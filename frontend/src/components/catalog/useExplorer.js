@@ -80,7 +80,7 @@ function useImages(base, { sme2, frameBounds, bbox }) {
   const { isSme2, sharp, layer, days } = base;
   const source = (g) => sourceOf(g, { isSme2, sme2, layer, bbox, frameBounds });
   const drawn = Boolean(sharp || isSme2) && layer !== "soil_moisture";
-  const mapUrl = useLayerMapper(drawn ? layer : "colour", drawn ? imageItems(days, source) : []);
+  const mapUrl = useLayerMapper(drawn ? layer : "color", drawn ? imageItems(days, source) : []);
   const shown = (path) => (drawn ? mapUrl(assetUrl(path)) : assetUrl(path));
   return { source, shown, mapUrl: drawn ? mapUrl : undefined };
 }

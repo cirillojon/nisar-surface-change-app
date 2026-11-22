@@ -244,7 +244,7 @@ function UserStory({ story, findings, notebook, onShow, onOpenEvidence }) {
 
 /**
  * My findings: what the viewer saved and wrote, and the stories they
- * build from it. Separate from the curated stories, and labelled so the
+ * build from it. Separate from the curated stories, and labeled so the
  * viewer's notes are never mistaken for the app's analysis.
  */
 export default function NotebookPanel({ notebook, onShow, onOpenEvidence }) {

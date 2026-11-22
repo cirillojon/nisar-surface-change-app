@@ -13,7 +13,7 @@ export default function TimelineDock({
   inert,
   opacity,
   onOpacityChange,
-  colourLegend,
+  colorLegend,
   comparison,
   // A gallery place, or the tours' Kīlauea box played like one (useLandPlayer).
   land,
@@ -44,7 +44,7 @@ export default function TimelineDock({
         onLayerChange={onLandLayerChange}
         onRemoveShiftChange={onLandShiftChange}
         guideDates={guideDates}
-        colourLegend={colourLegend}
+        colorLegend={colorLegend}
       />
     );
   } else if (site?.scenes?.length > 0 && !catalogOnMap) {

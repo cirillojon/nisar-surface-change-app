@@ -54,7 +54,7 @@ export function TryIt({ operation }) {
       }
       const resp = await fetch(absoluteUrl(buildUrl(operation, values)), init);
       // An explorer shows whatever the endpoint answers, errors included,
-      // labelled with the status; an error without a body shows its reason.
+      // labeled with the status; an error without a body shows its reason.
       const text = resp.ok ? await resp.text() : (await resp.text()) || resp.statusText;
       let pretty = text;
       try {

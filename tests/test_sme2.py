@@ -124,7 +124,7 @@ def test_values_follow_the_area(client, sme2_env):
     assert away["images"]
 
 
-def test_backscatter_uses_the_gcov_site_colours(sme2_env, tmp_path):
+def test_backscatter_uses_the_gcov_site_colors(sme2_env, tmp_path):
     from PIL import Image
 
     from app.nisar_render import gcov_rgb
@@ -136,7 +136,7 @@ def test_backscatter_uses_the_gcov_site_colours(sme2_env, tmp_path):
     pixel = np.array(img)[int(img.height * 0.8), img.width // 2]
     expected = gcov_rgb(np.array([0.1]), np.array([0.01]))[0]
     assert pixel[3] == 255
-    # WebP is lossy; colours stay within a few levels.
+    # WebP is lossy; colors stay within a few levels.
     assert np.abs(pixel[:3].astype(int) - expected.astype(int)).max() <= 6
     assert meta["bbox"] == FRAME
 

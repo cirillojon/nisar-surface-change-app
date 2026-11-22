@@ -101,7 +101,7 @@ describe("<ProfilePanel />", () => {
     fetchProfile.mockResolvedValue({ id: "abc", state: "done", result });
     render(<ProfilePanel line={LINE} onBack={() => {}} />);
     // Default: from the first date to the last. Vertical: -8.5 at 0 km, +4.2 at 0.4 km.
-    // Each stands beside the gap at 0.2 km with no measured neighbour, so each is flagged.
+    // Each stands beside the gap at 0.2 km with no measured neighbor, so each is flagged.
     const lone = " (a lone point between gaps: treat with caution)";
     expect(await screen.findByText(/largest drop/)).toHaveTextContent(
       `largest drop -8.5 mm at 0.0 km${lone}, largest rise +4.2 mm at 0.4 km${lone}`,
@@ -149,7 +149,7 @@ describe("<ProfilePanel />", () => {
 });
 
 describe("<SpaceTimeChart />", () => {
-  it("colours cells red for down, blue for up, and leaves gaps blank", () => {
+  it("colors cells red for down, blue for up, and leaves gaps blank", () => {
     const { container } = render(
       <SpaceTimeChart
         dist={[0, 1, 2]}

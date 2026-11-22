@@ -167,7 +167,7 @@ The workspace has a separate inset toolbar for its
 selection title and map actions. Shared typography and button styling
 live in `frontend/src/index.css`; `frontend/src/platform/platform.css`
 adds platform layout and button variants. Use the bundled BDO Grotesk
-regular (400) and medium (500) weights, shared action colours and
+regular (400) and medium (500) weights, shared action colors and
 control sizing rather than introducing separate fonts or button styles.
 
 | Path                                 | Responsibility                                                     |
@@ -192,7 +192,7 @@ control sizing rather than introducing separate fonts or button styles.
 | `src/components/SitePending.jsx`     | A picked site while its passes load, or why they didn't, with a retry. |
 | `src/components/SiteDetail.jsx`      | Site notes, radar explainer, catalog search; charts if no story.   |
 | `src/components/ScenePlayer.jsx`     | Time-lapse controls, legend, before/after, docked under the map.   |
-| `src/components/LayerSelect.jsx`, `src/services/layers.js` | The shared **Layer** menu: colour, HH, HV, very dark pixels, change map, soil moisture, drawn in the browser. |
+| `src/components/LayerSelect.jsx`, `src/services/layers.js` | The shared **Layer** menu: color, HH, HV, very dark pixels, change map, soil moisture, drawn in the browser. |
 | `src/components/TimeSeriesChart.jsx` | Dependency-free multi-series SVG chart; click selects a date.      |
 | `src/components/LandChangePanel.jsx`, `LandPlayer.jsx`, `src/services/landchange.js` | The land-change gallery: the place in words (panel), and its passes, layers and change maps computed in the browser (the dock's player). |
 | `src/components/AoiPanel.jsx`        | Details of a drawn area.                                           |

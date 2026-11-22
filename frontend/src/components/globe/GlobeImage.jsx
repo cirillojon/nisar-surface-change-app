@@ -14,11 +14,11 @@ export function GlobeImage({ globe, url, bbox, opacity = 1 }) {
   const alpha = useRef(opacity);
   const box = bbox.join(",");
   useEffect(() => {
-    let cancelled = false;
+    let canceled = false;
     const [w, s, e, n] = box.split(",").map(Number);
     SingleTileImageryProvider.fromUrl(url, { rectangle: Rectangle.fromDegrees(w, s, e, n) })
       .then((provider) => {
-        if (cancelled || widget.isDestroyed()) return;
+        if (canceled || widget.isDestroyed()) return;
         const layers = widget.imageryLayers;
         const layer = new ImageryLayer(provider, { alpha: alpha.current });
         // In the old image's place, so images keep their order as they change.
@@ -29,7 +29,7 @@ export function GlobeImage({ globe, url, bbox, opacity = 1 }) {
       })
       .catch(() => {});
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [widget, url, box]);
   useEffect(() => {
@@ -53,11 +53,11 @@ export function GlobeRegionTile({ globe, tile, opacity }) {
   const clip = tile.clip;
   useEffect(() => {
     if (!clip) return undefined;
-    let cancelled = false;
+    let canceled = false;
     const img = new Image();
     img.crossOrigin = "anonymous";
     img.onload = () => {
-      if (cancelled) return;
+      if (canceled) return;
       try {
         setClipped({ from: tile.url, url: clipToCanvas(img, tile.bounds, clip) });
       } catch {
@@ -67,7 +67,7 @@ export function GlobeRegionTile({ globe, tile, opacity }) {
     };
     img.src = tile.url;
     return () => {
-      cancelled = true;
+      canceled = true;
     };
   }, [tile.url, tile.bounds, clip]);
   const url = !clip ? tile.url : clipped?.from === tile.url ? clipped.url : null;

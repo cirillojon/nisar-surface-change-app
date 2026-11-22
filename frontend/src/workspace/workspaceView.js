@@ -136,7 +136,7 @@ export function mapViewOf({ v, sel, data, land, catalog, tour, siteLayers, mapSi
     footprintOverlay: footprintOverlay({ site: v.site, siteLayer: sel.siteLayer, hidden: catalogOnMap || Boolean(v.landSite), toUrl: assetUrl }),
     showFocusOutline: !v.profileLine && !(tour.focus && !v.hasSelection),
     focusMaxZoom: v.landSite ? 14 : tour.focus ? 13 : 11,
-    siteLegend: v.site ? layerLegend(siteLayers ? sel.siteLayer : "colour", legendOf) : { ramp: null, text: null },
+    siteLegend: v.site ? layerLegend(siteLayers ? sel.siteLayer : "color", legendOf) : { ramp: null, text: null },
   };
 }
 

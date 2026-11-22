@@ -1,6 +1,6 @@
 /**
  * Space-time diagram: distance along a line (x) by date (y, oldest at the
- * top), each cell coloured by displacement. Red = down / away from the
+ * top), each cell colored by displacement. Red = down / away from the
  * satellite, blue = up / toward it (as the deformation sites).
  */
 const W = 360;
@@ -27,7 +27,7 @@ function divergingColor(value, limit) {
   return `rgb(${c[0]},${c[1]},${c[2]})`;
 }
 
-/** Average groups of neighbouring points so there are at most MAX_COLUMNS. */
+/** Average groups of neighboring points so there are at most MAX_COLUMNS. */
 function columns(dist, rows) {
   const n = dist.length;
   const per = Math.max(1, Math.ceil(n / MAX_COLUMNS));

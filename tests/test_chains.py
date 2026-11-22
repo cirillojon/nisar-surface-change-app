@@ -338,7 +338,7 @@ def test_fetch_quakes_counts_events_per_day():
 AREA = {"bbox": "-117.5,46.5,-117.0,47.0", "start": "2026-08-01", "end": "2026-08-03"}
 
 
-def test_area_context_returns_rain_for_the_area_centre(client, monkeypatch):
+def test_area_context_returns_rain_for_the_area_center(client, monkeypatch):
     asked = {}
 
     def fake_rain(lat, lon, start, end, session=None):

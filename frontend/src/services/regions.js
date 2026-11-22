@@ -11,7 +11,7 @@ import polygonClipping from "polygon-clipping";
 // where footprints of one pass touch).
 const MIN_SHARE = 1e-4;
 
-// Colours for the days in a mosaic, newest first (distinct on imagery).
+// Colors for the days in a mosaic, newest first (distinct on imagery).
 // No yellow: that's the selected area's outline.
 export const DAY_COLORS = [
   "#22d3ee",

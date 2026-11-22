@@ -3,7 +3,7 @@
 // Matches DB_LO / DB_HI in scripts/build_landchange.py.
 export const DB_RANGE = [-30, 5];
 export const NODATA = 255;
-// Colour limit (dB) and smoothing radius (pixels) of the change map.
+// Color limit (dB) and smoothing radius (pixels) of the change map.
 export const CHANGE_LIMIT_DB = 6;
 export const BLUR_RADIUS = 2;
 // A pixel counts as "changed" past this many dB.

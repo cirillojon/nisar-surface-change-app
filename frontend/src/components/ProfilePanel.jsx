@@ -12,8 +12,8 @@ const MOTION = "#38bdf8";
 const toNumbers = (row) => row.map((v) => (v === null ? null : v));
 const finite = (v) => v !== null && v !== undefined && !Number.isNaN(v);
 
-/** Symmetric colour range: 98th percentile of |value|, rounded up to 5. */
-function colourLimit(rows) {
+/** Symmetric color range: 98th percentile of |value|, rounded up to 5. */
+function colorLimit(rows) {
   const all = rows.flat().filter(finite).map(Math.abs).sort((a, b) => a - b);
   if (!all.length) return 10;
   const p98 = all[Math.min(all.length - 1, Math.floor(all.length * 0.98))];
@@ -27,7 +27,7 @@ const LONE = " (a lone point between gaps: treat with caution)";
 
 /**
  * Largest drop / rise (with distance) and median of a change profile.
- * `lone` marks a value with no measured neighbour on either side: a single
+ * `lone` marks a value with no measured neighbor on either side: a single
  * sample inside a gap, where the radar mostly lost track of the ground.
  */
 function changeSummary(dist, values) {
@@ -88,7 +88,7 @@ function Result({ result }) {
   const rel = rows.map((row) =>
     row.map((v, i) => (finite(v) && finite(rows[base][i]) ? v - rows[base][i] : null)),
   );
-  const limit = colourLimit(rel);
+  const limit = colorLimit(rel);
   const date = result.dates[index];
   const fromDate = result.dates[base];
   const change = rel[index];
