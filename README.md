@@ -65,7 +65,7 @@ are on **Investigate**.
   | Columbia Basin, WA       | Crops & farming   | GCOV    | HV peaks in August, then falls 2.6 dB                  |
   | Sylhet haors, Bangladesh | Floods & wetlands | GCOV    | Open water 53% in July, 14% in November                |
   | Okavango Delta, Botswana | Floods & wetlands | GCOV    | Open water 11% in early July, 1.7% by late October     |
-  | Mexico City              | Land subsidence   | GUNW    | 204 mm away from the satellite in a year               |
+  | Mexico City              | Land subsidence   | GUNW    | −204 mm relative LOS displacement (negative = away) in a year |
 
 - **Twelve stories** (water, food, ground, ice, and the Amazon's forest
   and rivers), each with labelled physical hypotheses: driver,

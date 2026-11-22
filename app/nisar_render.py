@@ -12,6 +12,9 @@ from __future__ import annotations
 import io
 import math
 import os
+import re
+from pathlib import Path
+from urllib.parse import urlsplit
 
 import numpy as np
 import pyproj
@@ -121,6 +124,30 @@ def open_remote(url: str, token: str | None = None, timeout: float = 60):
         session.headers["Authorization"] = f"Bearer {token}"
     fobj = RangeFile(url, session, timeout=timeout)
     return h5py.File(fobj, "r"), fobj
+
+
+class _LocalReadStats:
+    """Local HDF5 reads are chunked by h5py and have no byte counter."""
+
+    bytes_read = None
+
+
+def open_hdf5(source: str, token: str | None = None, timeout: float = 60):
+    """Open an HTTPS NISAR source by HTTP ranges, or a local HDF5 path.
+
+    Local paths are intended for explicit offline CLI workflows; no API route
+    accepts a user-supplied path.
+    """
+    if source.startswith("https://"):
+        return open_remote(source, token=token, timeout=timeout)
+    if urlsplit(source).scheme and not re.match(r"^[A-Za-z]:[\\/]", source):
+        raise OSError("NISAR HDF5 sources must be HTTPS URLs or local filesystem paths")
+    import h5py  # heavy import, only needed when actually reading
+
+    path = Path(source).expanduser().resolve(strict=True)
+    if not path.is_file():
+        raise OSError(f"Local NISAR source is not a file: {path}")
+    return h5py.File(path, "r"), _LocalReadStats()
 
 
 # ─── Resampling onto a lat/lon grid over the bbox ───────────────────

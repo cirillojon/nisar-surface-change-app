@@ -72,9 +72,8 @@ CACHE_DIR = ROOT / "nisar-downloads" / "cache"
 
 QUALITY_RANK = {"validated": 2, "provisional": 1}
 
-# GCOV frequency B (5 MHz, 80 m posting, HH + HV) is present in every
-# dual-pol mode we've seen, so it gives one consistent series across mode
-# changes and is ~16x cheaper to read than frequency A.
+# This site pipeline reads frequency B and requires both HH and HV. The
+# selected frequency, grid spacing and polarizations remain mode-dependent.
 GCOV_GRID = "science/LSAR/GCOV/grids/frequencyB"
 # Dates whose valid pixels cover less of the bbox than this are skipped.
 MIN_VALID_FRACTION = 0.6
@@ -375,8 +374,10 @@ def run_gunw(site, frame, granules, previous, workers, refresh):
             valid = cc == np.bincount(ref_cc).argmax()
             phase = px["unwrappedPhase"] - px["ionospherePhaseScreen"]
             valid &= np.isfinite(phase)
-            # NISAR convention, checked against known subsidence (Mexico City)
-            # and uplift (Campi Flegrei): +phase = away from the satellite.
+            # +phase maps to negative LOS displacement (+ toward, - away).
+            # Checked against known subsidence (Mexico City) and uplift
+            # (Campi Flegrei); the Handbook's generic phase equation alone
+            # does not fix the product-specific sign.
             disp = -phase * float(px["wavelength"]) / (4 * np.pi) * 1000.0
             disp -= np.median(disp[ref_win & valid])
             disp = np.where(valid, disp, 0.0)

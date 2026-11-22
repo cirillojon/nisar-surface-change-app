@@ -70,7 +70,8 @@ MIN_SHARED_FRACTION = 0.5
 IMAGE_UNCERTAINTY_PP = 0.6
 FOOTPRINT_NAME = "footprint.png"
 GCOV_METHOD = (
-    "Frequency B (5 MHz, 80 m) gamma-naught. hh_db / hv_db: median backscatter of the "
+    "GCOV frequency B HHHH / HVHV layers. Positive linear power is converted with 10 log10; "
+    "grid spacing and bandwidth vary with acquisition mode. hh_db / hv_db: median backscatter of the "
     "pixels each pass imaged in the bbox. water_visible_pct: share of the pixels that pass "
     f"imaged with HH < {WATER_HH_DB} dB. water_pct: the same share over the pixels every "
     "pass in the series imaged (site 'footprint'; scripts/shared_footprint.py), so passes "

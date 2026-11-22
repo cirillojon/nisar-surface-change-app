@@ -5,19 +5,33 @@ export const meta = {
 
 | Product | Holds | Here |
 | --- | --- | --- |
-| GCOV | Backscatter per polarization | Site values and images; gallery |
-| GUNW | Unwrapped interferogram between two passes | Mexico City; Draw line |
-| SME2 | Soil moisture (m³/m³), ~200 m | Drawn areas |
-| GOFF | Pixel offsets, metres of motion | Search only |
-| GSLC | Full-resolution amplitude and phase | Search only |
+| GCOV | Geocoded polarimetric covariance data; calibrated backscatter layers by polarization/frequency | Site values and images; gallery |
+| GUNW | Geocoded unwrapped interferometric phase with ancillary layers; displacement is inferred from phase | Mexico City; Draw line |
+| SME2 | Level-3 volumetric soil moisture on a 200 m grid (5+5 MHz passes aggregated to 400 m); accuracy goal 0.06 m³/m³ | Drawn areas |
+| GOFF | Geocoded pixel offsets from image matching | Search only |
+| GSLC | Complex geocoded imagery (amplitude and phase) | Search only |
 
 ## Values
 
 | Value | Computation |
 | --- | --- |
-| `hh_db`, `hv_db` | Median of valid pixels in the box, GCOV frequency B (80 m) |
+| `hh_db`, `hv_db` | Median of valid HH/HV pixels in the box, when both are available in the selected GCOV frequency grid; converted with 10 log₁₀ of linear power |
 | `water_pct` | Share of valid pixels with HH below −18 dB |
-| `los_mm` | Longest unbroken chain of 12-day GUNW pairs, minus the ionosphere screen, relative to a reference point, summed |
+| `los_mm` | Longest unbroken GUNW chain; ionosphere-screen-corrected phase converted to relative one-dimensional line-of-sight motion and summed |
+
+The 12-day interval is the mission's repeat cycle, not a promise of two
+observations at every location per cycle. The app currently processes LSAR
+products only. It does not interpret SME2 retrieval-quality flags. Urgent-response
+(`UR`) products use a forecast orbit and skip the ionospheric and tropospheric
+corrections of standard (`PR`) products ([ASF](https://nisar-docs.asf.alaska.edu/urgent-response/));
+they are in separate collections this app does not search, and it never pairs GSLCs.
+A user report adds that mixed UR/standard GSLC pairs misalign and lose coherence:
+never pair geocoded images with different orbit/correction provenance without
+verifying alignment.
+
+The land-change gallery's before/after layer is a smoothed HH backscatter
+difference, not a validated flood classifier. There is no flood class or
+confidence score in the current science output.
 
 One track and frame per site. Every pass shows its quality: **provisional** (before calibration is final) or **validated**. Full method: [Data, methods & evidence](/docs/data/methods).
 

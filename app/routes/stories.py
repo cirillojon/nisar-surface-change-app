@@ -54,6 +54,20 @@ def story_series_csv(slug):
     })
 
 
+@stories_blueprint.route('/stories/<slug>/export.geojson')
+@limiter.limit("60 per minute")
+def story_geojson(slug):
+    moment = request.args.get('moment')
+    try:
+        data = stories.story_geojson(slug, None if moment in (None, '') else moment)
+    except stories.StoryError as exc:
+        return _error(exc, 404 if 'No story' in str(exc) or 'No bounding box' in str(exc) else 400)
+    response = jsonify(data)
+    response.mimetype = 'application/geo+json'
+    response.headers['Content-Disposition'] = f'attachment; filename="nisar-{slug}.geojson"'
+    return response
+
+
 @stories_blueprint.route('/findings/<slug>')
 @limiter.limit("120 per minute")
 def get_finding(slug):

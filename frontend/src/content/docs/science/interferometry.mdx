@@ -3,7 +3,7 @@ export const meta = {
   description: "Measuring ground motion from the phase difference between two passes.",
 };
 
-NISAR records where in its wave cycle each echo returns (the phase). If the ground moves between passes, the phase shifts. At L-band, one full cycle is about 12 cm of motion. A map of these shifts is an interferogram (GUNW).
+NISAR records where in its wave cycle each echo returns (the phase). If the ground moves between passes, the phase shifts. At L-band, one full phase cycle corresponds to about half a wavelength, or 12 cm, of line-of-sight displacement. A GUNW contains unwrapped interferometric phase and ancillary layers; displacement is inferred after referencing and correction, not stored as a direct 3-D ground-motion vector.
 
 - **Line of sight**: motion is measured along the radar's slanted view. + is toward the satellite, − away.
 - **Relative**: values are against a reference point assumed stable. In [Mexico City](/workspace?site=mexico-city-subsidence) it's Ciudad Universitaria.
@@ -13,8 +13,8 @@ NISAR records where in its wave cycle each echo returns (the phase). If the grou
 | Source | Effect |
 | --- | --- |
 | Troposphere (water vapour) | Delays that vary by date |
-| Ionosphere | Large smooth delays, strong at L-band; corrected with GUNW's phase screen |
+| Ionosphere | Large smooth delays, strong at L-band; GUNW supplies a phase screen that this app subtracts |
 | Decorrelation | Noise where the surface changed (lava, ploughing) |
 | Unwrapping | Jumps of ~12 cm |
 
-Site series correct the ionosphere, not the troposphere, so single 12-day steps are noisy. **Draw line** picks among four correction sets per line.
+Site series and **Draw line** use the ionosphere-screen correction by default, not a correction set selected for making the time series look smooth. Draw-line results show scatter under four correction alternatives as a sensitivity diagnostic. Tropospheric correction remains a limitation, and individual steps can be noisy. The sign (+ toward, − away) was checked against known subsidence in Mexico City and uplift at Campi Flegrei.

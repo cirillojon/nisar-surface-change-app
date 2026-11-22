@@ -57,14 +57,17 @@ A _pass_ is one date on which NISAR imaged a site.
 
 ### Source
 
-NISAR is the NASA–ISRO L-band radar satellite. We use these products,
+NISAR carries NASA/ISRO L-band and S-band radars (the Handbook, 2nd edition,
+mission overview and product chapters: [JPL Dataverse DOI
+10.48577/jpl.UD4HV3](https://doi.org/10.48577/jpl.UD4HV3)). This app currently
+processes LSAR products only. We use these products,
 distributed by NASA's Alaska Satellite Facility (ASF) data centre and
 found through NASA's Common Metadata Repository (CMR):
 
 | Product | What it holds | Collections used (DOI) |
 | --- | --- | --- |
-| GCOV | Radar brightness (backscatter) per pixel | `NISAR_L2_GCOV_V1`, validated ([10.5067/NIL2GCOV-V1](https://doi.org/10.5067/NIL2GCOV-V1)); `NISAR_L2_GCOV_PROVISIONAL_V1` ([10.5067/NIL2GCOV-P1](https://doi.org/10.5067/NIL2GCOV-P1)) |
-| GUNW | Ground motion between two dates (unwrapped interferogram) | `NISAR_L2_GUNW_V1`, validated ([10.5067/NIL2GUNW-V1](https://doi.org/10.5067/NIL2GUNW-V1)); `NISAR_L2_GUNW_PROVISIONAL_V1` ([10.5067/NIL1GUNW-P1](https://doi.org/10.5067/NIL1GUNW-P1)) |
+| GCOV | Geocoded polarimetric covariance data, with backscatter layers per polarization/frequency | `NISAR_L2_GCOV_V1`, validated ([10.5067/NIL2GCOV-V1](https://doi.org/10.5067/NIL2GCOV-V1)); `NISAR_L2_GCOV_PROVISIONAL_V1` ([10.5067/NIL2GCOV-P1](https://doi.org/10.5067/NIL2GCOV-P1)) |
+| GUNW | Geocoded unwrapped interferometric phase and ancillary layers; relative line-of-sight displacement is inferred from them | `NISAR_L2_GUNW_V1`, validated ([10.5067/NIL2GUNW-V1](https://doi.org/10.5067/NIL2GUNW-V1)); `NISAR_L2_GUNW_PROVISIONAL_V1` ([10.5067/NIL1GUNW-P1](https://doi.org/10.5067/NIL1GUNW-P1)) |
 | SME2 | Soil moisture (drawn areas only) | `NISAR_L3_SME2_PROVISIONAL_V1` ([10.5067/NIL3SME2-P1](https://doi.org/10.5067/NIL3SME2-P1)) |
 
 The DOIs are the ones registered for each collection in CMR.
@@ -89,15 +92,45 @@ The DOIs are the ones registered for each collection in CMR.
 
 | Value | Computation | Known limit |
 | --- | --- | --- |
-| HH and HV backscatter (dB) | Median over the valid pixels in the site's box, from GCOV frequency B (5 MHz, 80 m) gamma-naught. | One number for the whole box. Punjab's box includes the city of Ludhiana. |
+| HH and HV backscatter (dB) | Median over valid HH/HV pixels in the site's box, from GCOV frequency B where both layers are available; positive linear power is converted with 10 log10. Grid spacing and bandwidth vary with acquisition mode. | One number for the whole box. Punjab's box includes the city of Ludhiana. |
 | Open water (%) | Share of pixels with HH below −18 dB, over the part of the box that every pass of the site imaged (the shared footprint; `scripts/shared_footprint.py`). | A single threshold. It misses wind-roughened water and water under vegetation, so it understates flooding in the Okavango. |
-| Line-of-sight displacement (mm) | The longest unbroken chain of interferogram pairs on one frame. For each pair: unwrapped phase minus the ionosphere phase screen, converted to mm, taken relative to a stable reference point, then summed over the chain. Both points use the median of a ±0.01° box. | Motion along the radar's line of sight, not vertical. Relative to the reference point. No correction for the atmosphere, which adds noise to every step. |
+| Line-of-sight displacement (mm) | The longest unbroken chain of interferogram pairs on one frame. For each pair: unwrapped phase minus the ionosphere phase screen, converted to mm using the app's phase convention, referenced to a stable point, then summed. Both points use the median of a ±0.01° box. | One-dimensional motion along the radar's line of sight, not vertical or 3-D motion. Relative to the reference point. Tropospheric delay is not corrected. The sign is + toward, − away, checked against known subsidence (Mexico City) and uplift (Campi Flegrei); the Handbook's general phase equation does not by itself fix the product-specific sign. |
+
+For GCOV the pipeline reads the product's `HHHH` / `HVHV` layers where
+available, applies 10 log10 to positive linear power, and does not perform an
+additional sigma-zero/gamma-zero conversion or terrain flattening. It also
+masks the product's partially-focused and outside-swath flags and erodes
+swath edges; this is not a full layover/shadow or land/water quality mask.
 
 A GCOV date is skipped when under 60% of the box has valid pixels, and
 pixels within 8 pixels of the edge of the valid area are discarded. Most
 granules are provisional, early-mission products; the first table in
 [Section 5](#5-the-numbers) gives the count per site, and how many
 passes saw less than 95% of the box.
+
+SME2 is a Level-3 volumetric soil-moisture retrieval posted on a 200 m
+EASE-Grid 2.0; products from 5+5 MHz acquisitions are aggregated to 400 m but
+still posted at 200 m. Its accuracy goal is 0.06 m³/m³ over unflagged areas
+with vegetation water content below 5 kg/m², and retrievals over dense
+vegetation or during rain are flagged as potentially unreliable ([ASF NISAR
+SME2 guide](https://nisar-docs.asf.alaska.edu/sme2/)). The live renderer masks
+fill/non-finite values and swath edges, but does not read or apply SME2
+retrieval-quality flags, so flagged pixels are included; treat values as
+provisional. The mission's 12-day repeat cycle does not mean every place is
+observed twice every 12 days; local cadence depends on track and acquisition
+geometry.
+
+The app's GSLC search is catalog-only and no code path pairs GSLC images.
+Urgent-response (UR) products are processed with Forecast Orbit Ephemeris and
+without the ionospheric (TEC) geolocation and tropospheric corrections applied
+to standard (PR) products; they sit in separate per-level urgent-response
+collections that this app does not search, and are kept for only 30 days
+([ASF NISAR Urgent Response guide](https://nisar-docs.asf.alaska.edu/urgent-response/)).
+The observation that UR/PR GSLC pairs misalign and lose coherence comes from
+an external user report, not the Handbook. `app.nisar.require_gslc_pair_compatible`
+refuses UR/PR pairs outright and requires matching orbit/correction provenance
+and verified alignment for any other pair. The app does not process
+SSAR/S-band products.
 
 ## 3. Moments
 
@@ -209,7 +242,7 @@ _Generated by `scripts/chain_evidence.py` from NISAR values dated 2026-11-14 and
 | Sylhet haor basin, Bangladesh | GCOV | `091_D_076` | 12 | 2026-06-20 to 2026-11-11 | 10 provisional, 2 validated | 6 (lowest 83%) | Open water (%): 13.7% to 53.3% |
 | Okavango Delta, Botswana | GCOV | `172_A_168` | 10 | 2026-06-26 to 2026-10-24 | 9 provisional, 1 validated | 0 | Open water (%): 1.7% to 11.0% |
 | Columbia Basin (Quincy–Moses Lake), Washington | GCOV | `071_D_065` | 11 | 2026-06-19 to 2026-10-29 | 10 provisional, 1 validated | 0 | HV backscatter (dB): −20.9 dB to −18.4 dB |
-| Mexico City | GUNW | `019_A_011` | 29 | 2025-10-30 to 2026-10-13 | 28 provisional | 0 | Line-of-sight displacement (mm): −204 mm in 11 months |
+| Mexico City | GUNW | `019_A_011` | 29 | 2025-10-30 to 2026-10-13 | 28 provisional | 0 | Relative LOS displacement: −204 mm (negative = away) in 11 months |
 
 **Moments: every number shown in the tiles**
 
@@ -385,8 +418,8 @@ leaves unsaid. The numbers are in [Section 5](#5-the-numbers).
 
 ### Mexico City
 
-- **NISAR shows** the ground at Nezahualcóyotl moving 204 mm away from
-  the satellite between 30 October 2025 and 13 October 2026, relative to
+- **NISAR shows** a relative LOS displacement of −204 mm (negative =
+  away) at Nezahualcóyotl between 30 October 2025 and 13 October 2026, relative to
   the reference point at Ciudad Universitaria. A straight line through
   the passes fits at −20.0 ± 1.2 mm a month from November to April and
   −14.1 ± 0.8 mm a month from May to October. The largest single step,

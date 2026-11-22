@@ -37,7 +37,7 @@ from app.nisar_render import (
     encode_webp,
     erode,
     gcov_rgb,
-    open_remote,
+    open_hdf5,
     ramp_rgb,
     resample,
     target_grid,
@@ -149,6 +149,17 @@ def get_scene(title: str, bbox: list[float]) -> dict:
         "granule_id": meta["granule_id"],
         "date": meta["date"],
         "quality": meta["quality"],
+        "source": meta.get("source", "NASA CMR"),
+        "collection": meta.get("collection"),
+        "processing_variant": meta.get(
+            "processing_variant",
+            nisar.granule_name_metadata(meta["granule_id"])["processing_variant"],
+        ),
+        "quality_flags_applied": meta.get("quality_flags_applied", False),
+        "quality_flags_note": meta.get(
+            "quality_flags_note",
+            "SME2 retrieval-quality flags are not applied. The renderer masks fill/non-finite values and swath edges only.",
+        ),
         "frequency": meta["frequency"],
         # The images cover the whole frame; the map clips them to the area.
         "image_bbox": meta["bbox"],
@@ -182,6 +193,32 @@ def ensure_frame(title: str, granule: dict | None = None) -> dict:
         return meta
 
 
+def import_local_file(path: str | Path, bbox: list[float]) -> dict:
+    """Render a local SME2 HDF5 into the normal cache for offline use."""
+    source = Path(path).expanduser().resolve(strict=True)
+    title = validate_title(source.stem)
+    bbox = validate_area(bbox)
+    match = re.search(r"_(\d{8})T\d{6}_", title)
+    if not match:
+        raise ValueError("local SME2 filename must include its NISAR acquisition timestamp")
+    day = f"{match.group(1)[:4]}-{match.group(1)[4:6]}-{match.group(1)[6:8]}"
+    granule = {
+        "title": title,
+        "start": f"{day}T00:00:00Z",
+        "quality": "unknown",
+        "bbox": bbox,
+        "data_url": str(source),
+        "source": "local HDF5",
+        "collection": None,
+    }
+    key = frame_key(title)
+    meta_path = cache_dir() / key / "meta.json"
+    with _lock_for(key):
+        meta = _render(key, granule)
+        meta_path.write_text(json.dumps(meta), encoding="utf-8")
+    return meta
+
+
 def prewarm_one(granule: dict) -> dict:
     """Render one granule if needed (for process pools). Never raises."""
     title = granule["title"]
@@ -209,7 +246,7 @@ def _attr(dataset, name) -> str:
 
 def _read(granule: dict, bbox: list[float]) -> dict:
     try:
-        h5, fobj = open_remote(granule["data_url"], timeout=30)
+        h5, fobj = open_hdf5(granule["data_url"], timeout=30)
     except OSError as exc:
         logger.warning("SME2 open failed for %s: %s", granule["title"], exc)
         status = str(exc)
@@ -225,8 +262,8 @@ def _read(granule: dict, bbox: list[float]) -> dict:
         grids = h5[GRIDS]
         out = {"frequency": None, "bs": None, "sm": None}
         radar = grids.get("radarData")
-        # Frequency B first, like the GCOV sites: it's in every dual-pol
-        # mode, so a time-lapse stays comparable across mode changes.
+        # Prefer B when it contains both requested polarizations; otherwise
+        # use A. The available frequency and polarization depend on the mode.
         for freq in ("frequencyB", "frequencyA"):
             group = radar.get(freq) if radar is not None else None
             if group is not None and "sigma0HH" in group and "sigma0HV" in group:
@@ -242,7 +279,7 @@ def _read(granule: dict, bbox: list[float]) -> dict:
             px = resample(grids, bbox, {"soilMoisture": np.nan}, MAX_PX)
             if px is not None:
                 out["sm"] = px["soilMoisture"].astype(float)
-        out["mb_read"] = round(fobj.bytes_read / 1e6, 1)
+        out["mb_read"] = round(fobj.bytes_read / 1e6, 1) if fobj.bytes_read is not None else None
         return out
 
 
@@ -303,6 +340,14 @@ def _render(key: str, granule: dict) -> dict:
         "granule_id": granule["title"],
         "date": (granule.get("start") or "")[:10],
         "quality": granule.get("quality"),
+        "source": granule.get("source", "NASA CMR"),
+        "collection": granule.get("collection"),
+        "processing_variant": nisar.granule_name_metadata(granule["title"])["processing_variant"],
+        "quality_flags_applied": False,
+        "quality_flags_note": (
+            "SME2 retrieval-quality flags are not applied. The renderer masks fill/non-finite "
+            "values and swath edges only."
+        ),
         "bbox": bbox,
         "grid_shape": list(shape),
         "frequency": px["frequency"],

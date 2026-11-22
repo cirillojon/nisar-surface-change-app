@@ -42,31 +42,33 @@ _VALIDATED_L2 = [
 PRODUCTS = {
     "GCOV": {
         "label": "Backscatter (GCOV)",
-        "description": "Geocoded polarimetric covariance — calibrated radar brightness. "
-                       "Use for floods, wetlands, fire scars, crops and forest loss.",
+        "description": "Geocoded polarimetric covariance. The app reads available HH/HV "
+                       "backscatter layers; polarization and grid spacing vary by acquisition mode.",
         "collections": ["NISAR_L2_GCOV_V1", "NISAR_L2_GCOV_PROVISIONAL_V1"],
     },
     "GUNW": {
         "label": "Interferogram (GUNW)",
-        "description": "Geocoded unwrapped interferogram — ground displacement between "
-                       "two passes. Use for earthquakes, volcanoes and subsidence.",
+        "description": "Geocoded unwrapped interferometric phase and ancillary layers. "
+                       "Relative line-of-sight displacement is inferred from phase; it is not a direct 3-D motion measurement.",
         "collections": ["NISAR_L2_GUNW_V1", "NISAR_L2_GUNW_PROVISIONAL_V1"],
     },
     "GOFF": {
         "label": "Pixel offsets (GOFF)",
-        "description": "Geocoded pixel offsets — large surface motion such as glacier "
-                       "flow and landslides.",
+        "description": "Geocoded pixel offsets from image matching, useful for larger "
+                       "motion such as glacier flow and landslides; not a direct 3-D motion measurement.",
         "collections": ["NISAR_L2_GOFF_V1", "NISAR_L2_GOFF_PROVISIONAL_V1"],
     },
     "GSLC": {
         "label": "Single-look complex (GSLC)",
-        "description": "Geocoded single-look complex — full-resolution amplitude and "
-                       "phase for custom processing.",
+        "description": "Geocoded single-look complex imagery with amplitude and phase "
+                       "for custom processing.",
         "collections": ["NISAR_L2_GSLC_V1", "NISAR_L2_GSLC_PROVISIONAL_V1"],
     },
     "SME2": {
         "label": "Soil moisture (SME2)",
-        "description": "Level-3 soil moisture. Useful context for agriculture and floods.",
+        "description": "Level-3 volumetric soil-moisture retrieval on a 200 m grid (5+5 MHz passes are "
+                       "aggregated to 400 m); accuracy goal 0.06 m³/m³ where unflagged and vegetation "
+                       "is light. This app does not apply SME2 retrieval-quality flags.",
         "collections": ["NISAR_L3_SME2_PROVISIONAL_V1"],
     },
 }
@@ -95,6 +97,10 @@ def _cache_put(key, value):
 
 class NisarSearchError(Exception):
     """CMR was unreachable or returned an error."""
+
+
+class NisarPairingError(ValueError):
+    """A pair cannot be used because its processing provenance is incompatible."""
 
 
 def product_list():
@@ -353,10 +359,12 @@ def parse_granule(entry: dict, product: str) -> dict:
     except (TypeError, ValueError):
         pass
 
+    name = granule_name_metadata(entry.get("title") or "")
     return {
         "id": entry.get("id"),
         "title": entry.get("title"),
         "product": product,
+        **name,
         "collection": entry.get("dataset_id"),
         "quality": _quality(entry.get("dataset_id") or ""),
         "start": entry.get("time_start"),
@@ -369,6 +377,75 @@ def parse_granule(entry: dict, product: str) -> dict:
         "browse_url": first_link("/browse#", "_LATLON.png"),
         "browse_kml_url": first_link("/metadata#", "_LATLON.kml"),
     }
+
+
+_PAIR_PRODUCTS = ("RIFG", "RUNW", "GUNW", "ROFF", "GOFF")
+
+
+def granule_name_metadata(title: str) -> dict:
+    """Fields encoded in NISAR granule names; ``None`` when the name is unfamiliar.
+
+    Layout per ASF's NISAR naming conventions: ``NISAR_<level>_<PR|UR>_<product>_
+    <cycle>_<track>_<A|D>_<frame>_...``. Pair products (GUNW, GOFF, ...) name the
+    reference cycle there and the secondary cycle right after the frame.
+    """
+    parts = title.split("_")
+    if len(parts) < 8 or parts[0] != "NISAR" or parts[1] not in ("L1", "L2", "L3"):
+        return {
+            "processing_variant": None, "urgent_response": None,
+            "cycle": None, "secondary_cycle": None,
+            "track": None, "orbit_direction": None, "frame": None,
+        }
+    variant = parts[2] if parts[2] in ("PR", "UR") else None
+    pair = parts[3] in _PAIR_PRODUCTS and len(parts) > 8
+    return {
+        "processing_variant": variant,
+        "urgent_response": True if variant == "UR" else False if variant == "PR" else None,
+        "cycle": parts[4],
+        "secondary_cycle": parts[8] if pair else None,
+        "track": parts[5],
+        "orbit_direction": parts[6] if parts[6] in ("A", "D") else None,
+        "frame": parts[7],
+    }
+
+
+def require_gslc_pair_compatible(
+    first: dict,
+    second: dict,
+    *,
+    orbit_type: tuple[str | None, str | None] = (None, None),
+    ionosphere_correction: tuple[str | None, str | None] = (None, None),
+    alignment_verified: bool = False,
+) -> None:
+    """Fail closed unless a GSLC pair has matching provenance and verified alignment.
+
+    ASF documents that UR products use Forecast Orbit Ephemeris and skip the
+    ionospheric (TEC) geolocation and tropospheric corrections that PR products
+    get (https://nisar-docs.asf.alaska.edu/urgent-response/), so UR and PR
+    GSLCs are never paired here, even if a caller reports alignment.
+
+    The application does not currently construct GSLC pairs. This guard is for
+    any future pair-processing path; it deliberately requires callers to pass
+    the relevant HDF5 provenance rather than infer it from a filename.
+    """
+    if first.get("product") != "GSLC" or second.get("product") != "GSLC":
+        raise NisarPairingError("This compatibility check only accepts GSLC products.")
+    if first.get("urgent_response") is None or second.get("urgent_response") is None:
+        raise NisarPairingError("GSLC urgent-response provenance is unknown; do not pair these products.")
+    if first["urgent_response"] != second["urgent_response"]:
+        raise NisarPairingError(
+            "Do not pair urgent-response and standard GSLCs: they use different orbits and "
+            "corrections. Wait for the standard GSLC, or pair urgent-response with urgent-response."
+        )
+    for field in ("track", "orbit_direction", "frame"):
+        if not first.get(field) or first.get(field) != second.get(field):
+            raise NisarPairingError(f"GSLC {field.replace('_', ' ')} is missing or differs between products.")
+    if not all(orbit_type) or orbit_type[0] != orbit_type[1]:
+        raise NisarPairingError("GSLC orbit provenance is missing or differs between products.")
+    if not all(ionosphere_correction) or ionosphere_correction[0] != ionosphere_correction[1]:
+        raise NisarPairingError("GSLC ionosphere-correction provenance is missing or differs between products.")
+    if not alignment_verified:
+        raise NisarPairingError("GSLC image alignment has not been verified.")
 
 
 def _quality(dataset_id: str) -> str:

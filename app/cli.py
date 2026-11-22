@@ -10,6 +10,7 @@ Usage:
     flask nisar check-schema        # exit 1 if models drift from migrations
     flask nisar search --bbox -99.3,19.2,-98.9,19.6 --product GCOV
     flask nisar sme2-prewarm --region washington   # render SME2 ahead of time
+    flask nisar sme2-import-local --file pass.h5 --bbox -120,46,-119,47
     flask nisar sme2-prewarm --bbox -120,46,-119,47 --dry-run
 """
 from __future__ import annotations
@@ -181,6 +182,34 @@ def nisar_sme2_prewarm(region, bbox, start, end, workers, dry_run):
     )
     if failures:
         sys.exit(1)
+
+
+@nisar_cli.command("sme2-import-local")
+@click.option("--file", "file_path", required=True,
+              type=click.Path(exists=True, dir_okay=False, resolve_path=True),
+              help="Local NISAR SME2 HDF5 file.")
+@click.option("--bbox", required=True, help="min_lon,min_lat,max_lon,max_lat")
+def nisar_sme2_import_local(file_path, bbox):
+    """Render a local SME2 HDF5 into DATA_DIR for offline scene queries.
+
+    The imported frame is marked quality=unknown because CMR provenance is not
+    available from a local file alone. The bbox is required because the local
+    file's complete product footprint is not inferred by this command.
+    """
+    from app import sme2
+
+    try:
+        box = sme2.validate_area(validate_bbox(bbox))
+        meta = sme2.import_local_file(file_path, box)
+    except (OSError, ValueError, sme2.Sme2Error) as exc:
+        raise click.ClickException(str(exc)) from exc
+    click.echo(json.dumps({
+        "granule_id": meta["granule_id"],
+        "date": meta["date"],
+        "source": meta["source"],
+        "quality": meta["quality"],
+        "images": meta["images"],
+    }, indent=2))
 
 
 @nisar_cli.command("check-schema")

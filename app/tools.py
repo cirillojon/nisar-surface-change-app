@@ -283,7 +283,11 @@ def soil_moisture_scene(granule: str, bbox) -> dict:
     except sme2.Sme2Error as exc:
         raise ToolError(str(exc)) from None
     return {k: v for k, v in scene.items() if k != "images"} | {
-        "note": "soil_moisture is volumetric (m³/m³); accuracy goal 0.06 where vegetation is light."
+        "note": (
+            "soil_moisture is volumetric (m³/m³) on a 200 m grid (5+5 MHz passes aggregated to "
+            "400 m); accuracy goal 0.06 where unflagged and vegetation is light. Retrieval-quality "
+            "flags are not applied by this app."
+        )
     }
 
 

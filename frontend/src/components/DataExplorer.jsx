@@ -97,7 +97,10 @@ function Sme2Charts({ charts, date, onSelectDate }) {
           onSelectDate={onSelectDate}
         />
       ))}
-      <p className="muted small provenance">Area medians, averaged per day. Provisional.</p>
+      <p className="muted small provenance">
+        Area medians, averaged per day. Provisional; SME2 retrieval-quality flags are not applied.
+        Fill/non-finite values and swath edges are masked.
+      </p>
     </>
   );
 }

@@ -71,6 +71,12 @@ don't matter for single-user local dev.
 | Recompute NISAR data     | `python scripts/extract_nisar.py [--site <slug>] [--refresh]`        |
 | Loader status            | `flask nisar status`                                                 |
 | Search NISAR (CLI)       | `flask nisar search --bbox=W,S,E,N --product GCOV`                   |
+| Import local SME2 HDF5   | `flask nisar sme2-import-local --file pass.h5 --bbox=W,S,E,N`        |
+
+The local SME2 import renders into the configured `DATA_DIR` cache, so the
+normal `/api/nisar/sme2/scene` endpoint can serve it without Earthdata access.
+Because a local file does not establish CMR processing status or collection,
+it is labelled `quality=unknown`. This command currently supports SME2 only.
 
 ## Adding a new endpoint
 

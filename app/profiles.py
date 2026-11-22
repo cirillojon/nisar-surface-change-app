@@ -12,9 +12,9 @@ For a line (up to ``MAX_LENGTH_KM``) the backend:
    phase screens at the levels bracketing the line's heights), as a median
    of the 3 x 3 pixels (~240 m) around each point;
 4. converts each pair to line-of-sight (LOS) motion in mm (+ = toward the
-   satellite), referenced to the line's median, and corrects it. Of four
-   correction sets (none, ionosphere, troposphere, both) it keeps the one
-   with the least scatter about a straight line in time;
+   satellite), references it to the line's median, and applies the
+   ionosphere-screen correction. Scatter for four correction alternatives is
+   reported as a sensitivity diagnostic; it does not select the result;
 5. rebuilds each point's displacement at every date. Separate chains are
    aligned by a straight-line fit per point (labelled as an assumption).
 
@@ -43,7 +43,7 @@ from app.nisar_render import earthdata_token, open_remote
 
 logger = logging.getLogger(__name__)
 
-VERSION = "v3"  # v3: low-coherence and erratic points hidden
+VERSION = "v4"  # v4: fixed correction choice; alternatives remain sensitivity diagnostics
 PRODUCT = "GUNW"
 MAX_LENGTH_KM = 100.0
 MIN_LENGTH_KM = 1.0
@@ -75,6 +75,7 @@ CORRECTIONS = {
     "troposphere": ("tropo",),
     "ionosphere + troposphere": ("iono", "tropo"),
 }
+DEFAULT_CORRECTION = "ionosphere"
 
 _jobs = threading.BoundedSemaphore(MAX_JOBS)
 _running: set[str] = set()
@@ -374,6 +375,18 @@ def displacement_history(pairs_by_chain, corrections):
     return dates, aligned, vel, med, scatter
 
 
+def choose_correction(scatter_mm: dict[str, float]) -> str:
+    """Use a fixed ionosphere-screen correction, not the smoothest-looking result."""
+    if not np.isfinite(scatter_mm.get(DEFAULT_CORRECTION, np.nan)):
+        raise ProfileError("NISAR couldn't measure motion along this line (not unwrapped)")
+    return DEFAULT_CORRECTION
+
+
+def phase_to_los_mm(phase, wavelength: float):
+    """Convert GUNW phase to LOS mm using this app's +toward convention."""
+    return -np.asarray(phase) * wavelength / (4 * np.pi) * 1000.0
+
+
 # ─── Jobs ────────────────────────────────────────────────────────────
 
 # Results shipped with the app (e.g. the guided tour's line), used when the
@@ -519,7 +532,6 @@ def compute(line, progress=lambda **p: None, workers=WORKERS) -> dict:
                     pairs_by_chain.append(seg)
                 seg = []
                 continue
-            k = -r["wavelength"] / (4 * np.pi) * 1000.0  # +phase = away from the satellite
             cc = r["cc"]
             labels = cc[np.isfinite(cc) & (cc > 0)].astype(int)
             main = np.bincount(labels).argmax() if labels.size else -1
@@ -527,9 +539,12 @@ def compute(line, progress=lambda **p: None, workers=WORKERS) -> dict:
             ref, sec = _dates(g["title"])
             seg.append({
                 "ref": ref, "sec": sec, "valid": valid,
-                "raw": np.where(valid, r["raw"] * k, 0.0),
-                "iono": np.where(valid, r["iono"] * k, 0.0),
-                "tropo": np.where(valid, r["tropo"] * k, 0.0),
+                "raw": np.where(valid, phase_to_los_mm(r["raw"], r["wavelength"]), 0.0),
+                "iono": np.where(valid, phase_to_los_mm(r["iono"], r["wavelength"]), 0.0),
+                "tropo": np.where(valid, phase_to_los_mm(r["tropo"], r["wavelength"]), 0.0),
+                "granule_id": g["title"],
+                "quality": g.get("quality"),
+                "collection": g.get("collection"),
             })
         if seg:
             pairs_by_chain.append(seg)
@@ -543,10 +558,7 @@ def compute(line, progress=lambda **p: None, workers=WORKERS) -> dict:
     progress(stage="Building the displacement history", done=total, total=total, frame=frame)
     trials = {name: displacement_history(pairs_by_chain, corr) for name, corr in CORRECTIONS.items()}
     scatters = {k: v[3] for k, v in trials.items()}
-    finite = {k: v for k, v in scatters.items() if np.isfinite(v)}
-    if not finite:
-        raise ProfileError("NISAR couldn't measure motion along this line (not unwrapped)")
-    chosen = min(finite, key=finite.get)
+    chosen = choose_correction(scatters)
     dates, disp, vel, scatter, point_scatter = trials[chosen]
     # Hide points where the radar lost track (scatter far above typical).
     with np.errstate(invalid="ignore"):
@@ -560,6 +572,23 @@ def compute(line, progress=lambda **p: None, workers=WORKERS) -> dict:
     cos_inc = np.cos(np.radians(inc)) if inc is not None else np.full(lon.shape, np.nan)
     r1 = lambda a, nd=1: [None if not np.isfinite(v) else round(float(v), nd) for v in a]  # noqa: E731
     used = sum(len(c) for c in pairs_by_chain)
+    pair_provenance = [
+        {
+            "granule_id": pair["granule_id"],
+            "reference_date": pair["ref"],
+            "secondary_date": pair["sec"],
+            "quality": pair.get("quality"),
+            "collection": pair.get("collection"),
+        }
+        for chain in pairs_by_chain for pair in chain
+    ]
+    collections = {p["collection"] for p in pair_provenance if p["collection"]}
+    provenance_warnings = []
+    if len(collections) > 1:
+        provenance_warnings.append(
+            "This time series uses multiple NISAR processing collections; "
+            "review collection provenance before interpreting small changes."
+        )
     return {
         "id": profile_id(line),
         "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -571,6 +600,8 @@ def compute(line, progress=lambda **p: None, workers=WORKERS) -> dict:
         "first_date": dates[0], "last_date": dates[-1],
         "pairs_total": total, "pairs_used": used, "chains": len(pairs_by_chain),
         "pairs_failed": len(errors),
+        "pair_provenance": pair_provenance,
+        "provenance_warnings": provenance_warnings,
         "corrections": chosen,
         "scatter_mm": {k: (round(v, 1) if np.isfinite(v) else None) for k, v in scatters.items()},
         "noise_mm": round(scatter, 1),
