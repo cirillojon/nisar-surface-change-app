@@ -274,7 +274,7 @@
       "source": "site",
       "theme": "ground",
       "title": "Ground in eastern Mexico City moves 20 cm in a year",
-      "question": "One point in Nezahualcóyotl moved 204 mm away from the satellite in a year, faster in the first half than the second. Is the ground sinking, and is the change of pace real?",
+      "question": "One point in Nezahualcóyotl has a relative LOS displacement of −204 mm (negative = away) in a year, faster in the first half than the second. Is the ground sinking, and is the change of pace real?",
       "place": "The city stands on the clay bed of a drained lake, above the aquifer that supplies much of its water.",
       "channel": "Interferometry (GUNW). The change in radar phase between passes gives motion along the line of sight, relative to a reference point.",
       "hero_moment": 0,
@@ -286,7 +286,7 @@
           "driver": "Clay compacting above a pumped aquifer",
           "mechanism": "Decades of groundwater pumping have lowered the water table, and the lake clays above it compact. Published work finds this almost fully irreversible (Chaussard et al., 2021).",
           "channel": "Phase: steady motion away from the satellite.",
-          "consistent_with": "204 mm away from the satellite between 30 October 2025 and 13 October 2026, with a fitted pace away from the satellite in both halves of the record.",
+          "consistent_with": "A relative LOS displacement of −204 mm (negative = away) between 30 October 2025 and 13 October 2026, with a fitted pace away from the satellite in both halves of the record.",
           "alternative": "Line-of-sight motion mixes vertical and horizontal movement, and it is measured against one reference point that may itself move.",
           "test": "Compare with GNSS stations in the city; add the opposite viewing direction.",
           "moments": [0, 2]

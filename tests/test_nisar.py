@@ -73,11 +73,55 @@ def test_parse_granule():
     assert g["browse_kml_url"] == _KML_URL
     assert g["footprint"][0] == [15.98556, 89.83626]
     assert g["bbox"] == [87.02351, 15.44546, 89.83626, 18.12678]
+    assert (g["cycle"], g["track"], g["orbit_direction"], g["frame"]) == ("035", "098", "A", "010")
+    assert g["processing_variant"] == "PR"
+    assert g["urgent_response"] is False
 
 
 def test_parse_granule_tolerates_missing_fields():
     g = nisar.parse_granule({"id": "G1"}, "GUNW")
     assert g["footprint"] is None and g["bbox"] is None and g["data_url"] is None
+    assert g["urgent_response"] is None
+
+
+def test_urgent_response_metadata_is_parsed_and_mixed_gslc_pair_is_rejected():
+    urgent = nisar.parse_granule(
+        {"title": "NISAR_L2_UR_GSLC_035_098_A_010_0005_TEST"},
+        "GSLC",
+    )
+    standard = nisar.parse_granule(
+        {"title": "NISAR_L2_PR_GSLC_035_098_A_010_0005_TEST"},
+        "GSLC",
+    )
+    assert urgent["urgent_response"] is True
+    assert urgent["processing_variant"] == "UR"
+    with pytest.raises(nisar.NisarPairingError, match="urgent-response and standard"):
+        nisar.require_gslc_pair_compatible(urgent, standard)
+
+
+def test_gslc_pair_guard_requires_matching_provenance_and_verified_alignment():
+    first = {
+        "product": "GSLC", "urgent_response": False,
+        "track": "098", "orbit_direction": "A", "frame": "010",
+    }
+    second = dict(first)
+    with pytest.raises(nisar.NisarPairingError, match="orbit provenance"):
+        nisar.require_gslc_pair_compatible(first, second)
+    with pytest.raises(nisar.NisarPairingError, match="alignment"):
+        nisar.require_gslc_pair_compatible(
+            first, second, orbit_type=("medium-precision", "medium-precision"),
+            ionosphere_correction=("applied", "applied"),
+        )
+    mismatched_track = {**second, "track": "099"}
+    with pytest.raises(nisar.NisarPairingError, match="track"):
+        nisar.require_gslc_pair_compatible(
+            first, mismatched_track, orbit_type=("medium-precision", "medium-precision"),
+            ionosphere_correction=("applied", "applied"), alignment_verified=True,
+        )
+    nisar.require_gslc_pair_compatible(
+        first, second, orbit_type=("medium-precision", "medium-precision"),
+        ionosphere_correction=("applied", "applied"), alignment_verified=True,
+    )
 
 
 def test_products_listed(client):

@@ -84,6 +84,12 @@ function GranuleItem({ granule: g, active, onShow }) {
           {g.product}
           {g.size_mb ? ` · ${formatSize(g.size_mb)}` : ""}
         </div>
+        {g.urgent_response && (
+          <p className="warning small">
+            Urgent-response product. This app does not pair GSLCs; verify orbit/correction provenance
+            and alignment before combining it with another image.
+          </p>
+        )}
         <div className="granule-actions">
           <button type="button" className="btn btn-secondary btn-small" onClick={() => onShow(date, g.id)} title="Show this date in the time slider">
             Show on map

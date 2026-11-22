@@ -243,7 +243,7 @@ illustrative.
 | Columbia Basin, WA       | Crops & farming   | GCOV    | 11     | HV peaks in mid-August, then falls 2.6 dB at every pass to late October as circular fields darken                |
 | Sylhet haors, Bangladesh | Floods & wetlands | GCOV    | 12     | Open water 53% (14 Jul) to 14% (11 Nov); half the passes see 83% of the box                                      |
 | Okavango, Botswana       | Floods & wetlands | GCOV    | 10     | Open water highest on 8 Jul (11%), then falls or holds at every pass to 1.7% (24 Oct)                            |
-| Mexico City              | Land subsidence   | GUNW    | 29     | 204 mm away from the satellite in a year; fitted pace 20.0 mm/month (Nov–Apr), 14.1 (May–Oct)                    |
+| Mexico City              | Land subsidence   | GUNW    | 29     | −204 mm relative LOS displacement (negative = away) in a year; fitted pace 20.0 mm/month (Nov–Apr), 14.1 (May–Oct) |
 
 The full stories are the `description` fields in
 [`app/data/sites.json`](../app/data/sites.json).
@@ -287,12 +287,14 @@ Glaciers (GOFF) need offset-tracking work. See §6.
 
 - **What:** a joint NASA–ISRO radar satellite, launched **30 July 2025**
   from Sriharikota, India. It carries two radars: **L-band** (~24 cm
-  wavelength, NASA/JPL) and **S-band** (~9 cm, ISRO; used mainly over India).
+  wavelength, NASA/JPL) and **S-band** (~9.4 cm, ISRO; used mainly over India).
 - **Why radar:** it sends its own microwave pulses, so it sees **day or
   night, through clouds and smoke**. L-band also passes through vegetation
   canopy.
-- **How often:** it images nearly all of Earth's land and ice **every
-  12 days**, on both ascending and descending passes.
+- **Orbit repeat:** **12 days**. That is not a guarantee of two acquisitions
+  at every location per cycle; local coverage depends on track, acquisition
+  plan and look direction. Ascending and descending passes have different
+  viewing geometry.
 - **Where the data is:** the Alaska Satellite Facility (ASF) DAAC.
   Anyone can search it through NASA's **CMR** catalog (that's what our
   backend does). Downloads need a free Earthdata Login. Files are HDF5
@@ -304,10 +306,13 @@ Glaciers (GOFF) need offset-tracking work. See §6.
 | Code   | Name                             | Measures                                      | Good for                                         |
 | ------ | -------------------------------- | --------------------------------------------- | ------------------------------------------------ |
 | `GCOV` | Geocoded polarimetric covariance | Calibrated radar brightness (**backscatter**) | Floods, wetlands, fire scars, crops, forest loss |
-| `GUNW` | Geocoded unwrapped interferogram | Ground motion between two passes (**InSAR**)  | Earthquakes, volcanoes, subsidence               |
-| `GOFF` | Geocoded pixel offsets           | Large surface motion from feature tracking    | Glaciers, landslides                             |
-| `GSLC` | Geocoded single-look complex     | Full-resolution amplitude + phase             | Custom processing                                |
-| `SME2` | Soil moisture (Level 3)          | Soil moisture                                 | Agriculture and flood context                    |
+| `GUNW` | Geocoded unwrapped interferogram | Phase and ancillary layers; infer relative line-of-sight motion | Earthquakes, volcanoes, subsidence |
+| `GOFF` | Geocoded pixel offsets           | Image-matched offsets; useful for larger motion | Glaciers, landslides |
+| `GSLC` | Geocoded single-look complex     | Complex imagery (amplitude + phase) | Custom processing; search only in this app |
+| `SME2` | Soil moisture (Level 3)          | Volumetric retrieval; nominal ~200 m posting (~400 m in Sahara) | Agriculture and flood context |
+
+These are product types, not direct physical-motion vectors. This app
+currently processes LSAR products only; it does not process SSAR/S-band data.
 
 Each granule carries a **quality** badge: `validated` (science-grade) or
 `provisional`/`beta` (earlier processing, many more granules). We search
@@ -416,16 +421,19 @@ take a few minutes. Commit `app/data/` when you're happy with the result.
    Example: Sylhet uses the dawn (descending) pass because evening wind
    roughens the water.
 3. **GCOV sites** (backscatter): read HH and HV from **frequency B**
-   (5 MHz, 80 m posting). It's present in every dual-pol mode, so the
-   series stays consistent when the observation mode changes. Resample
+   when both are available in the selected mode. Do not treat frequency
+   B as a guarantee of a fixed bandwidth, pixel spacing or polarization
+   across modes. Resample
    onto a lat/lon grid over the box, then record median HH/HV in dB and
    the open-water share, and write an RGB image (R = HH, G = HV,
    B = HH/HV, fixed stretches).
 4. **GUNW sites** (interferograms): take the longest unbroken chain of
-   12-day pairs. For each pair, subtract NISAR's ionosphere phase screen
-   and convert phase to mm with −λ/4π (λ = 24.2 cm). We verified the
-   sign: positive = toward the satellite, giving negative for Mexico
-   City. Then subtract the median at the
+   pairs (the mission's repeat cycle is 12 days; actual pair intervals
+   come from the granule dates). For each pair, subtract NISAR's ionosphere
+   phase screen and convert phase to mm with −λ/4π (λ = 24.2 cm). The
+   output convention is positive toward and negative away; the Handbook's
+   general equation alone does not independently validate the product-specific
+   phase polarity. Then subtract the median at the
    stable `reference` point, keeping only pixels in the reference's
    unwrapped connected component, and add up the pairs. Record the
    cumulative value at the site point, and write a red/blue cumulative
@@ -498,7 +506,8 @@ f.visit(print)                                 # layout differs by product
 ```
 
 Useful paths: GCOV `/science/LSAR/GCOV/grids/frequency{A,B}/{HHHH,HVHV,mask,...}`
-(linear γ⁰ power), GUNW
+(the pipeline reads the stored linear-power layers and converts them to dB; it
+does not apply an extra sigma-zero/gamma-zero conversion or terrain flattening), GUNW
 `/science/LSAR/GUNW/grids/frequencyA/unwrappedInterferogram/HH/{unwrappedPhase,ionospherePhaseScreen,connectedComponents,coherenceMagnitude}`.
 Product specs are linked from <https://nisar-docs.asf.alaska.edu/>.
 **Never commit `.h5` files.**

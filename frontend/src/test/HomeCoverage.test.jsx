@@ -24,7 +24,7 @@ it("switches the background after loading and updates the observation and Worksp
     ["Floods & wetlands", "wetlands", "Sylhet haor basin, Bangladesh", "site=sylhet-haor-floods", "2026-07-14,2026-11-11,water", "bd", "HH backscatter", "53% → 14% open water"],
     ["Volcanoes & lava", "volcanoes", "Kīlauea summit, Hawaiʻi", "place=kilauea", "2025-11-03,2026-11-10,colour", "us-hi", "HH and HV backscatter", "Lava spread across the crater floor"],
     ["Landslides", "landslides", "Langtang Lirung, Nepal", "place=langtang", "2026-08-19,2026-08-31,change", "np", "HH change map", "A streak appeared down the valley"],
-    ["Ground motion", "ground_motion", "Mexico City", "site=mexico-city-subsidence", "2025-10-30,2026-10-13", "mx", "Radar phase (InSAR)", "204 mm away from the satellite"],
+    ["Ground motion", "ground_motion", "Mexico City", "site=mexico-city-subsidence", "2025-10-30,2026-10-13", "mx", "Radar phase (InSAR)", "−204 mm relative LOS (negative = away)"],
   ];
 
   expect(section.getByRole("tab", { name: /Glaciers & ice/ })).toHaveAttribute("aria-selected", "true");

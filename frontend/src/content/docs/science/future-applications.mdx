@@ -5,14 +5,14 @@ export const meta = {
 
 **This app does none of these today.** It shows about a year of mostly provisional data at a few places. Each row below is something that record points toward, and what would have to be added first.
 
-NISAR's L-band radar (24 cm) images nearly all of Earth's land and ice every 12 days, on both ascending and descending passes, day and night and through cloud. Its data are free. Its S-band radar (9.4 cm) is used mainly over India.
+NISAR's orbit repeats every 12 days. That is not a guarantee of two acquisitions at every location in each repeat: local coverage depends on the track, acquisition plan and viewing direction. The mission carries NASA's L-band radar (~24 cm) and ISRO's S-band radar (~9.4 cm, mainly over India); this app currently processes LSAR data only. Its data are free.
 
 | Application | Relies on | What it would take |
 | --- | --- | --- |
 | **Flood mapping under cloud** | Calm open water reads dark in HH | Faster delivery; a classifier for wind-roughened water and water under vegetation |
 | **Forest-clearing alerts in the cloudy tropics** | HV drops where trees are removed | HV on every pass and a stable baseline |
 | **Harvest timing and sown area** | HV follows canopy growth and removal | Field boundaries, crop maps, several seasons |
-| **Soil moisture** | Wetter soil reflects more (the SME2 product, at 200 m) | Validation where vegetation is dense |
+| **Soil moisture** | SME2 retrieves volumetric soil moisture; nominal posting is about 200 m (400 m in the Sahara) | Validate retrieval-quality flags and areas with dense vegetation |
 | **Subsidence and aquifer management** | Millimetre-scale motion from interferometry | Both viewing directions, GNSS ties, an atmospheric correction |
 | **Roads, levees and rail lines** | Motion along a line at every pass | A reference that is known to be stable; validation on the ground |
 | **Landslides** | Brightness change after a failure; slow creep in phase | Both viewing directions, to see into shadowed slopes |

@@ -77,7 +77,7 @@ def sme2_env(tmp_path, monkeypatch):
         opened.append(url)
         return h5py.File(h5_path, "r"), _Counter()
 
-    monkeypatch.setattr(sme2, "open_remote", _open)
+    monkeypatch.setattr(sme2, "open_hdf5", _open)
     return opened
 
 
@@ -91,6 +91,8 @@ def test_scene_renders_the_frame_and_area_values(client, sme2_env):
     body = resp.get_json()
     assert body["date"] == "2026-10-17"
     assert body["quality"] == "provisional"
+    assert body["quality_flags_applied"] is False
+    assert "fill/non-finite" in body["quality_flags_note"]
     assert body["frequency"] == "frequencyB"
     # Images cover the whole frame; the map clips them to the area.
     assert body["image_bbox"] == FRAME
@@ -193,7 +195,7 @@ def test_prewarm_one_reports_failures(sme2_env, monkeypatch):
     def _boom(*a, **k):
         raise OSError("HTTP 500 reading x")
 
-    monkeypatch.setattr(sme2, "open_remote", _boom)
+    monkeypatch.setattr(sme2, "open_hdf5", _boom)
     res = sme2.prewarm_one(dict(GRANULE))
     assert res["status"] == "failed"
     assert not sme2.is_cached(TITLE)
@@ -246,6 +248,22 @@ def test_prewarm_cli_dry_run(app, monkeypatch, tmp_path):
     assert "1 to render" in result.output
     assert seen["product"] == "SME2"
     assert seen["polygon"][0] == seen["polygon"][-1]  # closed ring
+
+
+def test_local_sme2_hdf5_import_works_without_earthdata(app, client, tmp_path, monkeypatch):
+    monkeypatch.setenv("DATA_DIR", str(tmp_path / "cache"))
+    monkeypatch.setattr(sme2, "has_credentials", lambda: False)
+    local_file = tmp_path / f"{TITLE}.h5"
+    _write_sme2(local_file)
+    result = app.test_cli_runner().invoke(
+        args=["nisar", "sme2-import-local", "--file", str(local_file),
+              "--bbox", ",".join(map(str, FRAME))],
+    )
+    assert result.exit_code == 0, result.output
+    scene = _scene(client).get_json()
+    assert scene["source"] == "local HDF5"
+    assert scene["quality"] == "unknown"
+    assert scene["date"] == "2026-10-17"
 
 
 def test_prewarm_cli_rejects_unknown_region(app):

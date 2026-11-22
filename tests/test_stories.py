@@ -138,8 +138,24 @@ def test_finding_is_reproducible_and_honest(client, loaded):
     assert [h["id"] for h in f["hypotheses"]] == ["dry-season-loss"]
     assert f["hypothesis_label"].startswith("Hypothesis")
     assert f["links"]["workspace"] == "/workspace?mode=stories&finding=okavango-flood-pulse:1"
+    assert f["links"]["geojson"] == "/api/stories/okavango-flood-pulse/export.geojson"
     assert f["links"]["mcp"] == {"tool": "build_finding", "arguments": {"story": "okavango-flood-pulse", "moment": 1}}
     assert "ASF DAAC" in f["citation"]
+
+
+def test_story_geojson_download_has_bbox_and_reproducibility_metadata(client, loaded):
+    response = client.get("/api/stories/okavango-flood-pulse/export.geojson")
+    assert response.status_code == 200
+    assert response.mimetype == "application/geo+json"
+    assert response.headers["Content-Disposition"].endswith(
+        'filename="nisar-okavango-flood-pulse.geojson"'
+    )
+    body = response.get_json()
+    feature = body["features"][0]
+    assert body["type"] == "FeatureCollection"
+    assert feature["geometry"]["type"] == "Polygon"
+    assert feature["properties"]["geometry_basis"] == "site bounding box; not the NISAR pixel footprint"
+    assert feature["properties"]["evidence"]["passes"]
 
 
 def test_finding_defaults_to_the_key_moment_and_rejects_bad_ones(client, loaded):

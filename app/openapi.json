@@ -1331,6 +1331,55 @@
         }
       }
     },
+    "/api/stories/{slug}/export.geojson": {
+      "get": {
+        "tags": [
+          "Stories & findings"
+        ],
+        "operationId": "exportStoryGeoJson",
+        "summary": "Download a story finding as GeoJSON",
+        "description": "A GeoJSON feature collection containing the study site's bounding-box polygon (not a NISAR pixel footprint) and claim, evidence and citation metadata.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "slug",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Story slug, from `/api/stories`.",
+            "example": "okavango-flood-pulse"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "GeoJSON feature collection.",
+            "content": {
+              "application/geo+json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "type": {
+                      "const": "FeatureCollection"
+                    },
+                    "features": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "No such story."
+          }
+        }
+      }
+    },
     "/api/findings/{slug}": {
       "get": {
         "tags": [

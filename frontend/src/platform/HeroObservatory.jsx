@@ -15,7 +15,7 @@ const RADAR_TILES = [
   { id: "columbia", directory: "columbia-basin-crops", date: "2026-08-18", name: "Columbia Basin", detail: "2.6 dB drop by October" },
   { id: "ice", directory: "landchange/jakobshavn", date: "2026-10-28", place: "jakobshavn", name: "Jakobshavn Glacier" },
   { id: "krakatau", directory: "landchange/anak-krakatau", date: "2026-11-05", place: "anak-krakatau", name: "Anak Krakatau", detail: "Volcanic island" },
-  { id: "mexico", directory: "mexico-city-subsidence", date: "2026-10-13", name: "Mexico City", detail: "204 mm away from radar" },
+  { id: "mexico", directory: "mexico-city-subsidence", date: "2026-10-13", name: "Mexico City", detail: "−204 mm relative LOS (negative = away)" },
   { id: "langtang", directory: "landchange/langtang", date: "2026-11-11", place: "langtang", name: "Langtang Lirung" },
 ];
 

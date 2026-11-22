@@ -23,6 +23,6 @@ export const SME2_LAYERS = {
       className: "ramp-soil-moisture",
       labels: ["0 (dry)", "0.25", "0.5 m³/m³ (wet)"],
     },
-    legend: "Soil moisture on a 200 m grid. Gaps: water, cities, dense forest, frozen ground. Provisional; accuracy goal ±0.06 m³/m³.",
+    legend: "SME2 soil moisture is nominally posted at 200 m (400 m in the Sahara). Gaps can include water, cities, dense forest or frozen ground. Provisional; retrieval-quality flags are not applied here.",
   },
 };

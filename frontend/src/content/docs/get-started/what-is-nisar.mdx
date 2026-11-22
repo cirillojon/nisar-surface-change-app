@@ -1,6 +1,6 @@
 export const meta = {
   title: "NISAR in brief",
-  description: "A radar satellite built by NASA and ISRO that maps nearly all of Earth's land and ice twice every 12 days.",
+  description: "A dual-frequency radar satellite built by NASA and ISRO, with a 12-day repeat orbit.",
 };
 
 <Art name="nisar">Illustration. Mission details: [NASA/JPL](https://nisar.jpl.nasa.gov/) and [ISRO](https://www.isro.gov.in/Mission_GSLVF16_NISAR_Home.html).</Art>
@@ -9,9 +9,10 @@ export const meta = {
 
 | | |
 | --- | --- |
-| **Revisit** | Twice every 12 days (ascending and descending passes) |
+| **Orbit repeat** | 12 days; a location's acquisitions depend on its track, schedule and viewing direction |
 | **Coverage** | Nearly all land and ice |
-| **L-band** | ~24 cm wavelength; reaches through vegetation |
+| **L-band** | ~24 cm wavelength; NASA/JPL radar, used by this app |
+| **S-band** | ~9.4 cm wavelength; ISRO radar, mainly observed over India |
 | **Swath** | ~240 km |
 | **Data** | Free, from NASA's Alaska Satellite Facility |
 
@@ -31,5 +32,8 @@ Rough or upright surfaces (forest, buildings, lava) look bright; calm water and 
 | GUNW (interferograms) | Mexico City; ground motion along a drawn line |
 | SME2 (soil moisture) | Drawn areas |
 | GOFF, GSLC | Catalog search only |
+
+This app currently reads LSAR products only. Listing an S-band-related product or
+catalog entry does not mean the app processes SSAR data.
 
 More in [NISAR products](/docs/data/products).

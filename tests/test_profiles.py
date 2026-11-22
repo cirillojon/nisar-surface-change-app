@@ -57,6 +57,21 @@ def test_profile_id_depends_on_the_line():
     assert len(a) == 20 and a.isalnum()
 
 
+def test_line_profile_uses_fixed_ionosphere_correction_not_minimum_scatter():
+    assert profiles.choose_correction({
+        "none": 1.0, "ionosphere": 8.0, "troposphere": 5.0,
+        "ionosphere + troposphere": 2.0,
+    }) == "ionosphere"
+    with pytest.raises(profiles.ProfileError, match="not unwrapped"):
+        profiles.choose_correction({"ionosphere": float("nan")})
+
+
+def test_phase_conversion_preserves_documented_los_sign():
+    result = profiles.phase_to_los_mm(np.array([1.0, -1.0]), 0.24)
+    assert result[0] < 0  # negative is away; positive is toward
+    assert result[1] > 0
+
+
 # ─── Pairs and frames ────────────────────────────────────────────────
 
 def test_chains_cover_the_full_record_without_overlap():

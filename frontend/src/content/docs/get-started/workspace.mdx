@@ -51,15 +51,19 @@ Drag a rectangle (**Cancel** or Escape stops), then pick a product in the panel.
 | Product | Shows |
 | --- | --- |
 | GCOV | Backscatter browse images |
-| GUNW | Interferogram browse images |
+| GUNW | Interferogram browse images; phase is not a direct 3-D displacement product |
 | GOFF, GSLC | Listed for download |
 | SME2 | Soil moisture, with values per day (needs a server Earthdata token) |
+
+The app does not pair GSLCs. An external user report warns that urgent-response
+and standard GSLCs may not align; this is not a Handbook specification. Before
+pairing any geocoded images, verify orbit/correction provenance and alignment.
 
 **Time slider** steps by day; **Mosaic** shows the newest data everywhere.
 
 ### Draw line
 
-Click to add points. A bar over the map counts them and has **Undo**, **Finish line** and **Cancel**; double-click or Enter also finishes, and Escape cancels. A line needs two points and can be up to 100 km long. It shows terrain and ground motion every ~200 m at every date, plus a space–time chart (red sank, blue rose). A new line takes 1–4 minutes and needs a server Earthdata token. Values are relative to the line's median and assume vertical motion. A largest drop or rise that stands alone between gaps is flagged: treat it with caution.
+Click to add points. A bar over the map counts them and has **Undo**, **Finish line** and **Cancel**; double-click or Enter also finishes, and Escape cancels. A line needs two points and can be up to 100 km long. It shows terrain and relative line-of-sight motion every ~200 m at every date, plus a space–time chart (red sank, blue rose). A new line takes 1–4 minutes and needs a server Earthdata token. The optional vertical projection assumes motion is purely vertical. A largest drop or rise that stands alone between gaps is flagged: treat it with caution.
 
 ## My findings
 
@@ -69,7 +73,7 @@ A finding is one moment of a story as a card. Opening one moves the map to its p
 - **What this rests on**: passes in the period, gaps between them, provisional passes, passes that saw only part of the box, and the record's length.
 - **Evidence**: every pass with its value, quality and coverage, and granule IDs.
 - **Possible explanations**: only the hypotheses written for this moment.
-- **Share**: a link, a printable brief and a citation. Under **Data & code**: the site's series as CSV, and the REST and MCP calls that rebuild the same card.
+- **Share**: a link, a printable brief and a citation. Under **Data & code**: the site's series as CSV, a GeoJSON bounding-box feature with evidence metadata, and the REST and MCP calls that rebuild the same card.
 
 Saved findings live in this browser.
 

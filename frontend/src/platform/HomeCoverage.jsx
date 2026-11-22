@@ -138,7 +138,7 @@ const TOPICS = [
     wireframe: groundMotionWireframe,
     example: "Mexico City",
     flag: mexicoFlag,
-    finding: "204 mm away from the satellite",
+    finding: "−204 mm relative LOS (negative = away)",
     signal: "Radar phase (InSAR)",
     caveat: "Measured at one point in Nezahualcóyotl relative to a reference. The viewing angle mixes vertical and horizontal motion.",
     site: "mexico-city-subsidence",

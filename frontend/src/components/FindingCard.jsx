@@ -262,6 +262,9 @@ function FindingActions({ finding, saved, onSave, onShowOnMap }) {
           {links.csv && (
             <a className="btn btn-small btn-secondary" href={absoluteApiUrl(links.csv)} download>Download CSV</a>
           )}
+          {links.geojson && (
+            <a className="btn btn-small btn-secondary" href={absoluteApiUrl(links.geojson)} download>Download GeoJSON</a>
+          )}
           <CopyButton label="Copy API call" text={`curl "${absoluteApiUrl(links.api)}"`} />
           <CopyButton label="Copy MCP call" text={mcp} />
         </div>

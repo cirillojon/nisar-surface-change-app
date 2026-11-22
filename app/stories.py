@@ -316,6 +316,7 @@ def _links(slug: str, source: str, moment: int | None) -> dict:
     links = {
         "workspace": f"/workspace?mode=stories&finding={slug}" + (f":{moment}" if moment is not None else ""),
         "api": f"/api/findings/{slug}{query}",
+        "geojson": f"/api/stories/{slug}/export.geojson",
         "mcp": {"tool": "build_finding", "arguments": args},
     }
     if source == "site":
@@ -402,6 +403,39 @@ def build_finding(slug: str, moment: int | None = None) -> dict:
             f"Accessed {today}."
         ),
         "caveat": CAVEAT,
+    }
+
+
+def story_geojson(slug: str) -> dict:
+    """A story's bounding-box geometry and reproducibility metadata as GeoJSON."""
+    finding = build_finding(slug)
+    bbox = finding["site"].get("bbox")
+    if not bbox or len(bbox) != 4:
+        raise StoryError(f"No bounding box is available for {slug!r}.")
+    west, south, east, north = bbox
+    geometry = {
+        "type": "Polygon",
+        "coordinates": [[
+            [west, south], [east, south], [east, north],
+            [west, north], [west, south],
+        ]],
+    }
+    return {
+        "type": "FeatureCollection",
+        "features": [{
+            "type": "Feature",
+            "geometry": geometry,
+            "properties": {
+                "story": finding["story"],
+                "site": finding["site"],
+                "geometry_basis": "site bounding box; not the NISAR pixel footprint",
+                "claim": finding["claim"],
+                "evidence": finding["evidence"],
+                "confidence": finding["confidence"],
+                "citation": finding["citation"],
+                "caveat": finding["caveat"],
+            },
+        }],
     }
 
 
@@ -586,5 +620,6 @@ def landchange_not_visible() -> list[dict]:
 
 __all__ = [
     "StoryError", "list_stories", "get_story", "build_finding", "series_csv",
+    "story_geojson",
     "coverage_check", "default_window", "resolve_story_slug", "landchange_not_visible",
 ]
