@@ -133,6 +133,12 @@ def summary(today: str, ingested: dict, detected: dict, skipped_events: list, fe
     if pend:
         lines += ["", "**Waiting for the next pass:**"]
         lines += [f"- {s}: {c['kind']} {c['metric']} {c['start']} → {c['end']} (score {c['score']})" for s, c in pend]
+    rej = [(s, c) for s, d in detected.items() for c in d["candidates"] if c["status"] == "rejected"]
+    if rej:
+        lines += ["", "<details><summary>Rejected candidates</summary>", ""]
+        lines += [f"- {s}: {c['kind']} {c['metric']} {c['start']} → {c['end']}: {c['reason']} (score {c['score']})"
+                  for s, c in rej]
+        lines += ["", "</details>"]
     if skipped_events:
         lines += ["", "<details><summary>Events not watched</summary>", ""]
         lines += [f"- {e['event']}: {e['why']}" for e in skipped_events[:50]]

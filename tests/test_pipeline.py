@@ -332,6 +332,14 @@ def test_run_ingests_only_new_passes_and_publishes_once_the_change_holds(store, 
     assert rendered == [] and store().stories["auto-langtang"]["updated_at"] == "2026-09-13"
 
 
+def test_summary_says_why_each_candidate_was_rejected():
+    rejected = {"kind": "step", "metric": "hh_db", "start": "2026-09-01", "end": "2026-09-13",
+                "status": "rejected", "reason": "within the place's own noise", "score": 1.2}
+    text = run.summary("2026-09-14", {"auto-x": {"rendered": []}},
+                       {"auto-x": {"candidates": [rejected], "action": None}}, [], [], [], False)
+    assert "auto-x: step hh_db 2026-09-01 → 2026-09-13: within the place's own noise (score 1.2)" in text
+
+
 def test_dry_run_writes_nothing(store, tmp_path):
     def search(product, bbox, start=None, end=None):
         return [{"title": _title("2026-08-19"), "start": "2026-08-19T00:15:00Z", "data_url": "x"}]
