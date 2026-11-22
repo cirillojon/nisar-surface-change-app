@@ -63,7 +63,6 @@ def story_geojson(slug):
     except stories.StoryError as exc:
         return _error(exc, 404 if 'No story' in str(exc) or 'No bounding box' in str(exc) else 400)
     response = jsonify(data)
-    response = jsonify(data)
     response.mimetype = 'application/geo+json'
     response.headers['Content-Disposition'] = f'attachment; filename="nisar-{slug}.geojson"'
     return response
