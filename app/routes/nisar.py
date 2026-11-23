@@ -6,23 +6,42 @@
   • ``GET /api/nisar/browse-bounds`` — exact map bounds of a granule's browse image
   • ``GET /api/nisar/sme2/scene``    — render an SME2 granule over a bbox
   • ``GET /api/nisar/sme2/images/<key>/<layer>.webp`` — a rendered SME2 image
+  • ``GET /api/nisar/coverage-map``  — what the global coverage heatmap can show
+  • ``GET /api/nisar/coverage-map/grid`` — one global coverage heatmap
+  • ``GET /api/nisar/orbit``         — NISAR's computed ground track
 
 The browser could call CMR directly, but going through the backend
 keeps one place to cache, rate-limit and reshape results.
 """
 from __future__ import annotations
 
+import gzip
+import json
 from concurrent.futures import ThreadPoolExecutor
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
-from flask import Blueprint, abort, jsonify, request, send_file
+from flask import Blueprint, Response, abort, jsonify, request, send_file
 
-from app import limiter, nisar, profiles, sme2
+from app import coverage_map, limiter, nisar, orbit, profiles, sme2
 from app.validators import validate_bbox, validate_choice, validate_optional_date
 
 nisar_blueprint = Blueprint('nisar', __name__)
 
 _DEFAULT_LOOKBACK_DAYS = 90
+
+
+def _json_maybe_gzip(payload, max_age=0):
+    """JSON, gzipped when the client accepts it (these payloads are 100-300 KB)."""
+    body = json.dumps(payload, separators=(',', ':')).encode('utf-8')
+    resp = Response(mimetype='application/json')
+    if 'gzip' in request.headers.get('Accept-Encoding', ''):
+        body = gzip.compress(body, compresslevel=6)
+        resp.headers['Content-Encoding'] = 'gzip'
+    resp.set_data(body)
+    resp.headers['Vary'] = 'Accept-Encoding'
+    if max_age:
+        resp.headers['Cache-Control'] = f'public, max-age={max_age}'
+    return resp
 
 
 @nisar_blueprint.route('/products')
@@ -179,6 +198,74 @@ def get_profile(pid):
     if status is None:
         abort(404, description='profile not found')
     return jsonify(status)
+
+
+@nisar_blueprint.route('/coverage-map')
+@limiter.limit("120 per minute")
+def coverage_map_info():
+    """Products, metrics and months the coverage heatmap can show."""
+    try:
+        return jsonify(coverage_map.info())
+    except coverage_map.CoverageMapUnavailable as exc:
+        return jsonify({'error': str(exc)}), 503
+
+
+@nisar_blueprint.route('/coverage-map/grid')
+# A slider steps through months, one request each.
+@limiter.limit("600 per minute")
+def coverage_map_grid():
+    """Query params: ``product`` (default GCOV), ``metric`` (default passes),
+    ``month`` ``YYYY-MM`` (default: the latest), ``window`` ``month`` |
+    ``cumulative``. Returns the grid packed as base64 uint16 (see
+    ``app/coverage_map.py``).
+    """
+    args = request.args
+    try:
+        result = coverage_map.grid(
+            args.get('product', 'GCOV'),
+            args.get('metric', 'passes'),
+            month=args.get('month') or None,
+            window=args.get('window', 'month'),
+        )
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except coverage_map.CoverageMapUnavailable as exc:
+        return jsonify({'error': str(exc)}), 503
+    return _json_maybe_gzip(result, max_age=3600)
+
+
+def _utc_param(value, field):
+    try:
+        parsed = datetime.fromisoformat(value.strip().replace('Z', '+00:00'))
+    except (AttributeError, ValueError):
+        raise ValueError(f'{field} must be an ISO 8601 time, e.g. 2026-11-22T12:00:00Z') from None
+    return parsed if parsed.tzinfo else parsed.replace(tzinfo=timezone.utc)
+
+
+@nisar_blueprint.route('/orbit')
+@limiter.limit("60 per minute")
+def orbit_track():
+    """NISAR's sub-satellite point over a window, computed from its latest TLE.
+
+    Query params: ``start`` / ``end`` ISO 8601 times (UTC if no offset;
+    default: the 12 hours either side of now; at most 7 days apart, within
+    14 days of the elements' epoch) and ``step`` seconds (10-600, default 60).
+    """
+    args = request.args
+    try:
+        now = datetime.now(timezone.utc).replace(microsecond=0)
+        start = _utc_param(args['start'], 'start') if args.get('start') else now - timedelta(hours=12)
+        end = _utc_param(args['end'], 'end') if args.get('end') else start + timedelta(hours=24)
+        try:
+            step = int(args.get('step', 60))
+        except ValueError:
+            raise ValueError('step must be an integer number of seconds') from None
+        result = orbit.ground_track(start, end, step)
+    except ValueError as exc:
+        return jsonify({'error': str(exc)}), 400
+    except orbit.OrbitError as exc:
+        return jsonify({'error': str(exc)}), exc.status
+    return _json_maybe_gzip(result, max_age=300)
 
 
 @nisar_blueprint.route('/sme2/images/<key>/<layer>.webp')

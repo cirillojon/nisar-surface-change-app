@@ -55,6 +55,8 @@ change types that chart them are defined in `app/change_types.py`.
 | `app/routes/assistant.py`  | AI assistant endpoints (only with `ENABLE_AI=1`).                                      |
 | `app/openapi.json`         | OpenAPI 3.1 description of the API, served at `/api/openapi.json`.                     |
 | `app/nisar.py`             | NASA CMR client: granule search, browse-image bounds per track/frame, 10-minute cache. |
+| `app/coverage_map.py`      | Global coverage heatmaps (passes, days per pass, days since the last pass, ascending share) from `app/data/coverage_map.npz`. |
+| `app/orbit.py`             | NISAR's ground track: TLE from CelesTrak (cached 6 h in memory and under `<DATA_DIR>/orbit/`), SGP4, TEME → WGS84. |
 | `app/nisar_render.py`      | Reads NISAR HDF5 pixels over a box through range requests and renders map images.      |
 | `app/sme2.py`              | SME2 soil-moisture images and values for a drawn area (needs `EARTHDATA_TOKEN`).       |
 | `app/profiles.py`          | Height change along a drawn line from every GUNW pair on the best frame (background jobs). |
@@ -72,6 +74,7 @@ change types that chart them are defined in `app/change_types.py`.
 | `app/migrations/versions/` | Alembic revisions.                                                                     |
 | `scripts/extract_nisar.py` | Offline NISAR pipeline (GCOV backscatter, GUNW displacement, images).                  |
 | `scripts/build_driver_data.py` | Fetches each site's related series into `app/data/drivers.json` (no login).        |
+| `scripts/build_coverage_map.py` | Pages every NISAR granule's name and footprint from CMR's KML listing and counts passes per 1° cell and month into `app/data/coverage_map.npz` (no login, ~2-5 min). |
 | `scripts/build_landchange.py` | Builds the land-change gallery (`app/data/landchange.json` and its images).         |
 | `scripts/shared_footprint.py` | The area every pass of a site imaged, used to compare open water like for like.     |
 | `scripts/chain_evidence.py` | Prints every number behind the site stories from the committed files; `--write` refreshes the tables in [`DATA_AND_METHODS.md`](DATA_AND_METHODS.md). |
@@ -212,6 +215,9 @@ control sizing rather than introducing separate fonts or button styles.
 | `src/components/AoiPanel.jsx`        | Details of a drawn area.                                           |
 | `src/components/GranulePanel.jsx`    | NISAR granule search form + results.                               |
 | `src/components/DataExplorer.jsx`    | Time slider / mosaic of every image over an area.                  |
+| `src/components/CoveragePanel.jsx`, `src/services/coverageMap.js` | The global coverage heatmap: product, metric, period and month controls; decodes the grid and draws it for Leaflet (Web Mercator) or Cesium (plate carrée). |
+| `src/components/OrbitPanel.jsx`, `src/services/orbit.js`, `src/components/globe/GlobeOrbit.jsx` | NISAR's path: time slider, playback and follow; interpolation, antimeridian splits and the swath; the orbit at altitude on the globe. |
+| `src/workspace/useMapLayers.js`, `components/MapLayerToggles.jsx`, `components/MapLayerPanels.jsx` | The Coverage and Orbit buttons beside 2D / 3D, and their panels; the layers go to whichever map is shown. |
 | `src/components/ProfilePanel.jsx`, `SpaceTimeChart.jsx` | Height profile along a drawn line.              |
 | `src/components/ImpactChain.jsx`     | The NISAR story panel: the NISAR series, moments, one related series and the site's other NISAR series on one time axis. |
 | `src/components/tour/`               | First-visit welcome dialog and the guided tour.                    |

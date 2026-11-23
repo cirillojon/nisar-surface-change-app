@@ -11,6 +11,9 @@ import Tour from "../../components/tour/Tour.jsx";
 import { evidenceSubjectOf, moreSeriesOf } from "../workspaceView.js";
 import DrawTools from "./DrawTools.jsx";
 import MapHeader from "./MapHeader.jsx";
+import { useMapLayers } from "../useMapLayers.js";
+import MapLayerPanels from "./MapLayerPanels.jsx";
+import MapLayerToggles from "./MapLayerToggles.jsx";
 import MapViewToggle from "./MapViewToggle.jsx";
 import ModeTabs from "./ModeTabs.jsx";
 import PanelLists from "./PanelLists.jsx";
@@ -166,9 +169,10 @@ function Evidence({ ws, subject }) {
  * drawing. The 2D map (Leaflet) or the 3D globe (CesiumJS) shows them, and
  * both draw areas and lines; the tour and the demo use the 2D map.
  */
-function WorkspaceMap({ ws }) {
+function WorkspaceMap({ ws, layers }) {
   const { act, data, ui, v, map, tour, refs } = ws;
   const { touring } = tour;
+  const extras = !touring && !tour.demo;
   const shared = {
     sites: data.sites,
     changeTypes: data.changeTypes,
@@ -189,6 +193,9 @@ function WorkspaceMap({ ws }) {
     onMapClick: touring || ui.mode !== "investigate" ? ignore : act.selectPoint,
     fitKey: touring ? tour.refit : 0,
     homeKey: ui.homeKey,
+    heatmap: extras && layers.open.coverage ? layers.heatmap : null,
+    orbit: extras && layers.open.orbit ? layers.orbit : null,
+    onPointerMove: extras && layers.open.coverage ? layers.onPointerMove : null,
   };
   if (ws.globeShown) {
     return (
@@ -257,6 +264,7 @@ function WorkspaceDock({ ws }) {
 /** The map pane: the map with its drawing tools and evidence card over it, and the dock under it. */
 function MapPane({ ws }) {
   const { act, data, ui, v, refs, tour } = ws;
+  const layers = useMapLayers();
   const subject = evidenceSubjectOf({ v, catalog: ws.catalog });
   const evidence = subject && <Evidence ws={ws} subject={subject} />;
   return (
@@ -266,9 +274,15 @@ function MapPane({ ws }) {
           {data.error && <p className="workspace-status error" role="alert">{data.error}</p>}
           <div className="map-frame" aria-label="NISAR map" ref={refs.mapFrameRef}>
             <div className="map-canvas">
-              <WorkspaceMap ws={ws} />
+              <WorkspaceMap ws={ws} layers={layers} />
               {!tour.touring && !tour.demo && (
-                <MapViewToggle view={ws.globeShown ? "3d" : "2d"} globeUnavailable={ui.globeUnavailable} onChange={act.setMapView} />
+                <>
+                  <div className="map-corner-controls">
+                    <MapViewToggle view={ws.globeShown ? "3d" : "2d"} globeUnavailable={ui.globeUnavailable} onChange={act.setMapView} />
+                    <MapLayerToggles coverage={layers.open.coverage} orbit={layers.open.orbit} onToggle={layers.toggle} />
+                  </div>
+                  <MapLayerPanels layers={layers} globe={ws.globeShown} />
+                </>
               )}
               {/* The map's drawing bar: what to do, Finish and Cancel. */}
               <div className="draw-host" ref={ui.setDrawHost} />

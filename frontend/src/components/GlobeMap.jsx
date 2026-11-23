@@ -7,6 +7,7 @@ import GlobeControls from "./globe/GlobeControls.jsx";
 import { lonLatAt } from "./globe/geo.js";
 import { GlobeAreaDrawer, GlobeLineDrawer } from "./globe/GlobeDrawing.jsx";
 import { GlobeImage, GlobeRegionTile } from "./globe/GlobeImage.jsx";
+import GlobeOrbit from "./globe/GlobeOrbit.jsx";
 import { useCesiumGlobe } from "./globe/useCesiumGlobe.js";
 import { usePlaceNames } from "./globe/usePlaceNames.js";
 import { useShapes } from "./globe/useGlobeShapes.js";
@@ -29,7 +30,7 @@ const prefersReducedMotion = () => Boolean(window.matchMedia?.("(prefers-reduced
  * is a map click (not while drawing); hovering a marker or a labeled line
  * names it.
  */
-function useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapClick }) {
+function useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapClick, onPointerMove }) {
   const [tip, setTip] = useState(null);
   const drawingRef = useRef(drawing);
   useEffect(() => {
@@ -45,6 +46,7 @@ function useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapCli
       if (ll) onMapClick?.({ latitude: ll[1], longitude: ll[0] });
     }
   });
+  const moved = useStableCallback((ll) => onPointerMove?.(ll ? { lat: ll[1], lon: ll[0] } : null));
   useEffect(() => {
     if (!scene) return undefined;
     const handler = new ScreenSpaceEventHandler(scene.canvas);
@@ -54,9 +56,15 @@ function useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapCli
       const label = typeof item?.label === "string" ? item.label : null;
       if (!drawingRef.current) scene.canvas.style.cursor = item?.kind ? "pointer" : "";
       setTip(label ? { label, x: e.endPosition.x, y: e.endPosition.y } : null);
+      moved(lonLatAt(scene, e.endPosition));
     }, ScreenSpaceEventType.MOUSE_MOVE);
-    return () => handler.destroy();
-  }, [scene, click]);
+    const leave = () => moved(null);
+    scene.canvas.addEventListener("mouseleave", leave);
+    return () => {
+      handler.destroy();
+      scene.canvas.removeEventListener("mouseleave", leave);
+    };
+  }, [scene, click, moved]);
   return tip;
 }
 
@@ -91,11 +99,12 @@ function useGlobeCamera(scene, { focusBbox, focusMaxZoom, fitKey, homeKey, obstr
   }, [scene, homeKey]);
 }
 
-/** The NISAR images: the selection's pass (or change map), the catalog's tiles, and the hatched gaps. */
-function GlobeImages({ globe, sceneOverlay, regionLayers, footprintOverlay }) {
+/** The NISAR images: the coverage heatmap, the selection's pass (or change map), the catalog's tiles, and the hatched gaps. */
+function GlobeImages({ globe, heatmap, sceneOverlay, regionLayers, footprintOverlay }) {
   const regionOpacity = regionLayers?.opacity ?? 0.85;
   return (
     <>
+      {heatmap && <GlobeImage globe={globe} url={heatmap.url} bbox={heatmap.bbox} opacity={heatmap.opacity ?? 0.8} />}
       {sceneOverlay && <GlobeImage globe={globe} url={sceneOverlay.url} bbox={sceneOverlay.bbox} opacity={sceneOverlay.opacity ?? 1} />}
       {regionLayers?.tiles?.map((tile) => <GlobeRegionTile key={tile.key} globe={globe} tile={tile} opacity={regionOpacity} />)}
       {footprintOverlay && <GlobeImage globe={globe} url={footprintOverlay.url} bbox={footprintOverlay.bbox} />}
@@ -133,6 +142,9 @@ export default function GlobeMap({
   onSelectPlace,
   onMapClick,
   onUnavailable,
+  heatmap = null, // the global coverage heatmap: { url, bbox, opacity }
+  orbit = null, // NISAR's computed path (OrbitPanel)
+  onPointerMove = null, // ({ lat, lon } | null) as the pointer moves over the Earth
 }) {
   const container = useRef(null);
   const globe = useCesiumGlobe(container, onUnavailable);
@@ -144,7 +156,7 @@ export default function GlobeMap({
   const points = [...overlay.points, ...markersOf({ sites, places, colorOf })];
   const lines = [...(showFocusOutline ? focusLines(focusBbox) : []), ...overlay.lines];
   useShapes(scene, points, lines);
-  const tip = useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapClick });
+  const tip = useGlobePointer(scene, { drawing, onSelectSite, onSelectPlace, onMapClick, onPointerMove });
   useGlobeCamera(scene, { focusBbox, focusMaxZoom, fitKey, homeKey, obstructionRef: focusObstructionRef });
   return (
     <div className="map globe-map" data-testid="globe">
@@ -152,7 +164,8 @@ export default function GlobeMap({
       {!globe && <div className="map-loading" aria-hidden="true">Loading the globe…</div>}
       {globe && (
         <>
-          <GlobeImages globe={globe} sceneOverlay={sceneOverlay} regionLayers={regionLayers} footprintOverlay={footprintOverlay} />
+          <GlobeImages globe={globe} heatmap={heatmap} sceneOverlay={sceneOverlay} regionLayers={regionLayers} footprintOverlay={footprintOverlay} />
+          <GlobeOrbit scene={scene} orbit={orbit} />
           <GlobeControls scene={scene} reducedMotion={prefersReducedMotion()} namesShown={namesShown} onToggleNames={() => setNamesShown((v) => !v)} />
           {drawing === "area" && <GlobeAreaDrawer scene={scene} onDraw={onDrawArea} onCancel={onCancelDraw} host={drawHost} />}
           {drawing === "line" && <GlobeLineDrawer scene={scene} onDraw={onDrawLine} onCancel={onCancelDraw} host={drawHost} />}

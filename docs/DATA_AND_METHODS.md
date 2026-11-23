@@ -653,3 +653,78 @@ curated stories in four ways:
 They can be fooled where a box-level radar measure can: wet snow,
 freezing, wind on water, farming, or a change of viewing geometry that
 the mode check misses.
+
+## 13. Coverage heatmap and orbit
+
+The workspace's **Coverage** and **Orbit** buttons (beside 2D / 3D)
+show where NISAR has imaged the Earth and where the satellite is. Both
+describe the mission, not a site, and draw no conclusion about the
+surface.
+
+### Coverage heatmap
+
+`scripts/build_coverage_map.py` lists every granule of the five
+products the app searches (GCOV, GUNW, GOFF, GSLC, SME2; validated and
+provisional collections) from NASA CMR's public KML listing, which gives
+each granule's name and footprint polygon. It writes
+`app/data/coverage_map.npz`, which `/api/nisar/coverage-map/grid`
+serves.
+
+- **A pass** is one track and orbit direction on one UTC day, read from
+  the granule name. For GUNW and GOFF it is one pair of dates, counted
+  on the later one. Adjacent frames, extra frequencies or modes, and
+  validated copies of provisional granules count once.
+- **Cells** are 1° of latitude and longitude. A pass counts for a cell
+  when one of its footprints covers the cell's center (or, for a
+  footprint smaller than a cell, the cell holding its center).
+- **Months** are calendar months (UTC). The latest month ends on the
+  day the counts were made.
+
+| Metric | Per cell |
+| --- | --- |
+| Passes (pairs) | Passes in the period. |
+| Days per pass | The period's length in days divided by its passes: an average revisit, not the gap between any two passes. |
+| Days since last pass | Days from the latest pass, in the period or any month before it, to the period's end. |
+| Ascending share | Share of the period's passes on ascending (south-to-north) orbits. |
+
+"Every month up to it" sums from the first month with data, so early
+cells' days per pass include months before NISAR first imaged them. The
+color scale tops out at the 98th percentile over all months, so stepping
+through months compares like with like.
+
+The heatmap shows where products exist, not their quality or whether
+they suit a question; the Investigate tab's coverage check does that for
+one area. At 1° the stripes between neighboring tracks are partly an
+effect of the grid. Coverage before June 2026 is a few calibration and
+validation regions; global acquisitions start then.
+
+### NISAR's path
+
+`/api/nisar/orbit` propagates NISAR's latest two-line elements (NORAD
+65053, from CelesTrak's copy of the US Space Force public catalog,
+refreshed at most every six hours) with SGP4 (Vallado et al., 2006),
+using the `sgp4` Python package. Positions are rotated from the TEME
+frame to Earth-fixed by Greenwich mean sidereal time (polar motion
+ignored) and converted to latitude, longitude and height on WGS84.
+
+- **Accuracy.** SGP4 is good to about a kilometer at the elements'
+  epoch and drifts a few kilometers a day; a maneuver after the epoch is
+  not in the elements. The app computes only times within 14 days of the
+  epoch and shows three days either side of now.
+- **The swath.** The dashed lines 430 km and 700 km to the left of the
+  track are measured, not assumed. Comparing 42 full GSLC frames from
+  20 November 2026 (ascending and descending, four modes) with the track
+  at their acquisition times put every frame between 416 and 704 km left
+  of the track; for five of them, checked one by one, the frame's center
+  was 2 to 8 km from the point 565 km left of the track at
+  mid-acquisition. `tests/test_orbit.py` checks one of those frames.
+- **It is a prediction.** The path says where the satellite is, not when
+  the radar was on: NISAR images mostly land and ice.
+
+**References**
+
+- Vallado, D., Crawford, P., Hujsak, R., & Kelso, T. S. (2006).
+  _Revisiting Spacetrack Report #3_. AIAA/AAS Astrodynamics Specialist
+  Conference. <https://doi.org/10.2514/6.2006-6753>
+- CelesTrak. _NISAR (NORAD 65053) general perturbations elements_.
+  <https://celestrak.org/NORAD/elements/gp.php?CATNR=65053&FORMAT=TLE>

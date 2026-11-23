@@ -1396,6 +1396,239 @@
   }
 }
 
+/* ── Map-wide layers: the coverage heatmap and NISAR's path (CoveragePanel, OrbitPanel) ── */
+.map-corner-controls {
+  position: absolute;
+  z-index: 500;
+  inset-block-end: 12px;
+  inset-inline-start: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  pointer-events: none;
+}
+.map-corner-controls .map-view-toggle {
+  position: static;
+  pointer-events: auto;
+}
+.map-layer-panels {
+  position: absolute;
+  z-index: 500;
+  inset-block-end: calc(12px + var(--control-height) + 10px);
+  inset-inline-start: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  inline-size: min(340px, calc(100% - 20px));
+  max-block-size: calc(100% - var(--control-height) - 40px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.map-layer-panel {
+  display: grid;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius);
+  background: var(--paper);
+  box-shadow: 0 2px 10px var(--map-widget-shadow);
+  color: var(--fg);
+  font-size: var(--text-ui);
+}
+.map-layer-panel header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.map-layer-panel h2 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 500;
+}
+.map-layer-close {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--fg-muted);
+  cursor: pointer;
+}
+.map-layer-close:hover {
+  background: var(--bg-elevated);
+  color: var(--fg);
+}
+.map-layer-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 8px;
+}
+.map-layer-fields .layer-select {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2px;
+  flex: 1 1 90px;
+  min-inline-size: 0;
+}
+.map-layer-fields select {
+  inline-size: 100%;
+}
+.map-layer-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.map-layer-row .map-layer-when {
+  margin-inline-end: auto;
+}
+.map-layer-row .layer-select {
+  grid-template-columns: minmax(0, 1fr);
+}
+.map-layer-time {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.map-layer-time input[type="range"] {
+  flex: 1;
+  min-inline-size: 0;
+  accent-color: var(--accent);
+}
+.map-layer-time .btn {
+  flex: none;
+}
+.map-layer-when {
+  flex: none;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}
+.map-layer-note,
+.map-layer-readout {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.map-layer-note.error {
+  color: var(--error);
+}
+.map-layer-about {
+  color: var(--fg-muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+.map-layer-about summary {
+  cursor: pointer;
+  inline-size: fit-content;
+}
+.map-layer-about p {
+  margin: 6px 0 0;
+}
+.map-layer-readout {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 8px;
+  font-variant-numeric: tabular-nums;
+}
+.map-layer-readout strong {
+  color: var(--fg);
+  font-weight: 500;
+}
+.map-layer-legend {
+  display: grid;
+  gap: 3px;
+}
+.map-layer-gradient {
+  display: block;
+  block-size: 10px;
+  border-radius: 3px;
+}
+.map-layer-scale {
+  display: flex;
+  justify-content: space-between;
+  color: var(--fg-muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.map-layer-opacity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--fg-muted);
+}
+.map-layer-opacity input {
+  flex: 1;
+  accent-color: var(--accent);
+}
+.map-layer-key {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--fg-muted);
+  font-size: 12px;
+}
+.map-layer-key li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.key-line {
+  display: inline-block;
+  inline-size: 18px;
+  border-block-start: 2.5px solid #fff;
+}
+.key-future {
+  border-block-start-style: dashed;
+  opacity: 0.75;
+}
+.key-swath {
+  border-block-start: 1.5px dashed #7dd3fc;
+}
+.heatmap-overlay {
+  image-rendering: pixelated;
+}
+.orbit-satellite {
+  position: relative;
+}
+.orbit-satellite-ring,
+.orbit-satellite-dot {
+  position: absolute;
+  border-radius: 50%;
+}
+.orbit-satellite-ring {
+  inset: 0;
+  border: 2px solid #facc15;
+  background: color-mix(in srgb, #facc15 18%, transparent);
+}
+.orbit-satellite-dot {
+  inset: 8px;
+  background: #facc15;
+  box-shadow: 0 0 0 2px #0b1220;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .orbit-satellite-ring {
+    animation: orbit-pulse 2s ease-out infinite;
+  }
+}
+@keyframes orbit-pulse {
+  from {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+  to {
+    transform: scale(1.4);
+    opacity: 0;
+  }
+}
+
 /* The globe (CesiumJS): it fills the map frame, its controls in the 2D map's column and colors. */
 .globe-map {
   background: #000;

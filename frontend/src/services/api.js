@@ -119,6 +119,17 @@ export const fetchProfile = (id) => get(`/api/nisar/profiles/${id}`);
 export const fetchSme2Scene = ({ granule, bbox }) =>
   get("/api/nisar/sme2/scene", { params: { granule, bbox: bbox.join(",") }, timeout: SME2_TIMEOUT_MS });
 
+/** What the global coverage heatmap can show: products, metrics, months. */
+export const fetchCoverageMapInfo = () => get("/api/nisar/coverage-map");
+
+/** One global coverage heatmap (values packed as base64 uint16; see services/coverageMap.js). */
+export const fetchCoverageMapGrid = ({ product, metric, month, window }) =>
+  get("/api/nisar/coverage-map/grid", { params: { product, metric, month, window } });
+
+/** NISAR's computed ground track: `{ start, step_s, points: [[s, lon, lat, km], ...], elements, ... }`. */
+export const fetchOrbit = ({ start, end, step = 60 }) =>
+  get("/api/nisar/orbit", { params: { start, end, step }, timeout: 30 * 1000 });
+
 /* ------------------------------------------------------------------
  * Stories, findings and the coverage check (the workspace's modes)
  * ------------------------------------------------------------------*/

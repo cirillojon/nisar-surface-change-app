@@ -50,6 +50,10 @@
       "description": "Ground motion along a line, over NISAR's full interferogram record. Runs as a background job."
     },
     {
+      "name": "Orbit",
+      "description": "Where NISAR is: its ground track computed from public orbital elements."
+    },
+    {
       "name": "Land change",
       "description": "A gallery of places where NISAR saw change, with every pass on one track."
     },
@@ -607,6 +611,460 @@
           },
           "400": {
             "$ref": "#/components/responses/BadRequest"
+          }
+        }
+      }
+    },
+    "/api/nisar/coverage-map": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "getCoverageMapInfo",
+        "summary": "What the global coverage heatmap can show",
+        "description": "Products, metrics and months available for `/api/nisar/coverage-map/grid`, and when the counts were made. The counts come from every NISAR granule in NASA CMR, rebuilt offline by `scripts/build_coverage_map.py` (1° cells, calendar months).",
+        "x-rate-limit": "120 per minute",
+        "responses": {
+          "200": {
+            "description": "Heatmap options.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "cell_deg": {
+                      "type": "number",
+                      "example": 1
+                    },
+                    "months": {
+                      "type": "array",
+                      "items": {
+                        "type": "string"
+                      },
+                      "example": [
+                        "2026-10",
+                        "2026-11"
+                      ]
+                    },
+                    "windows": {
+                      "type": "array",
+                      "items": {
+                        "type": "string",
+                        "enum": [
+                          "month",
+                          "cumulative"
+                        ]
+                      }
+                    },
+                    "products": {
+                      "type": "array",
+                      "description": "In the order to offer them.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "GCOV"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "granules": {
+                            "type": "integer"
+                          },
+                          "passes": {
+                            "type": "integer"
+                          },
+                          "cells": {
+                            "type": "integer"
+                          },
+                          "unit": {
+                            "type": "string",
+                            "enum": [
+                              "passes",
+                              "pairs"
+                            ]
+                          }
+                        }
+                      }
+                    },
+                    "metrics": {
+                      "type": "array",
+                      "description": "In the order to offer them.",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": {
+                            "type": "string",
+                            "example": "passes"
+                          },
+                          "label": {
+                            "type": "string"
+                          },
+                          "unit": {
+                            "type": "string"
+                          },
+                          "description": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "The coverage map hasn't been built.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/nisar/coverage-map/grid": {
+      "get": {
+        "tags": [
+          "Catalog"
+        ],
+        "operationId": "getCoverageMapGrid",
+        "summary": "One global NISAR coverage heatmap",
+        "description": "A metric per 1° cell over the whole Earth for one product and month. `passes`: passes (pairs, for GUNW and GOFF) over the cell; `days_per_pass`: the period's length divided by its passes; `days_since`: days from the latest pass (in any earlier month too) to the period's end; `ascending_pct`: share of passes on ascending orbits. `values` is base64 of little-endian uint16, `height` rows of `width` cells, north row and west column first; a cell's value is `raw * scale`, empty where `raw == nodata`. `color_max` is the 98th percentile over every month, for a color scale that stays fixed while stepping through months. Gzipped when the client accepts it.",
+        "x-rate-limit": "600 per minute",
+        "parameters": [
+          {
+            "name": "product",
+            "in": "query",
+            "description": "NISAR product.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "GCOV",
+                "GUNW",
+                "GOFF",
+                "GSLC",
+                "SME2"
+              ],
+              "default": "GCOV"
+            }
+          },
+          {
+            "name": "metric",
+            "in": "query",
+            "description": "What each cell shows.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "passes",
+                "days_per_pass",
+                "days_since",
+                "ascending_pct"
+              ],
+              "default": "passes"
+            }
+          },
+          {
+            "name": "month",
+            "in": "query",
+            "description": "`YYYY-MM` (default: the latest).",
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}$"
+            }
+          },
+          {
+            "name": "window",
+            "in": "query",
+            "description": "`month`: that month alone; `cumulative`: every month up to it.",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "month",
+                "cumulative"
+              ],
+              "default": "month"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The grid.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "product": {
+                      "type": "string"
+                    },
+                    "metric": {
+                      "type": "string"
+                    },
+                    "label": {
+                      "type": "string"
+                    },
+                    "unit": {
+                      "type": "string"
+                    },
+                    "month": {
+                      "type": "string"
+                    },
+                    "window": {
+                      "type": "string"
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "end": {
+                      "type": "string",
+                      "format": "date"
+                    },
+                    "cell_deg": {
+                      "type": "number"
+                    },
+                    "width": {
+                      "type": "integer",
+                      "example": 360
+                    },
+                    "height": {
+                      "type": "integer",
+                      "example": 180
+                    },
+                    "bbox": {
+                      "type": "array",
+                      "items": {
+                        "type": "number"
+                      }
+                    },
+                    "scale": {
+                      "type": "number"
+                    },
+                    "nodata": {
+                      "type": "integer",
+                      "example": 65535
+                    },
+                    "encoding": {
+                      "type": "string"
+                    },
+                    "values": {
+                      "type": "string",
+                      "contentEncoding": "base64"
+                    },
+                    "stats": {
+                      "type": "object",
+                      "properties": {
+                        "cells": {
+                          "type": "integer"
+                        },
+                        "min": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        },
+                        "max": {
+                          "type": [
+                            "number",
+                            "null"
+                          ]
+                        }
+                      }
+                    },
+                    "color_max": {
+                      "type": "number"
+                    },
+                    "generated_at": {
+                      "type": "string",
+                      "format": "date-time"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "description": "The coverage map hasn't been built.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/nisar/orbit": {
+      "get": {
+        "tags": [
+          "Orbit"
+        ],
+        "operationId": "getOrbit",
+        "summary": "NISAR's computed ground track",
+        "description": "NISAR's sub-satellite point every `step` seconds, propagated with SGP4 from its latest two-line elements (NORAD 65053, from CelesTrak, cached for 6 hours). Accurate to about a kilometer near the elements' epoch and drifting a few kilometers a day away from it, so windows must lie within 14 days of the epoch. The radar images a swath about 430-700 km to the left of the track. Gzipped when the client accepts it.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "start",
+            "in": "query",
+            "description": "ISO 8601 time, UTC unless an offset is given (default: 12 hours ago).",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "end",
+            "in": "query",
+            "description": "ISO 8601 time (default: 24 hours after `start`); at most 7 days after `start`.",
+            "schema": {
+              "type": "string",
+              "format": "date-time"
+            }
+          },
+          {
+            "name": "step",
+            "in": "query",
+            "description": "Seconds between points (10-600).",
+            "schema": {
+              "type": "integer",
+              "minimum": 10,
+              "maximum": 600,
+              "default": 60
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The track.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "satellite": {
+                      "type": "string",
+                      "example": "NISAR"
+                    },
+                    "norad_id": {
+                      "type": "integer",
+                      "example": 65053
+                    },
+                    "start": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "end": {
+                      "type": "string",
+                      "format": "date-time"
+                    },
+                    "step_s": {
+                      "type": "integer"
+                    },
+                    "period_min": {
+                      "type": "number",
+                      "example": 99.83
+                    },
+                    "inclination_deg": {
+                      "type": "number",
+                      "example": 98.406
+                    },
+                    "epoch_offset_days": {
+                      "type": "number"
+                    },
+                    "elements": {
+                      "type": "object",
+                      "properties": {
+                        "line1": {
+                          "type": "string"
+                        },
+                        "line2": {
+                          "type": "string"
+                        },
+                        "epoch": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "fetched_at": {
+                          "type": "string",
+                          "format": "date-time"
+                        },
+                        "stale": {
+                          "type": "boolean"
+                        },
+                        "source": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "points": {
+                      "type": "array",
+                      "description": "`[seconds after start, longitude, latitude, altitude km]`",
+                      "items": {
+                        "type": "array",
+                        "items": {
+                          "type": "number"
+                        }
+                      },
+                      "example": [
+                        [
+                          0,
+                          96.4987,
+                          9.2592,
+                          752.3
+                        ]
+                      ]
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "502": {
+            "description": "The orbital elements couldn't be fetched.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }

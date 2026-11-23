@@ -71,6 +71,7 @@ don't matter for single-user local dev.
 | Apply migrations         | `flask db upgrade`                                                   |
 | Schema drift check       | `flask nisar check-schema`                                           |
 | Reload site data         | `flask nisar load --force`                                           |
+| Rebuild coverage heatmap | `python scripts/build_coverage_map.py [--products GCOV,GUNW] [--cache DIR]` |
 | Recompute NISAR data     | `python scripts/extract_nisar.py [--site <slug>] [--refresh]`        |
 | Loader status            | `flask nisar status`                                                 |
 | Search NISAR (CLI)       | `flask nisar search --bbox=W,S,E,N --product GCOV`                   |
