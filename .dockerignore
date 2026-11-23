@@ -58,3 +58,4 @@ env/
 Dockerfile
 .dockerignore
 fly.toml
+fly.future.toml
