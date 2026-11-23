@@ -1,43 +1,35 @@
-# Fly.io config for the NISAR Surface Change backend.
-# First-time setup is in docs/DEPLOYMENT.md. After that, every push to
-# main that touches the backend deploys via .github/workflows/fly-deploy.yml.
+# fly.toml app configuration file generated for nisar-surface-change-app-future on 2026-11-23T04:02:15Z
+#
+# See https://docs.fly.io/reference/configuration for information about how to use this file.
+#
 
-app = 'nisar-surface-change'
+app = 'nisar-surface-change-app-future'
 primary_region = 'sjc'
 
 [build]
   dockerfile = 'Dockerfile'
 
 [deploy]
-  # One machine + a mounted volume can't do a rolling swap (a Fly volume
-  # can't be mounted twice), so stop the old machine and start the new one.
-  # Expect a ~10-30 s cutover while migrations run and gunicorn boots.
   strategy = 'immediate'
 
 [env]
   FLASK_ENV = 'production'
   FLASK_PORT = '8880'
-  LOG_LEVEL = 'INFO'
-  WEB_CONCURRENCY = '4'
-  # Rendering an uncached SME2 granule takes ~10 s; leave headroom.
   GUNICORN_TIMEOUT = '90'
-  # Site data ships in the image and is loaded on every boot, so the
-  # periodic in-process reload loop isn't needed.
-  RUN_INPROC_WORKER = '0'
+  LOG_LEVEL = 'INFO'
   RATELIMIT_STORAGE_URI = 'memory://'
+  RUN_INPROC_WORKER = '0'
+  WEB_CONCURRENCY = '4'
 
 [processes]
-  # Appended as ARGS to the Dockerfile ENTRYPOINT (/app/bin/start).
-  # Don't prefix with `bin/start`.
   app = 'prod'
 
 [[mounts]]
-  # SQLite DB + SME2/DEM/profile render caches
   source = 'app_data'
   destination = '/app/app-data'
 
 [http_service]
-  internal_port = 8880
+  internal_port = 8080
   force_https = true
   auto_stop_machines = 'off'
   auto_start_machines = true
