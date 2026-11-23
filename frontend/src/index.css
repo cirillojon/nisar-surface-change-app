@@ -333,10 +333,16 @@ code {
     border-radius: 4px;
     background: var(--paper);
   }
-  .sidebar-resizer:is(:hover, :focus-visible)::before,
+  .sidebar-resizer:focus-visible::before,
   .app-body[data-sidebar-resizing] .sidebar-resizer::before {
     background: var(--fg-muted);
     border-color: var(--fg-muted);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .sidebar-resizer:hover::before {
+      background: var(--fg-muted);
+      border-color: var(--fg-muted);
+    }
   }
   .app-body[data-sidebar-resizing] {
     cursor: col-resize;
@@ -1186,11 +1192,17 @@ code {
 .chart-point {
   fill-opacity: 0.55;
 }
-.chart-point:hover,
 .chart-point[data-selected="true"] {
   fill-opacity: 1;
   stroke: var(--paper);
   stroke-width: 1.25;
+}
+@media (hover: hover) and (pointer: fine) {
+  .chart-point:hover {
+    fill-opacity: 1;
+    stroke: var(--paper);
+    stroke-width: 1.25;
+  }
 }
 .chart-legend {
   display: flex;
@@ -1615,6 +1627,7 @@ code {
   max-width: none;
   pointer-events: auto;
   max-height: calc(100vh - 24px);
+  max-height: calc(100dvh - 24px);
   overflow-y: auto;
   padding: 14px 16px 12px;
   border-radius: 14px;

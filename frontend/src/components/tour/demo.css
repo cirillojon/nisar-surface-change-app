@@ -236,9 +236,19 @@ html[data-demo] .pf-workspace .app-shell {
   opacity: 0;
   transition: opacity 0.2s;
 }
-.demo-exit:hover,
 .demo-exit:focus-visible {
   opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  .demo-exit:hover {
+    opacity: 1;
+  }
+}
+/* Touch has no hover to reveal it, so the exit stays visible. */
+@media not ((hover: hover) and (pointer: fine)) {
+  .demo-exit {
+    opacity: 1;
+  }
 }
 /* Keyboard focus is always visible on the controls (WCAG 2.4.7). The card
  * itself takes focus only so a screen reader reads it (it isn't in the Tab

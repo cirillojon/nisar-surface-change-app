@@ -1458,9 +1458,11 @@
   color: var(--fg-muted);
   cursor: pointer;
 }
-.map-layer-close:hover {
-  background: var(--bg-elevated);
-  color: var(--fg);
+@media (hover: hover) and (pointer: fine) {
+  .map-layer-close:hover {
+    background: var(--bg-elevated);
+    color: var(--fg);
+  }
 }
 .map-layer-fields {
   display: flex;
