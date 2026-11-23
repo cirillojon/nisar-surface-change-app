@@ -90,6 +90,8 @@ export default function App() {
 
   useLayoutEffect(() => {
     document.documentElement.dataset.mode = inWorkspace ? "workspace" : "docs";
+    // Browser chrome / status bar matches the top bar: --bg in the workspace, --paper elsewhere.
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", inWorkspace ? "#101012" : "#19191c");
     if (inWorkspace) document.title = `Workspace · ${TITLE}`;
     else if (pathname === "/") document.title = TITLE;
   }, [inWorkspace, pathname]);

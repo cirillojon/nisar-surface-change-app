@@ -233,8 +233,10 @@ html[data-mode="workspace"] .pf-topbar-row {
   border-bottom: 2px solid transparent;
   transition: color 120ms ease, border-color 120ms ease;
 }
-.pf-tab:hover {
-  color: var(--pf-ink);
+@media (hover: hover) and (pointer: fine) {
+  .pf-tab:hover {
+    color: var(--pf-ink);
+  }
 }
 .pf-tab.is-active {
   color: var(--pf-brand-strong);
@@ -377,8 +379,10 @@ html[data-mode="workspace"] .pf-topbar-row {
   border-radius: 6px;
   font-size: 14px;
 }
-.pf-sidebar-link:hover {
-  background: var(--pf-sunken);
+@media (hover: hover) and (pointer: fine) {
+  .pf-sidebar-link:hover {
+    background: var(--pf-sunken);
+  }
 }
 .pf-sidebar-link.is-active {
   color: var(--pf-brand-strong);
@@ -410,8 +414,10 @@ html[data-mode="workspace"] .pf-topbar-row {
   color: var(--pf-muted);
   text-decoration: none;
 }
-.pf-breadcrumbs a:hover {
-  color: var(--pf-brand-strong);
+@media (hover: hover) and (pointer: fine) {
+  .pf-breadcrumbs a:hover {
+    color: var(--pf-brand-strong);
+  }
 }
 .pf-toc {
   position: sticky;
@@ -444,10 +450,15 @@ html[data-mode="workspace"] .pf-topbar-row {
 .pf-toc .pf-toc-l3 a {
   padding-left: 24px;
 }
-.pf-toc li.is-active a,
-.pf-toc li a:hover {
+.pf-toc li.is-active a {
   color: var(--pf-brand-strong);
   border-left-color: var(--pf-brand);
+}
+@media (hover: hover) and (pointer: fine) {
+  .pf-toc li a:hover {
+    color: var(--pf-brand-strong);
+    border-left-color: var(--pf-brand);
+  }
 }
 
 /* ── Prose ── */
@@ -493,8 +504,10 @@ html[data-mode="workspace"] .pf-topbar-row {
   text-decoration-color: color-mix(in srgb, var(--pf-brand) 40%, transparent);
   text-underline-offset: 2px;
 }
-.pf-prose a:hover {
-  text-decoration-color: currentColor;
+@media (hover: hover) and (pointer: fine) {
+  .pf-prose a:hover {
+    text-decoration-color: currentColor;
+  }
 }
 .pf-prose code {
   font-size: 0.88em;
@@ -525,10 +538,14 @@ html[data-mode="workspace"] .pf-topbar-row {
   text-decoration: none !important;
   font-weight: 400;
 }
-h2:hover > .pf-anchor,
-h3:hover > .pf-anchor,
 .pf-anchor:focus {
   opacity: 1;
+}
+@media (hover: hover) and (pointer: fine) {
+  h2:hover > .pf-anchor,
+  h3:hover > .pf-anchor {
+    opacity: 1;
+  }
 }
 .pf-eyebrow {
   margin: 0 0 6px;
@@ -643,10 +660,12 @@ h3:hover > .pf-anchor,
   text-decoration: none !important;
   transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms var(--ease-out);
 }
-.pf-card:hover {
-  border-color: color-mix(in srgb, var(--pf-brand) 45%, var(--pf-line));
-  box-shadow: var(--pf-shadow);
-  transform: translateY(-1px);
+@media (hover: hover) and (pointer: fine) {
+  .pf-card:hover {
+    border-color: color-mix(in srgb, var(--pf-brand) 45%, var(--pf-line));
+    box-shadow: var(--pf-shadow);
+    transform: translateY(-1px);
+  }
 }
 .pf-card-icon {
   display: inline-flex;
@@ -1029,8 +1048,10 @@ h3:hover > .pf-anchor,
 .pf-pager-next {
   text-align: right;
 }
-.pf-pager-link:hover {
-  border-color: var(--pf-brand);
+@media (hover: hover) and (pointer: fine) {
+  .pf-pager-link:hover {
+    border-color: var(--pf-brand);
+  }
 }
 
 /* ── Buttons ── */
@@ -1598,8 +1619,10 @@ h3:hover > .pf-anchor,
   border-radius: 9px;
   cursor: pointer;
 }
-.pf-suggestions button:hover {
-  border-color: var(--pf-brand);
+@media (hover: hover) and (pointer: fine) {
+  .pf-suggestions button:hover {
+    border-color: var(--pf-brand);
+  }
 }
 .pf-suggestions-lg button {
   padding: 14px 16px;
@@ -1676,8 +1699,10 @@ h3:hover > .pf-anchor,
   color: var(--pf-muted);
   text-decoration: none;
 }
-.pf-footer a:hover {
-  color: var(--pf-brand-strong);
+@media (hover: hover) and (pointer: fine) {
+  .pf-footer a:hover {
+    color: var(--pf-brand-strong);
+  }
 }
 .pf-footer-legal {
   max-width: 1200px;
@@ -2117,8 +2142,13 @@ h3:hover > .pf-anchor,
     border: 0;
     border-radius: var(--radius);
   }
-  .pf-tab:is(:hover, .is-active) {
+  .pf-tab.is-active {
     background: var(--pf-sunken);
+  }
+  @media (hover: hover) and (pointer: fine) {
+    .pf-tab:hover {
+      background: var(--pf-sunken);
+    }
   }
   .pf-topbar-home .pf-nav-panel {
     position: absolute;
@@ -2166,9 +2196,11 @@ h3:hover > .pf-anchor,
     border-color: transparent;
     background: transparent;
   }
-  .pf-topbar-home .pf-nav-panel .pf-search-btn:hover {
-    background: var(--pf-sunken);
-    color: var(--pf-ink);
+  @media (hover: hover) and (pointer: fine) {
+    .pf-topbar-home .pf-nav-panel .pf-search-btn:hover {
+      background: var(--pf-sunken);
+      color: var(--pf-ink);
+    }
   }
   .pf-topbar-home .pf-nav-panel .pf-workspace-btn { justify-content: space-between; }
   .pf-topbar-home .pf-nav-panel :is(.pf-search-label, .pf-ask-label, .pf-ws-open) { display: inline; }
@@ -2454,5 +2486,41 @@ h3:hover > .pf-anchor,
   }
   .pf-topbar-row {
     padding-inline: max(12px, env(safe-area-inset-left)) max(12px, env(safe-area-inset-right));
+  }
+}
+
+/* ── Touch polish by capability (phones, tablets, landscape) ──
+ * Tap highlight, text inflation and double-tap delay do nothing under a
+ * mouse, so they apply everywhere. The rest is gated to a coarse primary
+ * pointer so desktops (including touchscreen laptops) are untouched. */
+html {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+:where(a, button, summary, label, [role="button"], [role="tab"], input, select, textarea) {
+  touch-action: manipulation;
+}
+@media (pointer: coarse) {
+  /* 16px stops iOS Safari zooming the page when a field is focused. */
+  input:not([type="range"], [type="checkbox"], [type="radio"]),
+  select,
+  textarea {
+    font-size: 16px !important;
+  }
+  /* Long-press on a control shouldn't select its label or pop a callout. */
+  :where(button, summary, [role="button"], [role="tab"], .chip) {
+    -webkit-user-select: none;
+    user-select: none;
+    -webkit-touch-callout: none;
+  }
+  /* Pull-to-refresh would throw away the map, AOI and selection. */
+  html[data-mode="workspace"],
+  html[data-mode="workspace"] body {
+    overscroll-behavior-y: none;
+  }
+  /* Landscape: keep content clear of the notch / Dynamic Island. */
+  .pf-root {
+    padding-inline: env(safe-area-inset-left, 0px) env(safe-area-inset-right, 0px);
   }
 }
