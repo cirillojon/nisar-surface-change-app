@@ -17,6 +17,8 @@ This repository includes third-party material under its own terms:
 - Place names and borders on the 3D globe
   (frontend/src/components/globe/places.json) from Natural Earth
   (public domain), naturalearthdata.com.
+- NISAR pass counts (app/data/coverage_map.npz), computed from NASA CMR's
+  public granule metadata for the NISAR collections at the ASF DAAC.
 - Rain and river-flow series (app/data/drivers.json) from Open-Meteo
   (CC BY 4.0), based on ECMWF IFS, ERA5 and GloFAS data.
 

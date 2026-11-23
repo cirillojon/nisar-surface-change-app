@@ -89,6 +89,14 @@ are on **Investigate**.
   (Natural Earth, built by `scripts/build_globe_places.py`) stay upright
   however the Earth is turned. Areas and lines can be drawn on either;
   the tour and the demo use the 2D map.
+- **Coverage heatmap**: the whole Earth colored by NISAR's passes per
+  1° cell, for any product and month (passes, days per pass, days since
+  the last pass, ascending share), with a month slider and play. Built
+  from every granule in NASA CMR by `scripts/build_coverage_map.py`.
+- **NISAR's orbit**: its computed path (SGP4 from public orbital
+  elements), the swath its radar images, and where it is at any time
+  three days either side of now, on the 2D map or at altitude on the
+  globe.
 - **Find a place**: type a name in Investigate's map bar (OpenStreetMap
   search) and it opens as an area, with every NISAR pass over it.
 - **Draw area**: every NISAR pass over any rectangle, with SME2 soil
@@ -170,6 +178,9 @@ All endpoints are public and read-only. Errors come back as `{"error": "..."}`.
 | GET    | `/api/nisar/products`      | Searchable NISAR products                                           |
 | GET    | `/api/nisar/granules`      | `?bbox=minLon,minLat,maxLon,maxLat&product=GCOV&start=&end=&limit=` |
 | GET    | `/api/nisar/coverage`      | `?bbox=&start=&end=`; granule count per product over the box       |
+| GET    | `/api/nisar/coverage-map`  | Products, metrics and months the global coverage heatmap can show   |
+| GET    | `/api/nisar/coverage-map/grid` | `?product=&metric=&month=YYYY-MM&window=month\|cumulative`; one global heatmap (1° cells) |
+| GET    | `/api/nisar/orbit`         | `?start=&end=&step=`; NISAR's computed ground track (SGP4, CelesTrak elements) |
 | GET    | `/api/nisar/browse-bounds` | `?kml=<granule's browse_kml_url>`; map bounds of its browse image   |
 | GET    | `/api/nisar/sme2/scene`    | `?granule=<SME2 name>&bbox=`; values + images (needs `EARTHDATA_TOKEN`) |
 | GET    | `/api/nisar/sme2/images/<key>/<layer>.webp` | A rendered SME2 image (`backscatter`, `soil_moisture`) |
@@ -193,6 +204,7 @@ All endpoints are public and read-only. Errors come back as `{"error": "..."}`.
 ```
 scripts/extract_nisar.py  Computes real values + images from NISAR granules (offline)
 scripts/build_landchange.py   Builds the land-change gallery (offline)
+scripts/build_coverage_map.py Counts NISAR passes per 1° cell and month from NASA CMR (offline, no login)
 scripts/build_driver_data.py  Fetches the rain and river flow shown beside each site
 scripts/shared_footprint.py   Open water over the part of each box every pass imaged
 scripts/chain_evidence.py     Prints every number behind the site stories (tables in DATA_AND_METHODS)
@@ -212,6 +224,8 @@ app/
   loader.py           Mirrors app/data/ into the DB (flask nisar load)
   models.py           Site, Scene, Observation, LoadJob
   nisar.py            NASA CMR search + browse-image bounds (cached, no login)
+  coverage_map.py     Global coverage heatmaps from data/coverage_map.npz
+  orbit.py            NISAR's ground track from its TLE (CelesTrak, SGP4)
   openapi.json        OpenAPI 3.1 spec, served at /api/openapi.json
   routes/api.py       health, change types, sites, site stories, land change, scene images
   routes/nisar.py     NISAR catalog search, SME2 scenes, height-profile jobs
@@ -262,6 +276,9 @@ The same material is in the app under **Docs**. In the repository:
   seasonal normals from ERA5 and GloFAS river discharge, all through
   [Open-Meteo](https://open-meteo.com/). Rain and river flow are model
   output for one grid cell; neither is a gauge reading.
+- **Orbital elements:** NISAR's two-line elements from
+  [CelesTrak](https://celestrak.org/) (US Space Force public catalog),
+  propagated with SGP4.
 - **Terrain:** [Copernicus GLO-90 DEM](https://registry.opendata.aws/copernicus-dem/)
   (© DLR e.V. 2010–2014 and © Airbus Defence and Space GmbH 2014–2018,
   provided under COPERNICUS by the European Union and ESA).

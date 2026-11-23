@@ -23,6 +23,7 @@ import { MAX_LINE_KM, addPoint, canFinish, lineKm, lineStatus } from "../service
 import DrawBar, { LineBarButtons } from "./DrawBar.jsx";
 import { LABELS_URL } from "../services/globe.js";
 import { loadImage } from "../services/imageCache.js";
+import { splitAtAntimeridian } from "../services/orbit.js";
 import { mercY, normalizeBbox } from "../services/regions.js";
 import { useStableCallback } from "../services/useStableCallback.js";
 
@@ -827,6 +828,65 @@ function OutlinePane({ focusBbox, showFocusOutline, outlines = [], lines = [] })
   );
 }
 
+/** The global coverage heatmap (services/coverageMap.js), under the NISAR images, outlines and labels. */
+function HeatmapPane({ heatmap }) {
+  if (!heatmap) return null;
+  return (
+    <Pane name="coverage-heatmap" style={{ zIndex: 350 }}>
+      <ImageOverlay url={heatmap.url} bounds={toBounds(heatmap.bbox)} opacity={heatmap.opacity ?? 0.8} className="heatmap-overlay" />
+    </Pane>
+  );
+}
+
+const SATELLITE_ICON = L.divIcon({
+  className: "orbit-satellite",
+  html: '<span class="orbit-satellite-ring"></span><span class="orbit-satellite-dot"></span>',
+  iconSize: [26, 26],
+  iconAnchor: [13, 13],
+});
+
+/** One [lon, lat] line, split where it crosses the antimeridian. */
+function OrbitLine({ coords, pathOptions }) {
+  return splitAtAntimeridian(coords).map((positions, i) => (
+    <Polyline key={i} positions={positions} pathOptions={pathOptions} interactive={false} />
+  ));
+}
+
+/** Keeps the map centered on the satellite while `follow` is on. */
+function FollowSatellite({ lat, lon }) {
+  const map = useMap();
+  useEffect(() => {
+    map.panTo([lat, lon], { animate: false });
+  }, [map, lat, lon]);
+  return null;
+}
+
+/** NISAR's computed path (OrbitPanel): last and next orbit, the swath's edges, and the satellite. */
+function OrbitPane({ orbit }) {
+  if (!orbit) return null;
+  const { past, future, swathNear, swathFar, satellite } = orbit;
+  const swath = { color: "#7dd3fc", weight: 1.5, dashArray: "3 5", opacity: 0.9 };
+  return (
+    <Pane name="orbit" style={{ zIndex: 458, pointerEvents: "none" }}>
+      <OrbitLine coords={swathNear} pathOptions={swath} />
+      <OrbitLine coords={swathFar} pathOptions={swath} />
+      <OrbitLine coords={past} pathOptions={{ color: "#ffffff", weight: 2.5, opacity: 0.95 }} />
+      <OrbitLine coords={future} pathOptions={{ color: "#ffffff", weight: 2, opacity: 0.7, dashArray: "6 6" }} />
+      <Marker position={[satellite.lat, satellite.lon]} icon={SATELLITE_ICON} interactive={false} keyboard={false} />
+      {orbit.follow && <FollowSatellite lat={satellite.lat} lon={satellite.lon} />}
+    </Pane>
+  );
+}
+
+/** Reports where the pointer is over the map ({ lat, lon }), or null when it leaves. */
+function PointerTracker({ onPointerMove }) {
+  useMapEvents({
+    mousemove: (e) => onPointerMove({ lat: e.latlng.lat, lon: e.latlng.lng }),
+    mouseout: () => onPointerMove(null),
+  });
+  return null;
+}
+
 /** Above everything, and clickable: the profile's ends, the InSAR reference point, and every place's marker. */
 function SitesPane({ points = [], referencePoint, markers }) {
   return (
@@ -893,6 +953,9 @@ export default function ChangeMap({
   drawHost = null, // element over the map where the drawing bar goes
   fitKey = 0, // change to fit `focusBbox` again, e.g. after the user moved the map
   homeKey = 0, // change to show the whole world again
+  heatmap = null, // the global coverage heatmap: { url, bbox, opacity }
+  orbit = null, // NISAR's computed path: { past, future, swathNear, swathFar, satellite }
+  onPointerMove = null, // ({ lat, lon } | null) as the pointer moves over the map
 }) {
   const drawingRef = useRef(0); // ignore map clicks until this time
   const { shownOverlay, shownRegion, overlayPending } = useShownLayers(sceneOverlay, regionLayers);
@@ -924,8 +987,11 @@ export default function ChangeMap({
       <TourMarks marks={tourMarks} />
       {overlayPending && <div className="map-loading" aria-hidden="true">Loading image…</div>}
       <ImagePanes overlay={shownOverlay} region={shownRegion} />
+      <HeatmapPane heatmap={heatmap} />
+      {onPointerMove && <PointerTracker onPointerMove={onPointerMove} />}
       <FootprintPane footprint={footprintOverlay} />
       <OutlinePane focusBbox={focusBbox} showFocusOutline={showFocusOutline} outlines={shownRegion?.outlines} lines={studyLayers?.lines} />
+      <OrbitPane orbit={orbit} />
       <SitesPane
         points={studyLayers?.points}
         referencePoint={referencePoint}

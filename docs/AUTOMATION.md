@@ -182,6 +182,11 @@ sites with every pass published so far, runs the whole test suite, and
 opens a **draft** PR with the results. It never merges itself: new passes
 can make a hand-written caption untrue, and the failing tests show which.
 
+**The coverage map refresh** (`.github/workflows/coverage-map-refresh.yml`,
+weekly and by hand) rebuilds the workspace's coverage heatmap counts
+(`scripts/build_coverage_map.py`, no secrets) and opens a PR when they
+changed.
+
 ## 7. Running it locally
 
 You can run the whole loop on your machine with no Fly deploy and no

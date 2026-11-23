@@ -22,6 +22,9 @@ numpy==2.3.5
 pyproj==3.7.2
 pillow==12.3.0
 
+# NISAR's ground track from its public orbital elements (app/orbit.py).
+sgp4==2.27
+
 # Copernicus DEM tiles (GeoTIFF): line profiles and scripts/tectonics.py.
 # Keep these compatible with the Python 3.11 minimum used in CI.
 tifffile==2026.3.3

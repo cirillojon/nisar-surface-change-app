@@ -13,8 +13,11 @@ import {
   fetchChangeTypes,
   fetchCoverage,
   fetchCoverageCheck,
+  fetchCoverageMapGrid,
+  fetchCoverageMapInfo,
   fetchFinding,
   fetchLandChange,
+  fetchOrbit,
   fetchProducts,
   fetchProfile,
   fetchSite,
@@ -131,3 +134,23 @@ export const profileQuery = (id) =>
 /** Places matching a submitted name (`q` empty: none). */
 export const placeSearchQuery = (q) =>
   queryOptions({ queryKey: ["places", q.toLowerCase()], queryFn: () => searchPlaces(q), enabled: q.length >= 2 });
+
+/** What the global coverage heatmap can show (`enabled` false: not asked yet). */
+export const coverageMapInfoQuery = (enabled = true) =>
+  queryOptions({ queryKey: ["coverage-map"], queryFn: fetchCoverageMapInfo, enabled });
+
+/** One global coverage heatmap: a product's metric for a month (alone or with every month before). */
+export const coverageMapGridQuery = ({ product, metric, month, window }) =>
+  queryOptions({
+    queryKey: ["coverage-map-grid", product, metric, month, window],
+    queryFn: () => fetchCoverageMapGrid({ product, metric, month, window }),
+    enabled: Boolean(product && metric && month && window),
+  });
+
+/** NISAR's computed ground track between two ISO times. */
+export const orbitQuery = ({ start, end, step = 60 }) =>
+  queryOptions({
+    queryKey: ["orbit", start, end, step],
+    queryFn: () => fetchOrbit({ start, end, step }),
+    enabled: Boolean(start && end),
+  });
