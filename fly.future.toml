@@ -2,7 +2,7 @@
 # First-time setup is in docs/DEPLOYMENT.md. After that, every push to
 # future that touches the backend deploys via .github/workflows/fly-deploy-future.yml.
 
-app = 'nisar-surface-change-future'
+app = 'nisar-surface-change-app-future'
 primary_region = 'sjc'
 
 [build]

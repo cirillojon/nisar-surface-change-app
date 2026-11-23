@@ -61,23 +61,23 @@ CORS. Add a preview's URL to the list if you need it to work.
 ## Future (staging) backend
 
 Pushes to the `future` branch deploy to a separate Fly app,
-`nisar-surface-change-future` ([`fly.future.toml`](../fly.future.toml)),
+`nisar-surface-change-app-future` ([`fly.future.toml`](../fly.future.toml)),
 through [`fly-deploy-future.yml`](../.github/workflows/fly-deploy-future.yml).
 It has its own volume, secrets and `FLY_API_TOKEN_FUTURE`, so it never
 touches the production app. One-time setup:
 
 ```bash
-fly apps create nisar-surface-change-future
-fly volumes create app_data -a nisar-surface-change-future --region sjc --size 3
-fly secrets set -a nisar-surface-change-future EARTHDATA_TOKEN=<token> \
+fly apps create nisar-surface-change-app-future
+fly volumes create app_data -a nisar-surface-change-app-future --region sjc --size 3
+fly secrets set -a nisar-surface-change-app-future EARTHDATA_TOKEN=<token> \
   ALLOWED_ORIGINS=https://<future-frontend-domain>
-fly tokens create deploy -a nisar-surface-change-future -x 999999h
+fly tokens create deploy -a nisar-surface-change-app-future -x 999999h
 ```
 
 Add the last command's output as the repo secret `FLY_API_TOKEN_FUTURE`.
 Until it exists the workflow skips itself. For the frontend, give the
 `future` branch its own Vercel domain and set `VITE_API_BASE_URL` to
-`https://nisar-surface-change-future.fly.dev` for that environment.
+`https://nisar-surface-change-app-future.fly.dev` for that environment.
 
 ## How deploys work
 
