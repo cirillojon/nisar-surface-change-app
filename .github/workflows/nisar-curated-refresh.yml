@@ -1,0 +1,135 @@
+name: NISAR Curated Refresh
+
+# Re-renders the curated land-change gallery (scripts/build_landchange.py)
+# and, optionally, the study sites (scripts/extract_nisar.py) with every pass
+# NASA has published so far, and opens a PR. Never merged automatically:
+# curated captions and hypotheses are checked against the data by
+# tests/test_stories.py, and new passes can make a caption untrue, so a
+# person reviews the PR, updates the text, and merges (docs/AUTOMATION.md).
+
+on:
+  workflow_dispatch:
+    inputs:
+      gallery:
+        description: "Refresh the land-change gallery"
+        type: boolean
+        default: true
+      sites:
+        description: "Refresh the study sites (slower)"
+        type: boolean
+        default: false
+      only:
+        description: "Only this gallery place or study site slug (optional)"
+        required: false
+        default: ""
+
+concurrency:
+  group: nisar-curated-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    name: Refresh curated data
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    env:
+      EARTHDATA_TOKEN: ${{ secrets.EARTHDATA_TOKEN }}
+      ONLY: ${{ inputs.only }}
+    steps:
+      - name: Pick the base branch
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OVERRIDE: ${{ vars.NISAR_WATCH_BASE }}
+        # `future` while it holds work not yet in the default branch (main);
+        # the default branch once future has been merged into it (or deleted).
+        # The repository variable NISAR_WATCH_BASE overrides both.
+        run: |
+          default=$(gh api "repos/$REPO" -q .default_branch)
+          if [ -n "$OVERRIDE" ]; then
+            base=$OVERRIDE; why="set by the repository variable NISAR_WATCH_BASE"
+          elif ! out=$(gh api "repos/$REPO/compare/$default...future" -q .ahead_by 2>&1); then
+            if echo "$out" | grep -q "HTTP 404"; then
+              base=$default; why="there is no future branch"
+            else
+              echo "::error::Couldn't compare future with $default: $out"; exit 1
+            fi
+          elif [ "$out" -gt 0 ]; then
+            base=future; why="future has $out commits not yet in $default"
+          else
+            base=$default; why="future has been merged into $default"
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "::notice::Building on and opening the PR against $base: $why."
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.base.outputs.base }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python -m pipeline check-token
+      - name: Refresh the gallery
+        if: inputs.gallery
+        run: |
+          args=()
+          if [ -n "$ONLY" ]; then
+            [[ "$ONLY" =~ ^[a-z0-9-]+$ ]] || { echo "::error::bad slug"; exit 1; }
+            args=(--only "$ONLY")
+          fi
+          python scripts/build_landchange.py "${args[@]}"
+      - name: Refresh the study sites
+        if: inputs.sites
+        run: |
+          args=()
+          if [ -n "$ONLY" ]; then
+            [[ "$ONLY" =~ ^[a-z0-9-]+$ ]] || { echo "::error::bad slug"; exit 1; }
+            args=(--site "$ONLY")
+          fi
+          python scripts/extract_nisar.py "${args[@]}"
+          python scripts/shared_footprint.py
+      - name: Run the tests
+        # Failures here are expected when new passes change a caption's numbers:
+        # they are listed in the PR for the reviewer.
+        id: tests
+        continue-on-error: true
+        env:
+          FLASK_ENV: development
+        run: pytest -q tests 2>&1 | tail -40 | tee "$RUNNER_TEMP/tests.txt"; exit "${PIPESTATUS[0]}"
+        shell: bash
+      - name: Open a PR for review
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ steps.base.outputs.base }}
+          OUTCOME: ${{ steps.tests.outcome }}
+        run: |
+          if [ -z "$(git status --porcelain app/data)" ]; then
+            echo "Nothing new."
+            exit 0
+          fi
+          branch="data/curated-refresh-$(date -u +%Y%m%d-%H%M)"
+          git config user.name "nisar-watch[bot]"
+          git config user.email "nisar-watch@users.noreply.github.com"
+          git switch -c "$branch"
+          git add app/data
+          git commit -q -m "Refresh curated NISAR data $(date -u +%F)"
+          git push origin "$branch"
+          {
+            echo "New passes for the curated gallery and/or study sites. **Review before merging**:"
+            echo "check every story's text still matches its data, and update captions where it doesn't."
+            echo
+            echo "Tests: **$OUTCOME**"
+            echo
+            echo '```'
+            cat "$RUNNER_TEMP/tests.txt"
+            echo '```'
+          } > "$RUNNER_TEMP/body.md"
+          gh pr create --base "$BASE" --head "$branch" --title "Curated refresh: new NISAR passes" \
+            --body-file "$RUNNER_TEMP/body.md" --draft

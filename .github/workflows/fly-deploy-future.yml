@@ -1,0 +1,85 @@
+name: Fly Deploy (future)
+
+on:
+  push:
+    branches:
+      - future
+    paths:
+      - "app/**"
+      - "bin/**"
+      - "app.py"
+      - "requirements.txt"
+      - "Dockerfile"
+      - ".dockerignore"
+      - "fly.future.toml"
+      - ".github/workflows/fly-deploy-future.yml"
+  workflow_dispatch: # allow manual runs from the Actions tab
+
+concurrency:
+  # A newer deploy cancels the in-flight one instead of queueing behind it.
+  group: fly-deploy-future-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Skip (instead of failing) until the Fly secrets are configured.
+  check:
+    name: Check Fly secrets
+    runs-on: ubuntu-latest
+    outputs:
+      enabled: ${{ steps.check.outputs.enabled }}
+    steps:
+      - id: check
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_FUTURE }}
+        run: |
+          if [ -n "$FLY_API_TOKEN" ]; then
+            echo "enabled=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "::notice::FLY_API_TOKEN_FUTURE not set; skipping deploy."
+            echo "enabled=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  deploy:
+    name: Deploy to Fly.io
+    needs: check
+    # Manual runs default to main, which has no fly.future.toml.
+    if: needs.check.outputs.enabled == 'true' && github.ref == 'refs/heads/future'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install backend deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+      - name: Run backend tests (gate deploy)
+        env:
+          FLASK_ENV: development
+        run: pytest tests/ -q
+      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - name: Deploy to Fly.io
+        # One machine + mounted volume, so no rolling deploy. --detach skips
+        # flyctl's own health wait; the next step polls /api/health instead.
+        run: flyctl deploy -c fly.future.toml --local-only --ha=false --strategy immediate --detach
+        env:
+          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN_FUTURE }}
+
+      - name: Wait for /api/health
+        run: |
+          app=$(sed -n "s/^app *= *'\(.*\)'/\1/p" fly.future.toml)
+          url="https://${app}.fly.dev/api/health"
+          for i in $(seq 1 60); do
+            code=$(curl -sS -m 10 -o health.json -w '%{http_code}' "$url") || true
+            echo "[$i/60] HTTP $code"
+            if [ "$code" = "200" ] && grep -Eq '"status": *"ok"' health.json; then
+              echo "::notice::Backend is healthy at $url"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "::error::$url did not return 200 within 10 minutes."
+          exit 1

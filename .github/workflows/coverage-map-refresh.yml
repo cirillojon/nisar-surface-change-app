@@ -1,0 +1,83 @@
+name: Coverage Map Refresh
+
+# Rebuilds the global coverage heatmap's counts (scripts/build_coverage_map.py
+# -> app/data/coverage_map.npz) from NASA CMR's public granule listings and
+# opens a PR with them. Weekly, or by hand. No secrets needed: CMR search is
+# public. The PR is never merged automatically.
+
+on:
+  schedule:
+    - cron: "0 7 * * 1" # Mondays, 07:00 UTC
+  workflow_dispatch:
+
+concurrency:
+  group: coverage-map-refresh
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  refresh:
+    name: Refresh the coverage map
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Pick the base branch
+        id: base
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          OVERRIDE: ${{ vars.NISAR_WATCH_BASE }}
+        # As in nisar-curated-refresh.yml: `future` while it holds work not
+        # yet in the default branch, else the default branch.
+        run: |
+          default=$(gh api "repos/$REPO" -q .default_branch)
+          if [ -n "$OVERRIDE" ]; then
+            base=$OVERRIDE
+          elif ! out=$(gh api "repos/$REPO/compare/$default...future" -q .ahead_by 2>&1); then
+            if echo "$out" | grep -q "HTTP 404"; then
+              base=$default
+            else
+              echo "::error::Couldn't compare future with $default: $out"; exit 1
+            fi
+          elif [ "$out" -gt 0 ]; then
+            base=future
+          else
+            base=$default
+          fi
+          echo "base=$base" >> "$GITHUB_OUTPUT"
+          echo "::notice::Building on and opening the PR against $base."
+
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ steps.base.outputs.base }}
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt -r requirements-dev.txt
+      - run: python scripts/build_coverage_map.py
+      - name: Run the coverage tests
+        env:
+          FLASK_ENV: development
+        run: pytest -q tests/test_coverage_map.py
+      - name: Open a PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          BASE: ${{ steps.base.outputs.base }}
+        run: |
+          if [ -z "$(git status --porcelain app/data/coverage_map.npz)" ]; then
+            echo "Nothing new."
+            exit 0
+          fi
+          branch="data/coverage-map-$(date -u +%Y%m%d-%H%M)"
+          git config user.name "nisar-watch[bot]"
+          git config user.email "nisar-watch@users.noreply.github.com"
+          git switch -c "$branch"
+          git add app/data/coverage_map.npz
+          git commit -q -m "Refresh the NISAR coverage map $(date -u +%F)"
+          git push origin "$branch"
+          gh pr create --base "$BASE" --head "$branch" --title "Coverage map: passes through $(date -u +%F)" \
+            --body "Pass counts rebuilt from every NISAR granule in NASA CMR by \`scripts/build_coverage_map.py\`."
