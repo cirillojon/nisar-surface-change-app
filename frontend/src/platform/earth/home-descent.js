@@ -4,6 +4,7 @@ export const COMPACT_DESCENT_QUERY = "(max-width: 780px), (max-width: 959px) and
 const COMPACT_LIFT_START = 0.47;
 const COMPACT_LIFT_EASE = 0.06;
 const COMPACT_FADE_END = 0.92;
+const WIDE_STICKY_RELEASE = 0.535;
 const SCROLL_OVERSCAN = 64;
 const SCROLL_EASE_MS = 32;
 const MAX_SCROLL_LAG = 8;
@@ -31,6 +32,8 @@ export function bindHomeDescent(hero, onViewChange) {
   if (!earth || !coverage || !reducedMotion) return () => {};
   const compactLayout = window.matchMedia(COMPACT_DESCENT_QUERY);
   const touch = window.matchMedia("(any-pointer: coarse)");
+  const deeperZoom = !touch.matches;
+  const handoffDelay = deeperZoom ? 0.14 : 0;
   const heroCopy = hero.querySelector(".pf-hero-text") ?? hero;
   const radarField = hero.querySelector(".pf-hero-field") ?? hero;
 
@@ -138,15 +141,17 @@ export function bindHomeDescent(hero, onViewChange) {
     const openingZoom = 0.34 + 0.66 * easeBetween(progress, openingEnd, 0.44);
     const approach = 1 - (1 - clamp(progress * openingZoom / 0.59)) ** 1.65;
     const landing = easeBetween(progress, 0.44, 0.9);
-    const zoom = Number((1 + 3.1 * approach + 0.55 * landing).toFixed(3));
+    const extraZoom = deeperZoom ? 2.3 * easeBetween(progress, 0.26, 0.525) : 0;
+    const zoom = Number((1 + 3.1 * approach + 0.55 * landing + extraZoom).toFixed(3));
     const alignment = easeBetween(progress, 0.015, 0.44);
-    const terrain = easeBetween(progress, 0.455, 0.64) * revealBlend;
-    const reveal = easeBetween(progress, 0.455, 0.92);
-    const globe = 1 - easeBetween(progress, 0.74, 0.98) * revealBlend;
-    const edge = easeBetween(progress, 0.06, 0.38) * (1 - easeBetween(progress, 0.445, 0.535));
+    const handoff = (progress - handoffDelay) / (1 - handoffDelay);
+    const terrain = easeBetween(handoff, 0.455, 0.64) * revealBlend;
+    const reveal = easeBetween(handoff, 0.455, 0.92);
+    const globe = 1 - easeBetween(handoff, 0.74, 0.98) * revealBlend;
+    const edge = easeBetween(progress, 0.06, 0.38) * (1 - easeBetween(handoff, 0.445, WIDE_STICKY_RELEASE));
     const sky = 1 - easeBetween(progress, 0.02, 0.26);
     const copy = 1 - easeBetween(progress, 0.06, 0.28);
-    const entry = easeBetween(progress, 0.54, 0.80);
+    const entry = easeBetween(handoff, 0.54, 0.80);
     setPresence({ globe, sky, copy, entry });
     setStyle(earth, "--hero-earth-visibility", globe > 0 ? "visible" : "hidden");
     setStyle(earth, "--hero-earth-zoom", zoom);
@@ -239,7 +244,9 @@ export function bindHomeDescent(hero, onViewChange) {
       const desktop = !touch.matches && hero.clientWidth >= 960;
       const scrollDistance = desktop ? Math.min(1050, viewport * 1.08) : Math.min(720, viewport * 0.8);
       distance = Math.max(landscapeTouch ? 560 : 1, scrollDistance);
-      setStyle(track, "--hero-descent-hold", `${distance * 0.535}px`);
+      // Keep the hero pinned until its bottom edge begins to hand off to the terrain.
+      const release = handoffDelay + (1 - handoffDelay) * WIDE_STICKY_RELEASE;
+      setStyle(track, "--hero-descent-hold", `${distance * release}px`);
       setStyle(coverage, "--coverage-descent-overlap", `${height - viewport * 0.08}px`);
     }
     if (compact && previousProgress !== undefined && startY === previousStart &&

@@ -9,12 +9,22 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-function mountDescent(decode = () => Promise.resolve(), { height = 844, stickyTop = 0 } = {}) {
+function mountDescent(decode = () => Promise.resolve(), {
+  height = 844, stickyTop = 0, compactLayout = true, touchInput = false, viewportHeight = height,
+} = {}) {
   vi.useFakeTimers();
   vi.stubGlobal("scrollY", 0);
+  vi.stubGlobal("innerHeight", viewportHeight);
+  vi.stubGlobal("innerWidth", 1280);
   const reducedMotion = Object.assign(new EventTarget(), { matches: false });
-  const compact = Object.assign(new EventTarget(), { matches: true });
-  vi.stubGlobal("matchMedia", (query) => query === COMPACT_DESCENT_QUERY ? compact : reducedMotion);
+  const compact = Object.assign(new EventTarget(), { matches: compactLayout });
+  const touch = Object.assign(new EventTarget(), { matches: touchInput });
+  const queries = new Map([
+    ["(prefers-reduced-motion: reduce)", reducedMotion],
+    [COMPACT_DESCENT_QUERY, compact],
+    ["(any-pointer: coarse)", touch],
+  ]);
+  vi.stubGlobal("matchMedia", (query) => queries.get(query));
   document.body.innerHTML = `
     <div class="pf-home">
       <div class="pf-hero-track">
@@ -29,6 +39,7 @@ function mountDescent(decode = () => Promise.resolve(), { height = 844, stickyTo
   const photo = coverage.querySelector("img");
   track.getBoundingClientRect = () => ({ top: -window.scrollY });
   Object.defineProperty(hero, "clientHeight", { value: height });
+  Object.defineProperty(hero, "clientWidth", { value: 1280 });
   hero.style.top = `${stickyTop}px`;
   Object.defineProperty(photo, "naturalWidth", { value: 1086 });
   photo.decode = decode;
@@ -42,6 +53,27 @@ function mountDescent(decode = () => Promise.resolve(), { height = 844, stickyTo
   }
   return { scroll, view, coverage, track, reducedMotion };
 }
+
+it("reaches the closer desktop view before the terrain appears", () => {
+  const { scroll, view, coverage } = mountDescent(undefined, {
+    height: 900, compactLayout: false, viewportHeight: 720,
+  });
+  scroll(403);
+  expect(view.mock.lastCall[0]).toBeCloseTo(6.342);
+  expect(view.mock.lastCall[2]).toBe(true);
+  expect(coverage.style.getPropertyValue("--coverage-terrain-opacity")).toBe("0.000");
+  scroll(619);
+  expect(coverage.style.getPropertyValue("--coverage-terrain-opacity")).toBe("1.000");
+});
+
+it("keeps the original hold and zoom on wide touch layouts", () => {
+  const { scroll, view, track } = mountDescent(undefined, {
+    height: 900, compactLayout: false, touchInput: true, viewportHeight: 720,
+  });
+  expect(parseFloat(track.style.getPropertyValue("--hero-descent-hold"))).toBeCloseTo(308.16);
+  scroll(576);
+  expect(view.mock.lastCall[0]).toBe(4.65);
+});
 
 it("brings the heading over a moving globe without a full-screen terrain reveal", () => {
   const { scroll, view, coverage, track } = mountDescent();
