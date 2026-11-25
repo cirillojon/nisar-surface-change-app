@@ -1,6 +1,7 @@
 import { useRef } from "react";
 
 import { nearestDate } from "../../services/chain.js";
+import { GAP } from "../../services/maturity.js";
 import { formatAmount } from "../../services/measurements.js";
 import { DAY_MS, FULL_COVERAGE } from "./constants.js";
 
@@ -24,7 +25,21 @@ function laneGeometry(lane, { t0, span, selectedDate }) {
   const hi = peak > lo ? peak : lo + 1;
   const bottom = fromZero ? 100 : 92;
   const y = (v) => bottom - ((v - lo) / (hi - lo)) * (bottom - TOP);
-  return { x, y, visible, lo, peak, bottom, band: windowBand(lane, x, span, selectedDate), highlight: highlightBox(lane, x) };
+  return {
+    x, y, visible, lo, peak, bottom,
+    band: windowBand(lane, x, span, selectedDate),
+    highlight: highlightBox(lane, x),
+    gap: gapBox(lane, x),
+  };
+}
+
+// NISAR's permanent acquisition gap, on lanes of NISAR passes only.
+function gapBox(lane, x) {
+  if (!lane.nisarGap) return null;
+  const left = Math.max(0, x(GAP[0]));
+  const right = Math.min(100, x(GAP[1]));
+  if (right <= left) return null;
+  return { left: `${left}%`, width: `${right - left}%` };
 }
 
 // The days counted towards the selected pass's readout.
@@ -112,7 +127,7 @@ function LaneScale({ lane, geometry }) {
 export default function TimeLane({ lane, t0, span, selectedDate, passes, onSelectDate }) {
   const seriesRef = useRef(null);
   const geometry = laneGeometry(lane, { t0, span, selectedDate });
-  const { x, visible, bottom, band, highlight } = geometry;
+  const { x, visible, bottom, band, highlight, gap } = geometry;
 
   const pick = (e) => {
     const rect = seriesRef.current.getBoundingClientRect();
@@ -135,6 +150,14 @@ export default function TimeLane({ lane, t0, span, selectedDate, passes, onSelec
       <LaneScale lane={lane} geometry={geometry} />
       <div ref={seriesRef} className="lane-series" data-scale={visible.length > 0}>
         {highlight && <span className="lane-highlight" style={highlight} />}
+        {gap && (
+          <span
+            className="lane-gap"
+            style={gap}
+            title={`No NISAR acquisitions ${GAP[0]} to ${GAP[1]} (permanent gap)`}
+            data-testid="lane-gap"
+          />
+        )}
         {band && <span className="lane-window" style={band} />}
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           {visible.length > 0 && (

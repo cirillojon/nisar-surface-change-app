@@ -1175,6 +1175,32 @@ code {
   background: var(--warning-soft);
   color: var(--warning);
 }
+/* A pass's release tier plus its caveat flags (MaturityBadge.jsx). */
+.maturity {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  vertical-align: middle;
+  cursor: help;
+  border-radius: 4px;
+}
+.badge-flag {
+  text-transform: none;
+  background: transparent;
+  border: 1px dashed var(--border, var(--fg-muted));
+}
+.badge-urgent {
+  border-style: solid;
+  color: var(--warning);
+}
+/* The permanent NISAR acquisition gap on time charts. */
+.chart-gap {
+  opacity: 0.55;
+}
+.chart-gap-hatch-line {
+  stroke: var(--fg-muted);
+  stroke-width: 1;
+}
 
 /* ── Charts ── */
 .chart-zero {

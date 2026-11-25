@@ -371,11 +371,19 @@
 }
 .lane-window,
 .lane-highlight,
+.lane-gap,
 .lane-cursor {
   position: absolute;
   top: 0;
   bottom: 0;
   pointer-events: none;
+}
+.lane-gap {
+  background: repeating-linear-gradient(
+    45deg,
+    color-mix(in srgb, var(--fg-muted) 30%, transparent) 0 1px,
+    transparent 1px 5px
+  );
 }
 .lane-window {
   background: color-mix(in srgb, var(--lane) 16%, transparent);

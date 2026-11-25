@@ -1,3 +1,7 @@
+import { useId } from "react";
+
+import { GAP } from "../services/maturity.js";
+
 /**
  * Dependency-free SVG line chart. Draws one line per series (all sharing
  * one unit), marks the selected date, and reports clicks on a point.
@@ -34,6 +38,7 @@ export default function TimeSeriesChart({
   onSelectDate,
   showLegend = true,
 }) {
+  const hatchId = `chart-gap-hatch-${useId().replace(/:/g, "")}`;
   const drawn = (series ?? []).filter((s) => s.points.length);
   if (!drawn.length) {
     return <p className="muted">No observations yet for this site.</p>;
@@ -71,6 +76,23 @@ export default function TimeSeriesChart({
       </line>
     );
   };
+  // NISAR's permanent acquisition gap, hatched where it falls inside the chart.
+  const g0 = Math.max(Date.parse(GAP[0]), t0);
+  const g1 = Math.min(Date.parse(GAP[1]), t1);
+  const gap =
+    g1 > g0 ? (
+      <rect
+        x={x(g0)}
+        y={PAD.top}
+        width={Math.max(1, x(g1) - x(g0))}
+        height={H - PAD.top - PAD.bottom}
+        className="chart-gap"
+        fill={`url(#${hatchId})`}
+        data-testid="chart-gap"
+      >
+        <title>{`No NISAR acquisitions ${GAP[0]} to ${GAP[1]} (permanent gap)`}</title>
+      </rect>
+    ) : null;
   const unitSuffix = unit ? ` ${unit}` : "";
   const valueTicks = [vMax, (vMax + vMin) / 2, vMin];
   const dateTicks = t0 === t1 ? [t0] : [t0, t1];
@@ -86,6 +108,12 @@ export default function TimeSeriesChart({
         role="img"
         aria-label={`${title} from ${iso(t0)} to ${iso(t1)}`}
       >
+        <defs>
+          <pattern id={hatchId} width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <line x1="0" y1="0" x2="0" y2="5" className="chart-gap-hatch-line" />
+          </pattern>
+        </defs>
+        {gap}
         {valueTicks.map((value) => (
           <g key={value}>
             <line

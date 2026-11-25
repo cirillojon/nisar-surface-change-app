@@ -108,6 +108,7 @@ export function MoreSeries({ series, axis, passes, selectedDate, onSelectDate })
                 color: COLORS.radar,
                 points: s.points,
                 dots: true,
+                nisarGap: true,
                 showLow: true,
                 activeDate: selectedDate,
                 dotTitle: (p) => `${fmtDay(p.date)}: ${formatAmount(p.value, s.unit)}`,

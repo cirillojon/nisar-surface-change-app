@@ -110,6 +110,7 @@ function RadarLane({ series, axis, passes, moment, fit, selectedDate, onSelectDa
     color: COLORS.radar,
     points: radar?.points ?? [],
     dots: true,
+    nisarGap: true,
     showLow: true,
     activeDate: selectedDate,
     highlight: moment ? { start: moment.start, end: moment.end } : null,

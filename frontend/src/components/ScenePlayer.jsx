@@ -4,6 +4,7 @@ import { assetUrl } from "../services/api.js";
 import { loadImage } from "../services/imageCache.js";
 import { usePlayback } from "../services/usePlayback.js";
 import LayerSelect from "./LayerSelect.jsx";
+import MaturityBadge from "./MaturityBadge.jsx";
 
 const sameUrl = (url) => url;
 
@@ -118,7 +119,7 @@ function SceneCaption({ scene, index, count }) {
   return (
     <div className="scene-caption">
       <strong>{scene.date}</strong>
-      {scene.quality && <span className={`badge badge-${scene.quality}`}>{scene.quality}</span>}
+      {scene.quality && <MaturityBadge quality={scene.quality} date={scene.date} />}
       <span className="muted small">
         pass {index + 1} of {count}
       </span>

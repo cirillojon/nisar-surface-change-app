@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { useCatalogContext } from "./catalog/CatalogContext.js";
 import DataExplorer from "./DataExplorer.jsx";
+import MaturityBadge from "./MaturityBadge.jsx";
 
 // Longer lists start collapsed; the explorer above is the main view.
 const LIST_OPEN_MAX = 10;
@@ -78,7 +79,14 @@ function GranuleItem({ granule: g, active, onShow }) {
       {g.thumbnail_url && <img src={g.thumbnail_url} alt="" loading="lazy" className="thumb" />}
       <div className="granule-body">
         <div>
-          <strong>{date}</strong> <span className={`badge badge-${g.quality}`}>{g.quality}</span>
+          <strong>{date}</strong>{" "}
+          <MaturityBadge
+            quality={g.quality}
+            date={g.start}
+            product={g.product}
+            urgentResponse={g.urgent_response}
+            maturity={g.maturity}
+          />
         </div>
         <div className="muted small" title={g.title}>
           {g.product}

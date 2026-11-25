@@ -1,6 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 
+import { summarizeSeries } from "../services/maturity.js";
+import { lookGeometry, signalWords } from "../services/uncertainty.js";
 import { profileJobQuery, profileQuery } from "../services/queries.js";
 import SpaceTimeChart from "./SpaceTimeChart.jsx";
 import XYChart from "./XYChart.jsx";
@@ -32,7 +34,7 @@ const LONE = " (a lone point between gaps: treat with caution)";
  */
 function changeSummary(dist, values) {
   const pts = values
-    .map((v, i) => ({ v, d: dist[i], lone: !finite(values[i - 1]) && !finite(values[i + 1]) }))
+    .map((v, i) => ({ v, i, d: dist[i], lone: !finite(values[i - 1]) && !finite(values[i + 1]) }))
     .filter((p) => finite(p.v));
   if (!pts.length) return null;
   const sorted = [...pts].sort((a, b) => a.v - b.v);
@@ -83,11 +85,23 @@ function Result({ result }) {
   }, [playing, last]);
 
   const pts = result.points;
-  const rows = (mode === "vertical" ? result.vertical_mm : result.los_mm).map(toNumbers);
   // Change since the From date, per point (null where either date is missing).
-  const rel = rows.map((row) =>
-    row.map((v, i) => (finite(v) && finite(rows[base][i]) ? v - rows[base][i] : null)),
-  );
+  const relative = (source) => {
+    const rows = source.map(toNumbers);
+    return rows.map((row) =>
+      row.map((v, i) => (finite(v) && finite(rows[base][i]) ? v - rows[base][i] : null)),
+    );
+  };
+  const relVertical = relative(result.vertical_mm);
+  const relLos = relative(result.los_mm);
+  const rel = mode === "vertical" ? relVertical : relLos;
+  const other = mode === "vertical" ? relLos : relVertical;
+  const look = lookGeometry(result.pass_direction, result.look_direction, pts.incidence_deg);
+  const release = result.pair_provenance?.length
+    ? summarizeSeries(
+        result.pair_provenance.map((p) => ({ date: p.secondary_date, quality: p.quality ?? p.collection })),
+      )
+    : null;
   const limit = colorLimit(rel);
   const date = result.dates[index];
   const fromDate = result.dates[base];
@@ -111,6 +125,16 @@ function Result({ result }) {
         interferograms
         {result.chains > 1 ? ` in ${result.chains} runs` : ""}
       </p>
+      {release && (
+        <p className="small release-line" data-testid="profile-release">
+          <span className="muted">Release: </span>
+          {Object.entries(release.counts)
+            .map(([tier, n]) => `${n} ${tier}`)
+            .join(", ")}{" "}
+          interferograms.{" "}
+          <span className="muted">{release.notes.join(" ")}</span>
+        </p>
+      )}
 
       <div data-tour="profile-elevation">
         <h3>Elevation</h3>
@@ -141,9 +165,19 @@ function Result({ result }) {
           </button>
         ))}
       </div>
+      {look && (
+        <p className="small look-geometry" data-testid="look-geometry">
+          <span className="look-arrow" aria-hidden="true">
+            {look.from === "east" ? "↙" : "↘"}
+          </span>{" "}
+          The radar looks down from the <strong>{look.from}</strong>
+          {look.tilt !== null ? `, tilted about ${look.tilt}° from vertical` : ""}: along its view, + is
+          ground moving up or toward the {look.from}, − is down or away.
+        </p>
+      )}
       <p className="muted small">
         {mode === "vertical"
-          ? "Assumes vertical motion: line of sight ÷ cos(incidence angle)."
+          ? "Height change assumes the ground moved straight up or down (line of sight ÷ cos(incidence angle)); sideways motion, such as a slope sliding, would be misread."
           : "Exactly what NISAR measures: + toward the satellite, − away."}{" "}
         Relative to the line&apos;s median.
       </p>
@@ -215,6 +249,13 @@ function Result({ result }) {
           {base > index && " To is before From, so this is the change running backwards in time."}
         </p>
       )}
+      {summary && (
+        <p className="small muted" data-testid="signal-words">
+          Largest drop: {signalWords(summary.min.v, noise)}.{" "}
+          {finite(other[index]?.[summary.min.i]) &&
+            `Read ${mode === "vertical" ? "along the radar's view" : "as height change"}, the same point is ${fmtMm(other[index][summary.min.i])}.`}
+        </p>
+      )}
       <div data-tour="profile-change">
         <XYChart
           title={`${label} along the line from ${fromDate} to ${date}`}
@@ -265,8 +306,9 @@ function Result({ result }) {
           .{" "}
           {result.provenance_warnings?.map((warning) => `${warning} `)}
           Gaps between runs of pairs are bridged with a straight-line fit.{" "}
-          {pts.measured_pct}% of points measured. Elevation: Copernicus GLO-90 DEM. Provisional data,
-          good for cm-scale motion.
+          {pts.measured_pct}% of points measured. Elevation: Copernicus GLO-90 DEM.{" "}
+          {release ? "" : "Provisional data, "}good for cm-scale motion, not single buildings (each point is
+          the median of ~240 m).
         </p>
       </details>
     </>

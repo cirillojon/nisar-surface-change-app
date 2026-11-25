@@ -18,6 +18,8 @@ from urllib.parse import urlsplit
 
 import requests
 
+from app.maturity import assess, tier_of
+
 logger = logging.getLogger(__name__)
 
 CMR_GRANULES_URL = "https://cmr.earthdata.nasa.gov/search/granules.json"
@@ -366,7 +368,11 @@ def parse_granule(entry: dict, product: str) -> dict:
         "product": product,
         **name,
         "collection": entry.get("dataset_id"),
-        "quality": _quality(entry.get("dataset_id") or ""),
+        "quality": tier_of(entry.get("dataset_id") or ""),
+        "maturity": assess(
+            entry.get("dataset_id"), entry.get("time_start"), product=product,
+            collection=entry.get("dataset_id"), title=entry.get("title"),
+        ),
         "start": entry.get("time_start"),
         "end": entry.get("time_end"),
         "size_mb": size_mb,
@@ -446,14 +452,6 @@ def require_gslc_pair_compatible(
         raise NisarPairingError("GSLC ionosphere-correction provenance is missing or differs between products.")
     if not alignment_verified:
         raise NisarPairingError("GSLC image alignment has not been verified.")
-
-
-def _quality(dataset_id: str) -> str:
-    lowered = dataset_id.lower()
-    for label in ("validated", "provisional", "beta"):
-        if label in lowered:
-            return label
-    return "unknown"
 
 
 def _parse_polygon(polygons) -> list[list[float]] | None:

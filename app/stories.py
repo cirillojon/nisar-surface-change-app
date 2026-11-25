@@ -35,7 +35,7 @@ from functools import lru_cache
 from pathlib import Path
 from statistics import median
 
-from app import auto, chains, db, nisar
+from app import auto, chains, db, maturity, nisar
 from app.change_types import METRICS
 from app.models import Scene, Site
 
@@ -380,6 +380,8 @@ def _confidence(passes: list[dict], record: list[dict], footprint: dict | None =
     if len(modes) > 1:
         notes.append(f"These passes were collected in {len(modes)} acquisition modes ({', '.join(modes)}); "
                      "a difference between modes can look like change.")
+    release = maturity.summarize(passes)
+    notes.extend(release["notes"])
     if gaps and max(gaps) > 24:
         notes.append(f"The longest gap between passes is {max(gaps)} days, so change between them is unseen.")
     if len(passes) == 1:
@@ -390,7 +392,7 @@ def _confidence(passes: list[dict], record: list[dict], footprint: dict | None =
     return {
         "passes": len(passes), "provisional": provisional, "partial_coverage": partial,
         "modes": modes, "longest_gap_days": max(gaps) if gaps else None, "record_days": record_days,
-        "notes": notes,
+        "maturity": release, "notes": notes,
     }
 
 
