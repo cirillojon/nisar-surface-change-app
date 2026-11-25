@@ -111,6 +111,12 @@ export const startProfile = (line) => api.post("/api/nisar/profiles", { line }).
 
 export const fetchProfile = (id) => get(`/api/nisar/profiles/${id}`);
 
+/* Watch my area (app/watch.py): the id is a private link, kept in this browser (services/watches.js). */
+export const createWatch = ({ bbox, name }) => api.post("/api/watches", { bbox, name }).then((r) => r.data);
+export const fetchWatch = (id) => get(`/api/watches/${id}`);
+export const checkWatch = (id) => api.post(`/api/watches/${id}/check`).then((r) => r.data);
+export const deleteWatch = (id) => api.delete(`/api/watches/${id}`).then(() => null);
+
 /**
  * One SME2 granule rendered over `bbox`: { date, quality, values,
  * valid_pct, images: { backscatter, soil_moisture } } (image paths are

@@ -308,3 +308,27 @@ first). It needs the `EARTHDATA_TOKEN` secret (§6).
 | "Check the stories" fails | A story's text no longer matches its numbers: fix the template in `pipeline/publish.py`, or retract the story. |
 | The PR doesn't run CI | `NISAR_WATCH_TOKEN` isn't set; push an empty commit to the branch or close and reopen the PR. |
 | A place is never published | `python -m pipeline detect` and the PR summary show each candidate's reason (pending, spike, area-wide, passing change…). |
+
+## 10. Watch my area
+
+Anyone can ask the server to watch an area they drew: **Investigate → draw an
+area → Watch this area**. It opens `/watch/<id>`, a private link that this
+browser remembers (`/watch` lists them).
+
+- **Same detectors, different home.** A check runs `pipeline.ingest` and
+  `pipeline.detect` exactly as above on one box (up to 30 km across; up to
+  60 km is clipped to its central 30 km). Results are not committed: a
+  person's area never reaches the repository. They live on the backend under
+  `DATA_DIR/watches/<id>/` (`app/watch.py`).
+- **No scheduler.** A watch is re-checked when its page or its Atom feed
+  (`/api/watches/<id>/feed.atom`) is opened and the last check is over 12 hours
+  old. Feed readers poll, so subscribed watches stay current. For cron, run
+  `flask watch run`.
+- **The link is the key.** Whoever has it can read, subscribe to or stop the
+  watch. Nothing lists watches.
+- **Wording.** Flagged changes are "worth an expert's look", never a warning.
+  Pending ones wait for the next pass, and rejected ones are listed with the
+  detector's reason.
+- **Setup.** `EARTHDATA_TOKEN` (required), `PUBLIC_APP_URL` (the frontend, for
+  feed links) and `WATCH_MAX` (default 500) in the backend's environment. The
+  Docker image includes `pipeline/` for this.

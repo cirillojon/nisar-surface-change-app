@@ -13,6 +13,7 @@ import Home from "./platform/Home.jsx";
 import NotFound from "./platform/NotFound.jsx";
 import { watchScrollbars } from "./platform/scrollbars.js";
 import TopBar from "./platform/TopBar.jsx";
+import WatchPage from "./platform/WatchPage.jsx";
 import WorkspaceHost from "./platform/WorkspaceHost.jsx";
 import { isTyping, modalOpen } from "./services/keys.js";
 import { createQueryClient } from "./services/queryClient.js";
@@ -122,6 +123,8 @@ export default function App() {
                       <Route path="/docs/:tabId" element={<DocsLayout />} />
                       <Route path="/docs/:tabId/:slug" element={<DocsLayout />} />
                       <Route path="/brief/:slug" element={<BriefPage />} />
+                      <Route path="/watch" element={<WatchPage />} />
+                      <Route path="/watch/:id" element={<WatchPage />} />
                       <Route path="*" element={<NotFound />} />
                     </Routes>
                     <PageScroll scrollbars={scrollbars} />

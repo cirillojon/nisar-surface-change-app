@@ -159,6 +159,8 @@ def create_app():
     app.register_blueprint(openapi_blueprint, url_prefix="/api")
     from app.routes.stories import stories_blueprint
     app.register_blueprint(stories_blueprint, url_prefix="/api")
+    from app.routes.watch import watch_blueprint
+    app.register_blueprint(watch_blueprint, url_prefix="/api")
     # The agent tool registry (/api/tools, which the MCP server wraps) is
     # read-only and needs no API key: on unless ENABLE_MCP=0. The AI
     # assistant calls Claude and is off unless ENABLE_AI=1.

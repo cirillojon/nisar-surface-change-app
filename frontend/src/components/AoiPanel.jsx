@@ -1,4 +1,5 @@
 import GranulePanel from "./GranulePanel.jsx";
+import WatchButton from "./WatchButton.jsx";
 
 /** Approximate width × height of a bbox in km. */
 function sizeKm([minLon, minLat, maxLon, maxLat]) {
@@ -45,6 +46,7 @@ export default function AoiPanel({
           Use Draw area to choose a larger or more precise region.
         </p>
       )}
+      <WatchButton bbox={aoi.bbox} name={aoi.label} />
       {children}
 
       <GranulePanel

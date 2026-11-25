@@ -21,6 +21,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # App source. app/data/ (sites, observations, scene images) ships in the
 # image and is loaded into SQLite on every boot.
 COPY app/ ./app/
+# NISAR Watch's ingest and detectors, reused by user watches (app/watch.py).
+COPY pipeline/ ./pipeline/
 COPY bin/ ./bin/
 COPY app.py ./
 

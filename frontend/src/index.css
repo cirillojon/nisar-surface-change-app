@@ -1186,6 +1186,7 @@ code {
 }
 .badge-flag {
   text-transform: none;
+  white-space: nowrap;
   background: transparent;
   border: 1px dashed var(--border, var(--fg-muted));
 }

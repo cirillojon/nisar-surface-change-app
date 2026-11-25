@@ -27,6 +27,7 @@ import {
   fetchStories,
   fetchStory,
   fetchStoryFeed,
+  fetchWatch,
   searchGranules,
   searchPlaces,
   startProfile,
@@ -153,4 +154,20 @@ export const orbitQuery = ({ start, end, step = 60 }) =>
     queryKey: ["orbit", start, end, step],
     queryFn: () => fetchOrbit({ start, end, step }),
     enabled: Boolean(start && end),
+  });
+
+// A watch's page asks again this often while a check is queued or running.
+export const WATCH_POLL_MS = 5000;
+
+/** One watch (app/watch.py): its passes, the detectors' candidates, its log and check status. */
+export const watchQuery = (id) =>
+  queryOptions({
+    queryKey: ["watch", id],
+    queryFn: () => fetchWatch(id),
+    enabled: Boolean(id),
+    staleTime: 0,
+    refetchInterval: (query) => {
+      const state = query.state.data?.status?.state;
+      return state === "queued" || state === "running" ? WATCH_POLL_MS : false;
+    },
   });

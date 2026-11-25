@@ -238,5 +238,19 @@ def nisar_check_schema():
     sys.exit(1)
 
 
+watch_cli = AppGroup("watch", help="User watches (app/watch.py).")
+
+
+@watch_cli.command("run")
+@click.option("--limit", type=int, default=None, help="Check at most this many watches.")
+def watch_run(limit):
+    """Check every watch whose last check is older than REFRESH_HOURS (for cron)."""
+    from app import watch
+
+    done = watch.run_due(limit=limit)
+    click.echo(f"Checked {len(done)} watch(es).")
+
+
 def register_cli(app):
     app.cli.add_command(nisar_cli)
+    app.cli.add_command(watch_cli)

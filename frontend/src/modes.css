@@ -1714,3 +1714,120 @@
   transform: translate(12px, -50%);
   box-shadow: 0 2px 8px var(--map-control-shadow);
 }
+
+/* ── Watch my area (/watch, /watch/<id>; WatchButton in the area panel) ── */
+.watch-cta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  margin: 8px 0 12px;
+}
+.watch-page h1 {
+  margin: 2px 0 6px;
+}
+.watch-page h2 {
+  font-size: 1.05rem;
+  margin: 26px 0 10px;
+}
+.watch-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.watch-disclaimer {
+  padding: 8px 12px;
+  border-left: 3px solid var(--warning);
+  background: var(--warning-soft);
+  border-radius: 4px;
+}
+.watch-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.watch-pulse {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: watch-pulse 1.4s ease-in-out infinite;
+}
+@keyframes watch-pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .watch-pulse {
+    animation: none;
+  }
+}
+.watch-candidates,
+.watch-passes,
+.watch-log,
+.watch-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+.watch-candidate {
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--card-radius, 8px);
+}
+.watch-candidate p {
+  margin: 4px 0 0;
+}
+.watch-accepted {
+  border-color: var(--accent);
+}
+.watch-tag {
+  display: inline-block;
+  margin-right: 8px;
+  padding: 1px 6px;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+  background: var(--bg-elevated);
+  color: var(--fg-muted);
+}
+.watch-tag-accepted {
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.watch-tag-pending {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.watch-passes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(132px, 1fr));
+  gap: 12px;
+}
+.watch-passes li {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.watch-passes img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  border-radius: 6px;
+  background: var(--bg-elevated);
+}
+.watch-log li {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.watch-log-change {
+  font-weight: 600;
+}
+.watch-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}

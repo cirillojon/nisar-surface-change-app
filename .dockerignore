@@ -10,7 +10,6 @@ frontend/
 # Not needed at runtime
 tests/
 scripts/
-pipeline/
 mcp_server/
 docs/
 notes/

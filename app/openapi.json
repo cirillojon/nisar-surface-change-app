@@ -64,6 +64,10 @@
     {
       "name": "Assistant",
       "description": "The AI assistant that answers questions with the platform's own tools and docs."
+    },
+    {
+      "name": "Watches",
+      "description": "Watch my area: re-check a drawn box on every NISAR pass with NISAR Watch's detectors. Informational, not a warning. A watch's id is its only key."
     }
   ],
   "paths": {
@@ -2171,6 +2175,244 @@
           },
           "400": {
             "description": "Bad box or dates."
+          }
+        }
+      }
+    },
+    "/api/watches": {
+      "post": {
+        "tags": [
+          "Watches"
+        ],
+        "operationId": "createWatch",
+        "summary": "Watch an area",
+        "description": "Start watching a box. Boxes up to 30 km across are watched whole, 30-60 km ones by their central 30 km, larger ones are rejected. The first check starts in the background. Needs `EARTHDATA_TOKEN` on the server.",
+        "x-rate-limit": "10 per hour",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "bbox"
+                ],
+                "properties": {
+                  "bbox": {
+                    "type": "array",
+                    "items": {
+                      "type": "number"
+                    },
+                    "minItems": 4,
+                    "maxItems": 4,
+                    "description": "[minLon, minLat, maxLon, maxLat]"
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 80
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The watch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "`id`, `name`, `area`, `passes` (each with `image_url`), `candidates` (each with `status` accepted|pending|rejected, `headline`, `explanation`), `log`, `status`, `disclaimer`, `feed_url`."
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/BadRequest"
+          },
+          "503": {
+            "description": "No Earthdata Login on the server, or too many watches."
+          }
+        }
+      }
+    },
+    "/api/watches/{wid}": {
+      "get": {
+        "tags": [
+          "Watches"
+        ],
+        "operationId": "getWatch",
+        "summary": "Get a watch",
+        "description": "Passes checked, the detectors' candidates with reasons, history and check status. Starts a check when the last one is over 12 hours old.",
+        "x-rate-limit": "120 per minute",
+        "parameters": [
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "description": "The watch's private `id` from `POST /api/watches`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "9JWxhpkaTkWkHuF1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The watch.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "`id`, `name`, `area`, `passes` (each with `image_url`), `candidates` (each with `status` accepted|pending|rejected, `headline`, `explanation`), `log`, `status`, `disclaimer`, `feed_url`."
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Watches"
+        ],
+        "operationId": "deleteWatch",
+        "summary": "Stop watching",
+        "description": "Deletes the watch, its history and images.",
+        "x-rate-limit": "30 per minute",
+        "parameters": [
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "description": "The watch's private `id` from `POST /api/watches`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "9JWxhpkaTkWkHuF1"
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Deleted."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/watches/{wid}/check": {
+      "post": {
+        "tags": [
+          "Watches"
+        ],
+        "operationId": "checkWatch",
+        "summary": "Check a watch now",
+        "description": "Queues a check unless one is queued or running.",
+        "x-rate-limit": "6 per hour",
+        "parameters": [
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "description": "The watch's private `id` from `POST /api/watches`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "9JWxhpkaTkWkHuF1"
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "`{state}` of the check."
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/watches/{wid}/feed.atom": {
+      "get": {
+        "tags": [
+          "Watches"
+        ],
+        "operationId": "watchFeed",
+        "summary": "A watch's Atom feed",
+        "description": "What happened, newest first: passes checked, changes flagged or waiting for the next pass. Fetching it starts a check when the last one is old.",
+        "x-rate-limit": "60 per minute",
+        "parameters": [
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "description": "The watch's private `id` from `POST /api/watches`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "9JWxhpkaTkWkHuF1"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Atom feed.",
+            "content": {
+              "application/atom+xml": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          }
+        }
+      }
+    },
+    "/api/watches/{wid}/files/{rel}": {
+      "get": {
+        "tags": [
+          "Watches"
+        ],
+        "operationId": "watchFile",
+        "summary": "A watched pass's image",
+        "description": "The `image_url` / `hh_url` of a pass (WebP false color, or the 8-bit HH layer).",
+        "x-rate-limit": "600 per minute",
+        "parameters": [
+          {
+            "name": "wid",
+            "in": "path",
+            "required": true,
+            "description": "The watch's private `id` from `POST /api/watches`.",
+            "schema": {
+              "type": "string"
+            },
+            "example": "9JWxhpkaTkWkHuF1"
+          },
+          {
+            "name": "rel",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The image.",
+            "content": {
+              "image/webp": {},
+              "image/png": {}
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
           }
         }
       }
