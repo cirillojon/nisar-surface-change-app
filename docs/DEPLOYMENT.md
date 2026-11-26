@@ -79,6 +79,19 @@ Until it exists the workflow skips itself. For the frontend, give the
 `future` branch its own Vercel domain and set `VITE_API_BASE_URL` to
 `https://nisar-surface-change-app-future.fly.dev` for that environment.
 
+What then happens on its own:
+
+- NISAR Watch (daily) and the coverage map refresh (weekly) open their
+  data PRs against `future`. Merging one pushes to `future`, which
+  redeploys this app (data lives under `app/`, so the path filter matches)
+  and rebuilds the `future` Vercel preview.
+- [`sme2-prewarm.yml`](../.github/workflows/sme2-prewarm.yml) prewarms this
+  app's SME2 cache too, using `FLY_API_TOKEN_FUTURE`.
+- Scheduled and manually run workflows only start from the default branch,
+  so these workflow files are kept identical on `main` and `future`.
+  Their steps check out `future`, so the pipeline code that runs is
+  `future`'s. Change them on both branches together.
+
 ## How deploys work
 
 Push to `main`:

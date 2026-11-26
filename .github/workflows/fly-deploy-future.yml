@@ -42,7 +42,8 @@ jobs:
   deploy:
     name: Deploy to Fly.io
     needs: check
-    if: needs.check.outputs.enabled == 'true'
+    # Manual runs default to main, which has no fly.future.toml.
+    if: needs.check.outputs.enabled == 'true' && github.ref == 'refs/heads/future'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

@@ -19,7 +19,8 @@ research.
    ├─ 5. test      tests/test_pipeline.py, test_stories.py, test_landchange.py
    └─ 6. PR        data/auto branch → PR into the base branch (`future`
                    until it is merged into main, then main); a person merges
-                   it → main → fly-deploy.yml → live in the Latest feed
+                   it → future → fly-deploy-future.yml (staging), or
+                   main → fly-deploy.yml → live in the Latest feed
 ```
 
 Git stays the database: everything the job learns is a JSON file or an
